@@ -1,0 +1,8 @@
+torch
+torchaudio
+torchvision
+openai-whisper
+pyannote.audio
+ffmpeg-python
+flask
+requests
