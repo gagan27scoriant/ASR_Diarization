@@ -57,11 +57,7 @@ def process_audio():
         if not data or "filename" not in data:
             return jsonify({"error": "Filename missing"}), 400
 
-        filename = data["filename"].strip()
-
-        # Prevent path injection
-        filename = os.path.basename(filename)
-
+        filename = os.path.basename(data["filename"].strip())
         audio_path = os.path.join(AUDIO_FOLDER, filename)
 
         if not os.path.exists(audio_path):
@@ -71,10 +67,11 @@ def process_audio():
         print("Processing:", filename)
 
         # ----------------------------
-        # ASR
+        # ASR (Faster-Whisper)
         # ----------------------------
         print("→ Running transcription...")
-        transcription = transcribe(asr_model, audio_path)
+        # Faster-Whisper returns a list of segments
+        transcription_segments = transcribe(asr_model, audio_path)
 
         # ----------------------------
         # Diarization
@@ -86,7 +83,7 @@ def process_audio():
         # Speaker Mapping
         # ----------------------------
         print("→ Mapping speakers...")
-        final_output = map_speakers(transcription, diarization_result)
+        final_output = map_speakers(transcription_segments, diarization_result)
 
         # ----------------------------
         # Summary
@@ -115,7 +112,6 @@ def process_audio():
 
         print("✅ Completed:", filename)
 
-        # IMPORTANT → return exactly what UI expects
         return jsonify({
             "transcript": final_output,
             "summary": summary
@@ -124,7 +120,6 @@ def process_audio():
     except Exception as e:
         print("❌ Error:", e)
         return jsonify({"error": str(e)}), 500
-
 
 # ----------------------------
 # Run Server

@@ -1,10 +1,9 @@
-def map_speakers(transcription, diarization_output, min_overlap_ratio=0.3):
+def map_speakers(transcription_segments, diarization_output, min_overlap_ratio=0.3):
     """
-    Improved speaker mapping:
-    - Uses overlap ratio (not just raw overlap)
-    - Handles no-overlap cases
-    - Uses nearest speaker fallback
-    - More stable mapping
+    Speaker mapping for Faster-Whisper:
+    - transcription_segments: list of dicts [{'start', 'end', 'text'}, ...]
+    - diarization_output: output from diarization pipeline
+    - Returns list of segments with mapped speakers
     """
 
     final_output = []
@@ -12,7 +11,7 @@ def map_speakers(transcription, diarization_output, min_overlap_ratio=0.3):
     # Get diarization tracks
     diarization = diarization_output.speaker_diarization
 
-    # Convert diarization to simple list (faster + easier)
+    # Convert diarization to simple list
     diar_segments = []
     for turn, _, speaker in diarization.itertracks(yield_label=True):
         diar_segments.append({
@@ -21,10 +20,11 @@ def map_speakers(transcription, diarization_output, min_overlap_ratio=0.3):
             "speaker": speaker
         })
 
-    # Sort diarization segments by time
+    # Sort diarization segments by start time
     diar_segments.sort(key=lambda x: x["start"])
 
-    for segment in transcription["segments"]:
+    # Loop over transcription segments
+    for segment in transcription_segments:
         seg_start = segment["start"]
         seg_end = segment["end"]
         seg_text = segment["text"]
@@ -45,16 +45,14 @@ def map_speakers(transcription, diarization_output, min_overlap_ratio=0.3):
                     best_ratio = ratio
                     best_speaker = d["speaker"]
 
-        # ---------- If no good overlap → use nearest speaker ----------
+        # ---------- If no good overlap → nearest speaker ----------
         if best_ratio < min_overlap_ratio:
             min_distance = float("inf")
+            seg_center = (seg_start + seg_end) / 2
 
             for d in diar_segments:
-                # distance from segment center
-                seg_center = (seg_start + seg_end) / 2
                 diar_center = (d["start"] + d["end"]) / 2
                 distance = abs(seg_center - diar_center)
-
                 if distance < min_distance:
                     min_distance = distance
                     best_speaker = d["speaker"]

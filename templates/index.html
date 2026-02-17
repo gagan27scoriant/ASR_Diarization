@@ -32,6 +32,39 @@ body{
   background-position: center;
 }
 
+/* ---------- LOADING ANIMATION ---------- */
+#loadingOverlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(11, 16, 32, 0.8);
+    backdrop-filter: blur(10px);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(124, 92, 255, 0.1);
+    border-left-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+.loading-text {
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--text);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
 /* ---------- SIDEBAR ---------- */
 .sidebar{
   width:70px; 
@@ -68,6 +101,8 @@ body{
 
 .sidebar h2 { display: none; font-size: 11px; color: var(--muted); text-transform: uppercase; margin-top: 20px; }
 .sidebar.expanded h2 { display: block; }
+.sidebar h1 { display: none; font-size: 11px; color: var(--muted); text-transform: uppercase; margin-top: 20px; font-weight: 600; }
+.sidebar.expanded h1 { display: block; }
 #renameBox { display: none; flex-direction: column; gap: 12px; }
 .sidebar.expanded #renameBox { display: flex; }
 
@@ -76,9 +111,10 @@ body{
 .rename-item input {
     background: rgba(255,255,255,0.05); border: 1px solid var(--border);
     color: white; padding: 10px; border-radius: 10px; outline: none; width: 100%;
+    font-size: 13px;
 }
 
-.sidebar-btn { display: none; width: 100%; padding: 12px; border-radius: 12px; border: none; cursor: pointer; color: white; margin-top: 10px; }
+.sidebar-btn { display: none; width: 100%; padding: 12px; border-radius: 12px; border: none; cursor: pointer; color: white; margin-top: 10px; font-size: 13px; }
 .sidebar.expanded .sidebar-btn { display: flex; align-items: center; gap: 10px; justify-content: center; font-weight: 700; }
 .finalize-btn { background: var(--accent); }
 .btn-export { background: var(--glass); border: 1px solid var(--border); }
@@ -126,10 +162,24 @@ body{
 /* PROGRESS GRAPH */
 .progress-container { width: 100%; max-width: 600px; margin: 0 auto 15px; background: rgba(255,255,255,0.03); height: 6px; border-radius: 10px; overflow: hidden; display: none; }
 .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), #10b981); transition: width 0.4s; }
+
+.summary-card h3 {
+  margin-top: 18px;
+  margin-bottom: 8px;
+  font-size: 18px;
+  font-weight: 900;
+  color: #000;
+}
+
 </style>
 </head>
 
 <body>
+
+<div id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text">GENERATING TRANSCRIPTION...</div>
+</div>
 
 <div class="sidebar" id="sidebar">
     <div class="sidebar-resizer" id="resizer"></div>
@@ -137,12 +187,12 @@ body{
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
     </button>
     <div id="sidebarContent">
-        <h2 id="sideHeading" style="display:none;">Speaker Mapping</h2>
+        <h1 id="sideHeading" style="display:none;">Speaker Mapping</h1>
         <div id="renameBox"></div>
         <button class="sidebar-btn finalize-btn" onclick="applyNames()">Finalize Names</button>
-        <h2>Export Options</h2>
-        <button class="sidebar-btn btn-export" onclick="exportData('word')">Save as Word</button>
-        <button class="sidebar-btn btn-export" onclick="exportData('pdf')">Save as PDF</button>
+        <h1>Export Options</h1>
+        <button class="sidebar-btn btn-export" onclick="exportData('word')">Word</button>
+        <button class="sidebar-btn btn-export" onclick="exportData('pdf')">PDF</button>
     </div>
 </div>
 
@@ -177,6 +227,8 @@ let uniqueSpeakers = new Set();
 let speakerColors = {};
 let currentSummary = "";
 let lastAudioFile = "";
+let speakerNameMap = {}; 
+let speakerOrderMap = {}; 
 
 function toggleSidebar() { document.getElementById("sidebar").classList.toggle("expanded"); }
 
@@ -201,7 +253,13 @@ function formatTime(seconds) {
 }
 
 function getSpeakerColor(idx) {
-    const palette = [{ main: '#7c5cff', glow: 'rgba(124, 92, 255, 0.1)' }, { main: '#10b981', glow: 'rgba(16, 185, 129, 0.1)' }, { main: '#f59e0b', glow: 'rgba(245, 158, 11, 0.1)' }, { main: '#3b82f6', glow: 'rgba(59, 130, 246, 0.1)' }];
+    const palette = [
+        { main: '#7c5cff', glow: 'rgba(124, 92, 255, 0.1)' },   
+        { main: '#10b981', glow: 'rgba(16, 185, 129, 0.1)' },   
+        { main: '#f59e0b', glow: 'rgba(245, 158, 11, 0.1)' },   
+        { main: '#3b82f6', glow: 'rgba(59, 130, 246, 0.1)' },   
+        { main: '#ec4899', glow: 'rgba(236, 72, 153, 0.1)' }    
+    ];
     return palette[idx % palette.length];
 }
 
@@ -211,56 +269,104 @@ async function processAudio() {
     if (!filename) return;
     lastAudioFile = filename;
     
-    // Search Bar Vanishes
+    // Show Loader and hide input
+    document.getElementById("loadingOverlay").style.display = "flex";
     document.getElementById("inputGroup").classList.add("hidden");
-
-    document.getElementById("pContainer").style.display = "block";
-    document.getElementById("pBar").style.width = "100%";
-    const chat = document.getElementById("chat");
-    const botMsg = document.createElement("div");
-    botMsg.className = "message-row";
-    botMsg.innerHTML = `<div class="avatar" style="background: var(--accent)">AI</div><div class="content">Processing Audio: <b>${filename}</b>... ⏳</div>`;
-    chat.appendChild(botMsg);
-    chat.scrollTop = chat.scrollHeight;
 
     try {
         const response = await fetch("/process", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ filename: filename }) });
         const result = await response.json();
-        document.getElementById("pContainer").style.display = "none";
+        
         transcriptData = result.transcript;
         currentSummary = result.summary;
+        
         uniqueSpeakers.clear();
-        transcriptData.forEach(seg => uniqueSpeakers.add(seg.speaker));
-        const speakerArray = Array.from(uniqueSpeakers);
-        speakerArray.forEach((s, i) => speakerColors[s] = getSpeakerColor(i));
+        speakerNameMap = {};
+        speakerOrderMap = {};
+        
+        let speakerIndex = 0;
+        let tempSpeakerOrder = [];
+        
+        transcriptData.forEach(seg => {
+            if (!uniqueSpeakers.has(seg.speaker)) {
+                uniqueSpeakers.add(seg.speaker);
+                speakerOrderMap[seg.speaker] = speakerIndex;
+                tempSpeakerOrder.push(seg.speaker);
+                speakerIndex++;
+            }
+            if (!speakerNameMap[seg.speaker]) {
+                speakerNameMap[seg.speaker] = seg.speaker;
+            }
+        });
+        
+        tempSpeakerOrder.forEach((speaker, idx) => {
+            speakerColors[speaker] = getSpeakerColor(idx);
+        });
         
         renderChatDelayed();
         setupRenameSidebar();
         document.getElementById("sumBtn").style.display = "flex";
-    } catch (e) { document.getElementById("pContainer").style.display = "none"; alert("Connection failed."); }
+    } catch (e) { 
+        document.getElementById("loadingOverlay").style.display = "none";
+        alert("Connection failed."); 
+    }
 }
 
 async function renderChatDelayed() {
+    // Hide Loader once rendering starts
+    document.getElementById("loadingOverlay").style.display = "none";
+    
     const chat = document.getElementById("chat");
     const old = chat.querySelectorAll(".transcription");
     old.forEach(r => r.remove());
-    for (const seg of transcriptData) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+
+    if (transcriptData.length === 0) return;
+
+    const groupedTranscript = [];
+    let currentGroup = null;
+
+    transcriptData.forEach(seg => {
+        if (currentGroup && currentGroup.speaker === seg.speaker) {
+            currentGroup.texts.push(seg.text);
+            currentGroup.end = seg.end;
+        } else {
+            if (currentGroup) groupedTranscript.push(currentGroup);
+            currentGroup = {
+                speaker: seg.speaker,
+                texts: [seg.text],
+                start: seg.start,
+                end: seg.end
+            };
+        }
+    });
+    if (currentGroup) groupedTranscript.push(currentGroup);
+
+    for (const group of groupedTranscript) {
         const row = document.createElement("div");
         row.className = "message-row transcription";
-        const colorSet = speakerColors[seg.speaker];
-        const ts = `[${formatTime(seg.start || 0)} - ${formatTime(seg.end || 0)}]`;
-        row.innerHTML = `<div class="avatar" style="background: ${colorSet.main}">${seg.speaker[0]}</div><div class="content" style="border-left: 4px solid ${colorSet.main}; background: ${colorSet.glow}"><span style="font-size:10px; font-weight:900; color:${colorSet.main}; text-transform:uppercase;">${seg.speaker}</span><br>${seg.text}<span style="display:block; font-size:10px; color:var(--muted); margin-top:5px; font-weight:600;">${ts}</span></div>`;
+        const colorSet = speakerColors[group.speaker];
+        const ts = `[${formatTime(group.start || 0)} - ${formatTime(group.end || 0)}]`;
+        
+        const combinedText = group.texts.length > 1 
+            ? group.texts.map(t => `• ${t}`).join('<br>') 
+            : group.texts[0];
+
+        row.innerHTML = `<div class="avatar" style="background: ${colorSet.main}">${group.speaker[0]}</div><div class="content" style="border-left: 4px solid ${colorSet.main}; background: ${colorSet.glow}"><span style="font-size:10px; font-weight:900; color:${colorSet.main}; text-transform:uppercase;">${group.speaker}</span><br>${combinedText}<span style="display:block; font-size:10px; color:var(--muted); margin-top:5px; font-weight:600;">${ts}</span></div>`;
         chat.appendChild(row);
-        chat.scrollTop = chat.scrollHeight;
     }
+    chat.scrollTop = chat.scrollHeight;
 }
 
 function setupRenameSidebar() {
     const box = document.getElementById("renameBox");
     document.getElementById("sideHeading").style.display = "block";
     box.innerHTML = "";
-    uniqueSpeakers.forEach(s => {
+    
+    const sortedSpeakers = Array.from(uniqueSpeakers).sort((a, b) => {
+        return speakerOrderMap[a] - speakerOrderMap[b];
+    });
+    
+    sortedSpeakers.forEach(s => {
         const div = document.createElement("div");
         div.className = "rename-item";
         div.innerHTML = `<label>RENAME ${s}</label><input type="text" id="name_${s}" placeholder="Enter name...">`;
@@ -276,47 +382,57 @@ function applyNames() {
         const final = val || s;
         nameMap[s] = final;
         newSpeakerColors[final] = speakerColors[s];
+        speakerNameMap[s] = final;
     });
     transcriptData = transcriptData.map(seg => ({ ...seg, speaker: nameMap[seg.speaker] }));
     speakerColors = newSpeakerColors;
     uniqueSpeakers = new Set(Object.values(nameMap));
-    const chat = document.getElementById("chat");
-    chat.querySelectorAll(".transcription").forEach(r => r.remove());
-    transcriptData.forEach(seg => {
-        const row = document.createElement("div");
-        row.className = "message-row transcription";
-        const colorSet = speakerColors[seg.speaker];
-        const ts = `[${formatTime(seg.start || 0)} - ${formatTime(seg.end || 0)}]`;
-        row.innerHTML = `<div class="avatar" style="background: ${colorSet.main}">${seg.speaker[0]}</div><div class="content" style="border-left: 4px solid ${colorSet.main}; background: ${colorSet.glow}"><span style="font-size:10px; font-weight:900; color:${colorSet.main}">${seg.speaker}</span><br>${seg.text}<span style="display:block; font-size:10px; color:var(--muted); margin-top:5px; font-weight:600;">${ts}</span></div>`;
-        chat.appendChild(row);
-    });
+    
+    renderChatDelayed();
     setupRenameSidebar();
 }
 
 function showSummary() {
     if (!currentSummary) return;
+
     const chat = document.getElementById("chat");
     const row = document.createElement("div");
     row.className = "message-row transcription";
 
-    // Standard Clean Formatting as requested
-    const formatted = currentSummary
-        .replace(/\*\*Summary:\*\*/, '<b>**Summary:**</b>')
-        .replace(/\*\*The First Paragraph:\*\*/, '<br><br><b>**The First Paragraph:**</b>')
-        .replace(/\*\*The Second Paragraph:\*\*/, '<br><br><b>**The Second Paragraph:**</b>')
-        .replace(/\*\*The Third Paragraph:\*\*/, '<br><br><b>**The Third Paragraph:**</b>')
-        .replace(/\*\*The Fourth Paragraph:\*\*/, '<br><br><b>**The Fourth Paragraph:**</b>')
-        .replace(/\*\*The Fifth Paragraph:\*\*/, '<br><br><b>**The Fifth Paragraph:**</b>')
-        .replace(/\*\*The Sixth Paragraph:\*\*/, '<br><br><b>**The Sixth Paragraph:**</b>');
+    function escapeHTML(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    let updatedSummary = currentSummary;
+    const sortedEntries = Object.entries(speakerNameMap).sort((a, b) => b[0].length - a[0].length);
+    
+    for (let [originalSpeaker, finalizedName] of sortedEntries) {
+        const regex = new RegExp('\\b' + originalSpeaker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'gi');
+        updatedSummary = updatedSummary.replace(regex, finalizedName);
+    }
+
+    let formatted = escapeHTML(updatedSummary)
+        .replace(/\*\*(.*?)\*\*/g, "$1")
+        .replace(/^One meaningfull paragraph Summary:/gim, "<h3>📌 Minutes of Meeting Summaried </h3>")
+        .replace(/^\* /gm, "• ")
+        .replace(/^- /gm, "• ")
+        .replace(/\n/g, "<br>");
 
     row.innerHTML = `
         <div class="avatar" style="background:#10b981">Σ</div>
-        <div class="content summary-card" id="sumCard">
-            <div class="copy-sum-icon" onclick="copySummary()" title="Copy Summary">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        <div class="content summary-card" id="sumCard" style="
+            padding:16px; border-radius:12px; background:#111827; color:white; line-height:1.6; position:relative;">
+            <div class="copy-sum-icon" onclick="copySummary()" title="Copy Summary"
+                style="position:absolute;top:10px;right:10px;cursor:pointer;opacity:0.7">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
             </div>
             ${formatted}
-        </div>`;
+        </div>
+    `;
+
     chat.appendChild(row);
     chat.scrollTop = chat.scrollHeight;
 }
@@ -327,15 +443,79 @@ function copySummary() {
     alert("Summary copied to clipboard!");
 }
 
+// function exportData(format) {
+//     let updatedSummary = currentSummary;
+//     const sortedEntries = Object.entries(speakerNameMap).sort((a, b) => b[0].length - a[0].length);
+//     for (let [originalSpeaker, finalizedName] of sortedEntries) {
+//         const regex = new RegExp('\\b' + originalSpeaker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'gi');
+//         updatedSummary = updatedSummary.replace(regex, finalizedName);
+//     }
+    
+//     let content = `CONVERSATION SUMMARY:\n${updatedSummary}\n\nTRANSCRIPT:\n`;
+//     transcriptData.forEach(seg => { 
+//         content += `[${formatTime(seg.start || 0)} - ${formatTime(seg.end || 0)}] [${seg.speaker}]: ${seg.text}\n\n`; 
+//     });
+//     const blob = new Blob([content], { type: "text/plain" });
+//     const link = document.createElement("a");
+//     link.href = URL.createObjectURL(blob);
+//     link.download = `${lastAudioFile.split('.')[0] || 'ASR_Export'}.${format === 'word' ? 'docx' : 'pdf'}`;
+//     link.click();
+// }
+
 function exportData(format) {
-    let content = `CONVERSATION SUMMARY:\n${currentSummary}\n\nTRANSCRIPT:\n`;
-    transcriptData.forEach(seg => { content += `[${formatTime(seg.start || 0)} - ${formatTime(seg.end || 0)}] [${seg.speaker}]: ${seg.text}\n\n`; });
-    const blob = new Blob([content], { type: "text/plain" });
+    if (!transcriptData || transcriptData.length === 0) return;
+
+    // Unique speakers for ATTENDEES
+    const uniqueSpeakers = [...new Set(transcriptData.map(seg => seg.speaker.toUpperCase()))];
+
+    // Build content
+    let content = `<p><b>ATTENDEES:</b></p><ul>`;
+    uniqueSpeakers.forEach(speaker => {
+        content += `<li>${speaker}</li>`;
+    });
+    content += `</ul><p><b>TRANSCRIPTS</b></p>`;
+
+    // Group consecutive lines by speaker
+    const groupedTranscript = [];
+    let currentGroup = null;
+
+    transcriptData.forEach(seg => {
+        if (currentGroup && currentGroup.speaker === seg.speaker) {
+            currentGroup.texts.push(seg.text);
+            currentGroup.end = seg.end;
+        } else {
+            if (currentGroup) groupedTranscript.push(currentGroup);
+            currentGroup = { speaker: seg.speaker, texts: [seg.text], start: seg.start, end: seg.end };
+        }
+    });
+    if (currentGroup) groupedTranscript.push(currentGroup);
+
+    // Build transcript blocks
+    groupedTranscript.forEach(group => {
+        content += `<p><b>${group.speaker.toUpperCase()}</b></p><ul>`;
+        group.texts.forEach(text => {
+            content += `<li>${text}</li>`;
+        });
+        content += `</ul><p><span style="color:red">[${formatTime(group.start || 0)} - ${formatTime(group.end || 0)}]</span></p>`;
+    });
+
+    // Create Word-compatible Blob
+    const preamble = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' 
+              xmlns:w='urn:schemas-microsoft-com:office:word' 
+              xmlns='http://www.w3.org/TR/REC-html40'>
+        <head><meta charset='utf-8'><title>ASR Export</title></head>
+        <body>${content}</body></html>
+    `;
+
+    const blob = new Blob([preamble], { type: "application/msword" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `${lastAudioFile.split('.')[0] || 'ASR_Export'}.${format === 'word' ? 'docx' : 'pdf'}`;
+    link.download = `${lastAudioFile.split('.')[0] || 'ASR_Export'}.doc`;
     link.click();
 }
+
+
 </script>
 </body>
 </html>

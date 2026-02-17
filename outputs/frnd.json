@@ -1,0 +1,155 @@
+{
+    "transcript": [
+        {
+            "speaker": "SPEAKER_00",
+            "start": 0.0,
+            "end": 2.0,
+            "text": "You told me I was the only one."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2.0,
+            "end": 4.0,
+            "text": "LAUGHTER"
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 6.0,
+            "end": 8.0,
+            "text": "All right, look, that's it."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 8.0,
+            "end": 10.0,
+            "text": "I don't think we should see each other anymore, all right?"
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 10.0,
+            "end": 12.0,
+            "text": "Look, I know I should have told you this a long time ago,"
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 12.0,
+            "end": 15.0,
+            "text": "but I am not Drake Remora, okay?"
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 15.0,
+            "end": 17.0,
+            "text": "I'm not even a doctor. I'm an actor."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 17.0,
+            "end": 19.0,
+            "text": "I just pretend to be a doctor."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 19.0,
+            "end": 23.0,
+            "text": "Oh my God. Do the people at the hospital know about this?"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 23.0,
+            "end": 25.0,
+            "text": "LAUGHTER"
+        },
+        {
+            "speaker": "SPEAKER_05",
+            "start": 25.0,
+            "end": 27.0,
+            "text": "I'm not Drake."
+        },
+        {
+            "speaker": "SPEAKER_05",
+            "start": 27.0,
+            "end": 29.0,
+            "text": "That's right. He's not Drake."
+        },
+        {
+            "speaker": "SPEAKER_05",
+            "start": 29.0,
+            "end": 31.0,
+            "text": "He's..."
+        },
+        {
+            "speaker": "SPEAKER_05",
+            "start": 31.0,
+            "end": 33.0,
+            "text": "Huns Remora, Drake's evil twin."
+        },
+        {
+            "speaker": "SPEAKER_05",
+            "start": 33.0,
+            "end": 35.0,
+            "text": "LAUGHTER"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 38.0,
+            "end": 40.0,
+            "text": "Is this true?"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 40.0,
+            "end": 43.0,
+            "text": "Yes, yes, it is true."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 43.0,
+            "end": 47.0,
+            "text": "And I know this because he pretended to be Drake"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 47.0,
+            "end": 49.0,
+            "text": "to sleep with me."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 49.0,
+            "end": 51.0,
+            "text": "LAUGHTER"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 55.0,
+            "end": 57.0,
+            "text": "And then he told me he would run away with me."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 57.0,
+            "end": 59.0,
+            "text": "And he did it."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 59.0,
+            "end": 61.0,
+            "text": "LAUGHTER"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 61.0,
+            "end": 64.0,
+            "text": "And you let the toilet seat up, you bastard!"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 64.0,
+            "end": 66.0,
+            "text": "LAUGHTER"
+        }
+    ],
+    "summary": "Take the input from both the conversation identifying the speakers and make it a small summary where a normal human can understand. For example: \"I don't think we should see each other anymore, all right? Look, I am not Drake Remora, okay? I'm an actor. I just pretend to be a doctor\""
+}

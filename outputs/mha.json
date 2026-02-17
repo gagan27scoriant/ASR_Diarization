@@ -1,0 +1,3953 @@
+{
+    "transcript": [
+        {
+            "speaker": "SPEAKER_03",
+            "start": 0.0,
+            "end": 9.84,
+            "text": "C and ATR and connecting to around 38 state units. So that's what we are discussing to have a"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 9.84,
+            "end": 18.72,
+            "text": "Sovereign Cloud platform. Right now the DCTR sites will be mostly in Bangalore and a D kind of thing."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 18.72,
+            "end": 26.0,
+            "text": "And each will be hosting around 400 servers each of the world's socket and 256 star-wide of"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 26.0,
+            "end": 38.08,
+            "text": "Emory, multiple GPUs of A100 or H100 kind of. So those are the requirements and 38 edge sites which"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 38.08,
+            "end": 46.72,
+            "text": "will be at the state level locations, multiple locations. And again there will be similar number of"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 46.72,
+            "end": 55.28,
+            "text": "10 to 12 servers at each of these state stations. And there should be a unified portal or dashboard"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 55.28,
+            "end": 60.800000000000004,
+            "text": "which controls the creation, deletion or lifecycle of any of these"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 62.08,
+            "end": 69.76,
+            "text": "environmental container or virtualized environments across all these sites. That's the requirement"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 69.76,
+            "end": 75.84,
+            "text": "basically of this particularly field project. So that's why we come up with this particular"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 76.08,
+            "end": 86.64,
+            "text": "proposal with kind of solutions which could run on all these know-how like these etc."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 89.76,
+            "end": 96.48,
+            "text": "So any of these environmental should be able to run environmental container and virtualization"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 96.48,
+            "end": 103.76,
+            "text": "at these sites. And the DCTR should be able to control any of these state sites. And according"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 103.76,
+            "end": 110.88000000000001,
+            "text": "to the R-back policies meaning security policies only the sites can actually collaborate with each"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 110.88000000000001,
+            "end": 117.76,
+            "text": "other only with the permissions required permissions otherwise by default no state sites can"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 118.48,
+            "end": 125.2,
+            "text": "cross-talk between any other state sites. So that's the kind of requirements at a 30,000 level"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 126.08,
+            "end": 134.48,
+            "text": "So now we will demonstrate the capability of this sovereign cloud, the features as well as how we"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 134.48,
+            "end": 142.24,
+            "text": "are going to incorporate the software along with the hardware for these particular requirements"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 142.24,
+            "end": 150.8,
+            "text": "of this green field project. I would request Manthrid to or Arshad to take a smaller"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 150.8,
+            "end": 156.08,
+            "text": "demonstration of the cloud management order platform which we are proposing."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 160.72,
+            "end": 167.60000000000002,
+            "text": "Thanks Shami. So Arshad will first give us small snippet of how the structure looks like and then"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 167.60000000000002,
+            "end": 173.36,
+            "text": "it will straight away turn into a demo of 5 minutes and then we can update around deep dive into it."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 180.8,
+            "end": 191.84,
+            "text": "Hello everyone. Am I audible? Yes. And is my speech visible? Yes."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 200.88000000000002,
+            "end": 207.28,
+            "text": "Now it's visible? Yes. Okay so this is the functional architecture of"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 211.12,
+            "end": 216.08,
+            "text": "Yes. Just allow me on there."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 224.32000000000002,
+            "end": 228.96,
+            "text": "Is it visible now? Yes. So this is a complete"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 228.96,
+            "end": 234.96,
+            "text": "classic cloud infrastructure management platform that the enable organizations to deploy and manage"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 235.04000000000002,
+            "end": 242.88,
+            "text": "and like both VM days on the continuous days workloads across the DCs that providing the marketplace"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 242.88,
+            "end": 249.92000000000002,
+            "text": "for application services. And if you see in this architecture layer layer so you can see there"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 249.92000000000002,
+            "end": 255.36,
+            "text": "multiple layers. So how we are dependent layers? The top layer, the marketplace and the"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 255.36,
+            "end": 261.92,
+            "text": "front and layer. So this is your custom of tissue layer with four main portals like the first"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 261.92,
+            "end": 267.52000000000004,
+            "text": "portalizer vendor onboarding. There is a third party vendor register as submit their applications"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 268.40000000000003,
+            "end": 273.44,
+            "text": "and application catalog marketplace dashboard and the cloud dashboard."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 276.08000000000004,
+            "end": 283.20000000000005,
+            "text": "So I just put it as exactly what we are trying to deliver here is that when we look from a sovereign"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 283.20000000000005,
+            "end": 288.88,
+            "text": "sorry it's a back to our noise at the back because I'm at AI submit as well. So"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 289.84,
+            "end": 295.44,
+            "text": "see this basically it's us are the presentation of the way we have been talking about VM days"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 295.44,
+            "end": 301.36,
+            "text": "of the world who have provided a limited infrastructure for people to consume. This gives a picture"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 301.36,
+            "end": 307.52,
+            "text": "where you can choose any of the security network company as per your requirement where"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 307.52,
+            "end": 313.68,
+            "text": "enable which ensure that all the data policies and the data results will see is available."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 313.76,
+            "end": 320.0,
+            "text": "And this structure gives a picture of that and here we work with any of the virtualization layer"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 320.0,
+            "end": 324.96,
+            "text": "underline it could be available it could be open stack. So this is because today all the"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 324.96,
+            "end": 329.84000000000003,
+            "text": "applications are running on microservices so this helps to build that particular infrastructure."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 329.84000000000003,
+            "end": 334.88,
+            "text": "Now because in our company data center you will have network security, firewall load balancer,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 334.88,
+            "end": 341.68,
+            "text": "backup and storage all those components. So this orchestration and self service portal enables"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 341.68,
+            "end": 347.04,
+            "text": "you to integrate all the components and the component will be the choice of yours because that"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 347.04,
+            "end": 355.76,
+            "text": "also is most important that it's not binding you that okay like in the case of the VM where"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 355.76,
+            "end": 360.56,
+            "text": "where they recommend okay if you have to get this five things and then only I'll make it available."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 360.56,
+            "end": 365.92,
+            "text": "This gives you a freedom of choosing all the components as per your requirement and"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 365.92,
+            "end": 371.28000000000003,
+            "text": "accordingly delivering the private sovereign cloud accurate environments which can be connected"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 371.28000000000003,
+            "end": 376.56,
+            "text": "to internally so that your GitHub you're all the core data everything decides with you there is"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 376.56,
+            "end": 382.32000000000005,
+            "text": "none more link which allows you to go outside unless and until you establish a tunnel between your own"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 382.32000000000005,
+            "end": 384.24,
+            "text": "local data centers."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 388.40000000000003,
+            "end": 390.40000000000003,
+            "text": "I shall move to demo on this one."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 391.84000000000003,
+            "end": 394.0,
+            "text": "Okay so I just start to stack that up."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 401.84000000000003,
+            "end": 408.32000000000005,
+            "text": "So so the demo basically is an access to the self service portal and orchestration layer which"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 408.32000000000005,
+            "end": 414.24,
+            "text": "has been already deployed and delivered into multiple locations in India as the outside India."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 414.88000000000005,
+            "end": 420.96000000000004,
+            "text": "What we did is what it's enabling you to create a self service portal so that every every"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 420.96000000000004,
+            "end": 428.24,
+            "text": "department sub department can create their own quota utilize it into different roles and all"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 428.48,
+            "end": 435.68,
+            "text": "data is it can see this has per your policies so it's it's a mini version of AWS that we help create"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 436.40000000000003,
+            "end": 438.40000000000003,
+            "text": "for your own domain system."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 438.40000000000003,
+            "end": 440.40000000000003,
+            "text": "I'll share over to you please."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 440.40000000000003,
+            "end": 442.40000000000003,
+            "text": "This is awesome."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 442.40000000000003,
+            "end": 447.6,
+            "text": "So I shall start with the demo as I'm sorry no one's out to go to the other policy."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 447.6,
+            "end": 449.6,
+            "text": "And it's to define that it's my rich code."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 449.6,
+            "end": 452.24,
+            "text": "So I'll just show you the dashboard."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 452.24,
+            "end": 456.64,
+            "text": "One is for the admin and the second dashboard will be get the user."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 457.2,
+            "end": 458.96,
+            "text": "If I will just talk about the R."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 458.96,
+            "end": 464.56,
+            "text": "that so you can see where you can create the tenants under tenants you can create yourself"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 464.56,
+            "end": 470.15999999999997,
+            "text": "or it will be customized like that the tenant needs the main organization and under the"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 470.15999999999997,
+            "end": 472.0,
+            "text": "organization you will get the projects."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 472.8,
+            "end": 474.8,
+            "text": "So this is the first admin dashboard."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 476.96,
+            "end": 481.76,
+            "text": "So sir when we talk about tenants or tenants meet some department"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 481.76,
+            "end": 488.96,
+            "text": "why provide your main body the main service department will pick up the main provider"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 488.96,
+            "end": 491.59999999999997,
+            "text": "and then some departments will become like tenants."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 491.59999999999997,
+            "end": 496.88,
+            "text": "So each will be allocated a quota of the virtual machines,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 496.88,
+            "end": 500.8,
+            "text": "physical machines, memories, storage everything which they can utilize."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 500.8,
+            "end": 505.2,
+            "text": "The movement there is a quota extension needed it allows what was killing but there's an"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 505.2,
+            "end": 507.44,
+            "text": "approval needed to enhance the capacity."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 507.92,
+            "end": 515.52,
+            "text": "So once you log in the admin dashboard you can see where you can create the tenants"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 515.52,
+            "end": 519.52,
+            "text": "under tenants you can create the cells or you can create projects."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 519.52,
+            "end": 526.0,
+            "text": "And if it's a dashboard you can see you can governance on your computer resources"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 526.0,
+            "end": 530.08,
+            "text": "whatever it will be VM or it will be the container platform."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 530.08,
+            "end": 534.08,
+            "text": "Similarly you have a storage you have the metronome governance."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 534.32,
+            "end": 539.44,
+            "text": "So once the admin will guess this dashboard and therefore they want to"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 539.44,
+            "end": 543.5200000000001,
+            "text": "on both the infrastructure resources like you can see in our"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 543.5200000000001,
+            "end": 549.0400000000001,
+            "text": "platforms so from here only the admin can on both the infrastructure resources."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 549.0400000000001,
+            "end": 554.5600000000001,
+            "text": "That's suppose if they have already some storage providers so they can use the storage provider"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 554.5600000000001,
+            "end": 559.76,
+            "text": "catalog and they can just on board your storage and then backup providers and whatever"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 560.24,
+            "end": 564.88,
+            "text": "existing provider if we will call the metronome providers,"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 564.88,
+            "end": 570.88,
+            "text": "all the other providers like it from the storage provider will be there so they can on board and"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 570.88,
+            "end": 576.8,
+            "text": "connect with your portal. Once your admin will be set and you have the tenants you have the"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 576.8,
+            "end": 582.8,
+            "text": "project defined then you will get the users on your portal so after log in as a user"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 583.84,
+            "end": 588.96,
+            "text": "you will see this dashboard. So in this dashboard you will log in as a user"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 589.0400000000001,
+            "end": 593.6,
+            "text": "and what are the resources will be allowed as a user they can see here."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 594.4000000000001,
+            "end": 596.32,
+            "text": "So there if you see for that dashboard."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 598.32,
+            "end": 604.64,
+            "text": "So sir I'll just add here see depending upon various department and various reasons you can"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 604.64,
+            "end": 609.36,
+            "text": "enable that when somebody is trying to let's take an example that you want somebody to access"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 609.36,
+            "end": 614.72,
+            "text": "only Delhi not Bangalore so they will be given only that much of access when somebody has to"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 614.88,
+            "end": 620.5600000000001,
+            "text": "be given across multiple locations they will be getting they will have an approval for"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 621.2,
+            "end": 627.6800000000001,
+            "text": "accessing those multiple reasons but you can restrict how many people what people should be"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 627.6800000000001,
+            "end": 633.44,
+            "text": "allowed and access to what component then also you can build a layer where the ultimate"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 633.44,
+            "end": 640.0,
+            "text": "what is called is the data that all data gets governed by only limited people not by everyone."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 640.64,
+            "end": 648.16,
+            "text": "So if you landed here and you can see you are the resources I will look at it to you like you"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 648.16,
+            "end": 654.0,
+            "text": "can see you have a VM address service you have a backup address storage address file system"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 654.0,
+            "end": 660.08,
+            "text": "load talent 2-nated cluster registering DNS address service now how you can compute this"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 660.08,
+            "end": 666.32,
+            "text": "service like once you come here you can see in the networking like as the HAPA space is also"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 666.8000000000001,
+            "end": 672.8000000000001,
+            "text": "in the same way we are providing the concept of VPCs and the VPCs you can create your own"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 673.2,
+            "end": 675.5200000000001,
+            "text": "subnet stuff I'll just log in."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 680.24,
+            "end": 685.9200000000001,
+            "text": "So sir when we talk here we basically talk about multi-tenancy that means the data"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 685.9200000000001,
+            "end": 691.2800000000001,
+            "text": "or the access of the virtualization nodes a container should not be with you as between"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 691.36,
+            "end": 697.1999999999999,
+            "text": "the various departments and users so when we say about VPC it's basically from the"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 697.1999999999999,
+            "end": 702.56,
+            "text": "network to every component we are ensuring there is a multi-tenancy as you see into the"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 702.56,
+            "end": 710.48,
+            "text": "likes of AWS of the world and it gives you a certain authority that due to which the people"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 710.48,
+            "end": 716.72,
+            "text": "cannot see the data between the two departments unless and until there is an approval or a policy"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 717.44,
+            "end": 719.6,
+            "text": "that defines the defines people to have an access to those data."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 728.72,
+            "end": 734.0,
+            "text": "So that applies to storage as well as the processes also whichever processes running"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 734.0,
+            "end": 739.2,
+            "text": "whether it is in virtual machines or containers which will be auto scaling of course"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 739.2,
+            "end": 744.0,
+            "text": "but it applies to that disability applies to that as well."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 770.0,
+            "end": 791.0400000000001,
+            "text": "I'll just give you a overview how it will be work I'll just come on the"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 791.5999999999999,
+            "end": 793.5999999999999,
+            "text": "functional architecture then it will be easy to me."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 796.9599999999999,
+            "end": 803.4399999999999,
+            "text": "Okay in this architecture if you see the bottom line so there is a concept of cloud"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 803.4399999999999,
+            "end": 811.1999999999999,
+            "text": "net and we can call one cloud net is equal to one cloud and it will be your AWS it will be your"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 811.1999999999999,
+            "end": 818.4,
+            "text": "Azure or your red hat or other clouds so once you onboard your cloud platform here you can see"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 818.64,
+            "end": 823.68,
+            "text": "the VM cloud nets or container cloud nets so some of the services we are running on the container"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 823.68,
+            "end": 828.9599999999999,
+            "text": "levels some of the services who are running on the VM level and on a same layer you can see the"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 828.9599999999999,
+            "end": 834.3199999999999,
+            "text": "bad metal provisioning so we are if the customer has the parameter as with different very"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 834.3199999999999,
+            "end": 839.6,
+            "text": "parameter so you can orchestrate your parameter also from here only like you can govern you can"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 839.6,
+            "end": 846.48,
+            "text": "put the meetings or the approvishly part of the parameter all of this layer you can see the"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 846.72,
+            "end": 853.04,
+            "text": "cloud controlling orchestrators so this is the heart of our CMP like with this layer you can see you"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 853.04,
+            "end": 861.04,
+            "text": "can control your compute resources or your job schedules matter data image controller and if"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 861.04,
+            "end": 867.28,
+            "text": "you are talking about a third layer so sir I'll just have here see what it is allowing is that"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 867.28,
+            "end": 874.8000000000001,
+            "text": "when we talk about image control that means whatever operating system that the department approves"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 874.96,
+            "end": 881.36,
+            "text": "with all the security module is the only thing which becomes available for the for the end user"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 881.36,
+            "end": 887.36,
+            "text": "so they cannot randomly bring any image and insert into this and make it work also when we look"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 887.36,
+            "end": 894.2400000000001,
+            "text": "at the three layers that you see at the bottom now in the bare metal because you will have you"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 894.2400000000001,
+            "end": 898.8000000000001,
+            "text": "might have a need of an Oracle database is kind of a stuff where it is easy to deploy on bare"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 898.8800000000001,
+            "end": 905.2800000000001,
+            "text": "metal to ensure that the licensing policy doesn't get hampered so and then today the latest"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 905.2800000000001,
+            "end": 912.2400000000001,
+            "text": "applications when we talk about AI based applications or the other database that are happening are"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 912.2400000000001,
+            "end": 918.0000000000001,
+            "text": "all running on a container based platform to when it is and that is where this layer also gets"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 918.0000000000001,
+            "end": 924.4000000000001,
+            "text": "managed from the signature so now you can see our dashboard for that side you can see we are"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 924.48,
+            "end": 929.12,
+            "text": "showing the resources the compute resources the storage resources the networking"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 929.12,
+            "end": 935.52,
+            "text": "networking security manage database and monitoring so these are the services like as you see"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 935.52,
+            "end": 940.72,
+            "text": "other hat risk list also what are the government and the provisioning services is deployed"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 940.72,
+            "end": 946.48,
+            "text": "like if you are talking about networking so in the networking you set up one BPC under BPCs you can"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 946.48,
+            "end": 952.96,
+            "text": "set your security group rules and the load palaces on your subnets similar way you can"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 952.96,
+            "end": 959.36,
+            "text": "feed your own round table routing tables you can create your DMG zones so after creating a"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 959.36,
+            "end": 965.9200000000001,
+            "text": "network in the subnets or the group what you carry in you can start the provisioning"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 966.8800000000001,
+            "end": 972.8800000000001,
+            "text": "although it will be a VMS source in or the container will be there so if you see the VMS sources you"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 972.8800000000001,
+            "end": 980.32,
+            "text": "can give your VMS like you will get a template to other type of skillet so in the template you"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 980.32,
+            "end": 988.32,
+            "text": "will fill the level of the compute so you want for that OS you want and the networking configuration"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 988.32,
+            "end": 994.08,
+            "text": "done done the VM so it will be done after that you have option of VMs, Natch sorts like people"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 994.08,
+            "end": 999.5200000000001,
+            "text": "and migration or an activity will be there and the VMs snapshot will be required so you can"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 999.5200000000001,
+            "end": 1005.2800000000001,
+            "text": "create a VMs snapshot and create a VM in another store in the subnet so nearly in the"
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1005.2800000000001,
+            "end": 1009.5200000000001,
+            "text": "similar way we have a network network that is just testing it so in the code it is plus"
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1009.5200000000001,
+            "end": 1014.48,
+            "text": "that's a big step I just had a little bit of discussion so I just had a little bit of"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1014.48,
+            "end": 1019.6800000000001,
+            "text": "what is happening is that when we talk about very data central like what an aspect is on a"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1020.4000000000001,
+            "end": 1025.2,
+            "text": "now what happens is that while we will have storage while we have throughput everything working"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1025.2,
+            "end": 1031.44,
+            "text": "there is always a need to ensure if there is anything goes bad how fast we can have one"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1031.44,
+            "end": 1038.4,
+            "text": "network to cover back in that scenario while individually the owner of those applications can take"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1038.4,
+            "end": 1044.48,
+            "text": "delays or allow the tool to a backup but we allow by the point the snapshotting feature bundles"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1044.56,
+            "end": 1049.28,
+            "text": "somebody just takes it so that means all those snaps are happening so tomorrow everything goes bad"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1049.92,
+            "end": 1056.48,
+            "text": "the people can recover their work at a very fast pace or to ensure that the downtime is reduced"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 1056.48,
+            "end": 1063.44,
+            "text": "to the bare minimum part of it. So in the Kubernetes part so we are giving"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 1063.44,
+            "end": 1068.8,
+            "text": "the both options like import your Kubernetes from the public like if you are talking about"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 1068.8799999999999,
+            "end": 1075.12,
+            "text": "AWS and Azure or the Microsoft and also you can create"
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1075.1200000000001,
+            "end": 1077.1200000000001,
+            "text": "Yes."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1077.1200000000001,
+            "end": 1079.1200000000001,
+            "text": "This is the end of the video."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1079.1200000000001,
+            "end": 1082.1200000000001,
+            "text": "There is no end or no more big news."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1082.1200000000001,
+            "end": 1083.1200000000001,
+            "text": "Nothing is big."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1083.1200000000001,
+            "end": 1084.1200000000001,
+            "text": "Yes, yes."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1084.1200000000001,
+            "end": 1090.1200000000001,
+            "text": "I just was giving the news that I should get it."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1090.1200000000001,
+            "end": 1094.1200000000001,
+            "text": "The moment I was giving it, I was showing that this dance."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1094.1200000000001,
+            "end": 1096.1200000000001,
+            "text": "It was on B.M."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1096.1200000000001,
+            "end": 1099.1200000000001,
+            "text": "I was in a remote location."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1099.1200000000001,
+            "end": 1101.1200000000001,
+            "text": "That's like so, it must only be."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1101.1200000000001,
+            "end": 1103.1200000000001,
+            "text": "I had all this time, it didn't create any."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1103.1200000000001,
+            "end": 1106.1200000000001,
+            "text": "We should choose the place where we have to be dated."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1106.1200000000001,
+            "end": 1107.1200000000001,
+            "text": "It's just to be sure."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1107.1200000000001,
+            "end": 1109.1200000000001,
+            "text": "It's the dancer showing a very fast dance."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1109.1200000000001,
+            "end": 1110.1200000000001,
+            "text": "Don't learn."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1110.1200000000001,
+            "end": 1112.1200000000001,
+            "text": "It's really cool."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1112.1200000000001,
+            "end": 1115.1200000000001,
+            "text": "If you don't know the source, you should learn a little bit."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1115.1200000000001,
+            "end": 1116.1200000000001,
+            "text": "It's really cool."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1116.1200000000001,
+            "end": 1118.1200000000001,
+            "text": "It's just in our audience."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1118.1200000000001,
+            "end": 1120.1200000000001,
+            "text": "You've got to find this."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1120.1200000000001,
+            "end": 1121.1200000000001,
+            "text": "Yes, yes."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1121.1200000000001,
+            "end": 1126.1200000000001,
+            "text": "I've probably created one, we are one of the tenants."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1126.1200000000001,
+            "end": 1130.1200000000001,
+            "text": "And the monitor that is from the,"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1131.1200000000001,
+            "end": 1133.1200000000001,
+            "text": "from the main site here."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1133.1200000000001,
+            "end": 1134.1200000000001,
+            "text": "That's all, it is okay."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1134.1200000000001,
+            "end": 1137.1200000000001,
+            "text": "But this room, there's only one room."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1137.1200000000001,
+            "end": 1139.1200000000001,
+            "text": "It's okay."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 1139.1200000000001,
+            "end": 1143.1200000000001,
+            "text": "Okay, you see, I'm just trying to see it on B.M."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1161.1200000000001,
+            "end": 1163.1200000000001,
+            "text": "You can see the counter as well."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1163.1200000000001,
+            "end": 1166.1200000000001,
+            "text": "Because you're already trying to use it for two relax."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1167.1200000000001,
+            "end": 1169.1200000000001,
+            "text": "That's good."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1169.1200000000001,
+            "end": 1170.1200000000001,
+            "text": "It's okay."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1170.1200000000001,
+            "end": 1172.1200000000001,
+            "text": "It's okay."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1176.1200000000001,
+            "end": 1177.1200000000001,
+            "text": "I think it is."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1177.1200000000001,
+            "end": 1180.1200000000001,
+            "text": "Because your friend is demoers in your house."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1180.1200000000001,
+            "end": 1182.1200000000001,
+            "text": "They have been certain people."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1184.1200000000001,
+            "end": 1186.1200000000001,
+            "text": "We have, it's a lab."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1186.1200000000001,
+            "end": 1188.1200000000001,
+            "text": "So, tell us, do you local people?"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1188.1200000000001,
+            "end": 1189.1200000000001,
+            "text": "Okay."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1189.1200000000001,
+            "end": 1191.1200000000001,
+            "text": "Yes, so, by FB."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1192.1200000000001,
+            "end": 1194.1200000000001,
+            "text": "The BHG has come to a..."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1194.1200000000001,
+            "end": 1196.1200000000001,
+            "text": "When it's creating a BM,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1196.1200000000001,
+            "end": 1197.1200000000001,
+            "text": "it's not a company."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1197.1200000000001,
+            "end": 1199.1200000000001,
+            "text": "It's not just taking in your local itself."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1199.1200000000001,
+            "end": 1201.1200000000001,
+            "text": "This is where I'm telling you about that."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1201.1200000000001,
+            "end": 1203.1200000000001,
+            "text": "So, my apologies."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1203.1200000000001,
+            "end": 1207.1200000000001,
+            "text": "What happened was that we were at the event and somehow we see connectivity."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1207.1200000000001,
+            "end": 1210.1200000000001,
+            "text": "The connectivity is created in an issue."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1210.1200000000001,
+            "end": 1212.1200000000001,
+            "text": "This is just, give me a moment."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1212.1200000000001,
+            "end": 1214.1200000000001,
+            "text": "It is a very, very fast part."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1214.1200000000001,
+            "end": 1217.1200000000001,
+            "text": "So, I'll just give you a moment and let's set it up."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1219.1200000000001,
+            "end": 1222.1200000000001,
+            "text": "And then there is a lot of connections."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1222.1200000000001,
+            "end": 1225.1200000000001,
+            "text": "And then there is a lot of connection."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1227.1200000000001,
+            "end": 1228.1200000000001,
+            "text": "Search, search."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1228.1200000000001,
+            "end": 1232.1200000000001,
+            "text": "And then nothing that can be created is so much."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1232.1200000000001,
+            "end": 1234.1200000000001,
+            "text": "And then, progress."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1238.1200000000001,
+            "end": 1241.1200000000001,
+            "text": "I'm not going to talk to you about this."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1241.1200000000001,
+            "end": 1257.1200000000001,
+            "text": "The proposal which we shared, right, it has the requirements for the cluster, I mean the CMD part actually."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1257.1200000000001,
+            "end": 1266.1200000000001,
+            "text": "So, these are the requirements who are running the CMD at the central side as well as the 38 state units, right?"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1267.1200000000001,
+            "end": 1272.1200000000001,
+            "text": "So, these are all virtual requirements, meaning this can be virtualized as well."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1272.1200000000001,
+            "end": 1276.1200000000001,
+            "text": "So, that we don't have to have much, many parameters we don't need."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1276.1200000000001,
+            "end": 1279.1200000000001,
+            "text": "We can create multiple VMs on that one."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1279.1200000000001,
+            "end": 1281.1200000000001,
+            "text": "So, this is just for the management part."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1281.1200000000001,
+            "end": 1288.1200000000001,
+            "text": "And like you said, we will be having the bare metal boxes, which will be having dual socket,"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1288.1200000000001,
+            "end": 1298.1200000000001,
+            "text": "terabytes of DRAM, plus which will be coming from any matter, like the GPUs, 4 GPUs and those kind of things."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1298.1200000000001,
+            "end": 1303.1200000000001,
+            "text": "Those will be like plackable kind of systems, which will give the overall resources."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1303.1200000000001,
+            "end": 1307.1200000000001,
+            "text": "But we see the resources requirements to run your sovereignty."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1307.1200000000001,
+            "end": 1310.1200000000001,
+            "text": "Yes, yes, exactly."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1310.1200000000001,
+            "end": 1311.1200000000001,
+            "text": "Exactly."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1312.1200000000001,
+            "end": 1318.1200000000001,
+            "text": "So, I was suggest we can have two different bare metal boxes, where it will be redundant,"
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1318.1200000000001,
+            "end": 1323.1200000000001,
+            "text": "you will show that it runs, you see, currently, when it passes, it will be same important thing."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1323.1200000000001,
+            "end": 1326.1200000000001,
+            "text": "It is a full lach, it will run."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1326.1200000000001,
+            "end": 1334.1200000000001,
+            "text": "Yes, for DCDR it will be full lach, between the states and DCDR it will be async."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1334.1200000000001,
+            "end": 1335.1200000000001,
+            "text": "Async?"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1335.1200000000001,
+            "end": 1342.1200000000001,
+            "text": "Meaning it will run separately, meaning the states' sites will continue running the applications ascs,"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1342.1200000000001,
+            "end": 1344.1200000000001,
+            "text": "if there is any kind of disconnections."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1344.1200000000001,
+            "end": 1346.1200000000001,
+            "text": "But otherwise it will be like an async mode."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1346.1200000000001,
+            "end": 1349.1200000000001,
+            "text": "But DCDR it will be completely active."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1349.1200000000001,
+            "end": 1353.1200000000001,
+            "text": "So, let us now move to next part of this thing."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1356.1200000000001,
+            "end": 1357.1200000000001,
+            "text": "Can we see?"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1357.1200000000001,
+            "end": 1358.1200000000001,
+            "text": "Yes."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1358.1200000000001,
+            "end": 1363.1200000000001,
+            "text": "DCDR you are dealing with your clouds of them?"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1363.1200000000001,
+            "end": 1370.1200000000001,
+            "text": "Yes, DCDR with the actual DC and DR and the cloud management platform, which runs on top."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1370.1200000000001,
+            "end": 1374.1200000000001,
+            "text": "And you will close out there, should have the H&O?"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1374.1200000000001,
+            "end": 1376.1200000000001,
+            "text": "Yes, yes, absolutely."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1376.1200000000001,
+            "end": 1379.1200000000001,
+            "text": "It will be in DC and DR, there will be components."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1379.1200000000001,
+            "end": 1386.1200000000001,
+            "text": "And once we have mentioned the recovery procedure also, let us say if the DC went down,"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1386.1200000000001,
+            "end": 1391.1200000000001,
+            "text": "the procedure to make the DR the DC, that procedure is also mentioned in the proposal."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1391.1200000000001,
+            "end": 1399.1200000000001,
+            "text": "So, the more important actually your platform is your software systems of the cloud,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1399.1200000000001,
+            "end": 1404.1200000000001,
+            "text": "the design phase, I should have a little bit in the same DC and DR."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1404.1200000000001,
+            "end": 1407.1200000000001,
+            "text": "Yes, yes, yes, that will make it easier."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1407.1200000000001,
+            "end": 1410.1200000000001,
+            "text": "The site of the management is different story."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1410.1200000000001,
+            "end": 1415.1200000000001,
+            "text": "Yes, yes, we have the infrastructure that will be managed from your clouds of them."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1415.1200000000001,
+            "end": 1418.1200000000001,
+            "text": "Both are cut-through, both are cut-through."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1419.1200000000001,
+            "end": 1427.1200000000001,
+            "text": "Within DC there will be redundancy as well as DC and DR, there will be redundancy."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1427.1200000000001,
+            "end": 1431.1200000000001,
+            "text": "Can you bring up your proposal to the audience?"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1431.1200000000001,
+            "end": 1433.1200000000001,
+            "text": "Yes, please."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1433.1200000000001,
+            "end": 1437.1200000000001,
+            "text": "Please say, say, call the audience, you will have some issues, say, call the audience, say,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1437.1200000000001,
+            "end": 1441.1200000000001,
+            "text": "convert the engagement to set up your cloud."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1441.1200000000001,
+            "end": 1443.1200000000001,
+            "text": "May be a big software."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1443.1200000000001,
+            "end": 1444.1200000000001,
+            "text": "Yes."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1444.1200000000001,
+            "end": 1449.1200000000001,
+            "text": "What are the hardware and what are the subways you going to provide us?"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1449.1200000000001,
+            "end": 1455.1200000000001,
+            "text": "The licensing part, the cost of their content past everything to be kept."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1455.1200000000001,
+            "end": 1456.1200000000001,
+            "text": "Right, correct sir."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1456.1200000000001,
+            "end": 1460.1200000000001,
+            "text": "Now, these the subways, what you are providing,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1460.1200000000001,
+            "end": 1468.1200000000001,
+            "text": "you should be able to handle my existing servers of 1.50, no, 1.50 server,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1468.1200000000001,
+            "end": 1476.1200000000001,
+            "text": "which has the already we know server with the hardware manager of data center"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1476.1200000000001,
+            "end": 1479.1200000000001,
+            "text": "and the management, processing of so many VMs."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1479.1200000000001,
+            "end": 1481.1200000000001,
+            "text": "But, no, no."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1481.1200000000001,
+            "end": 1486.1200000000001,
+            "text": "So, one less dark-cannonary of our way to be configured in your software and"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1486.1200000000001,
+            "end": 1487.1200000000001,
+            "text": "I present this one."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1487.1200000000001,
+            "end": 1491.1200000000001,
+            "text": "And the latest stage, when going to next another six months,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1491.1200000000001,
+            "end": 1496.1200000000001,
+            "text": "we another one hundred other servers again that to be added is to be"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1496.1200000000001,
+            "end": 1499.1200000000001,
+            "text": "like to know the subways that are going to be handed on."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1499.1200000000001,
+            "end": 1502.1200000000001,
+            "text": "That's why I am explaining to that sizing."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1502.1200000000001,
+            "end": 1503.1200000000001,
+            "text": "Yes, absolutely."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1503.1200000000001,
+            "end": 1504.1200000000001,
+            "text": "Right, correct."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1504.1200000000001,
+            "end": 1509.1200000000001,
+            "text": "Now, these storage as up now 10, 10 pp,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1509.1200000000001,
+            "end": 1511.1200000000001,
+            "text": "another phase, 6 for another 6 months,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1511.1200000000001,
+            "end": 1514.1200000000001,
+            "text": "then we go going to our hundred."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1514.1200000000001,
+            "end": 1515.1200000000001,
+            "text": "Okay."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1515.1200000000001,
+            "end": 1518.1200000000001,
+            "text": "So, this storage I want to give for us,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1518.1200000000001,
+            "end": 1521.1200000000001,
+            "text": "today is a sunny, so your cloud,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1521.1200000000001,
+            "end": 1523.1200000000001,
+            "text": "so please do hand me that also,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1523.1200000000001,
+            "end": 1526.1200000000001,
+            "text": "yes, the storage the pump is,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1526.1200000000001,
+            "end": 1529.1200000000001,
+            "text": "the VMs may even go into the physical always."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1529.1200000000001,
+            "end": 1530.1200000000001,
+            "text": "Okay."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1530.1200000000001,
+            "end": 1532.1200000000001,
+            "text": "If we get that into that,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1532.1200000000001,
+            "end": 1536.1200000000001,
+            "text": "or it may be taking as a backup of this or something,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1536.1200000000001,
+            "end": 1539.1200000000001,
+            "text": "so this gets in if we do sand and the next,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1539.1200000000001,
+            "end": 1540.1200000000001,
+            "text": "that should be asked the question."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1540.1200000000001,
+            "end": 1542.1200000000001,
+            "text": "So, what is the sizing that we will give you?"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1542.1200000000001,
+            "end": 1545.1200000000001,
+            "text": "So, that something, this will get us to be kind."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1545.1200000000001,
+            "end": 1548.1200000000001,
+            "text": "But, only your cloud survey,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1548.1200000000001,
+            "end": 1551.1200000000001,
+            "text": "so what is the storage that has required for you?"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1551.1200000000001,
+            "end": 1553.1200000000001,
+            "text": "That was to be clear with,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1553.1200000000001,
+            "end": 1557.1200000000001,
+            "text": "because the goal is up in the VM ages to be taken as a backup."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1557.1200000000001,
+            "end": 1560.1200000000001,
+            "text": "So, what is the storage required for your cloud management software?"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1560.1200000000001,
+            "end": 1562.1200000000001,
+            "text": "But, also, the chair,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1562.1200000000001,
+            "end": 1565.1200000000001,
+            "text": "which are even software of laptop."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 1565.1200000000001,
+            "end": 1567.1200000000001,
+            "text": "My website is very clear,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1567.1200000000001,
+            "end": 1569.1200000000001,
+            "text": "they have 150 servers as up now,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1569.1200000000001,
+            "end": 1572.1200000000001,
+            "text": "with all Windows Server sedicents,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1572.1200000000001,
+            "end": 1574.1200000000001,
+            "text": "on different different,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1574.1200000000001,
+            "end": 1577.1200000000001,
+            "text": "that to be configured into your cloud."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1577.1200000000001,
+            "end": 1579.1200000000001,
+            "text": "And, I want to know that,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1579.1200000000001,
+            "end": 1581.1200000000001,
+            "text": "what is the cloud you are using for the day browsing?"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1581.1200000000001,
+            "end": 1584.1200000000001,
+            "text": "9 open stands or what?"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1584.1200000000001,
+            "end": 1586.1200000000001,
+            "text": "Kubernetes based."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1586.1200000000001,
+            "end": 1588.1200000000001,
+            "text": "Manpreet you can't tell."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1588.1200000000001,
+            "end": 1589.1200000000001,
+            "text": "So,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1589.1200000000001,
+            "end": 1591.1200000000001,
+            "text": "Manpreet."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1591.1200000000001,
+            "end": 1593.1200000000001,
+            "text": "So, let's see around the,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1593.1200000000001,
+            "end": 1594.1200000000001,
+            "text": "yeah."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1594.1200000000001,
+            "end": 1597.1200000000001,
+            "text": "Sure, we can work on both the open stats,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1597.1200000000001,
+            "end": 1599.1200000000001,
+            "text": "plus the Kubernetes platform,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1599.1200000000001,
+            "end": 1601.1200000000001,
+            "text": "to provide the access to the platform."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1601.1200000000001,
+            "end": 1602.1200000000001,
+            "text": "It is not a problem,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1602.1200000000001,
+            "end": 1603.1200000000001,
+            "text": "because you are a cloud,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1603.1200000000001,
+            "end": 1604.1200000000001,
+            "text": "I am asking,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1604.1200000000001,
+            "end": 1606.1200000000001,
+            "text": "what is the language you are using on your website?"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1606.1200000000001,
+            "end": 1607.1200000000001,
+            "text": "Sure."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1607.1200000000001,
+            "end": 1608.1200000000001,
+            "text": "So, that is the server Kubernetes,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1608.1200000000001,
+            "end": 1610.1200000000001,
+            "text": "we are using micro services"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1610.1200000000001,
+            "end": 1612.1200000000001,
+            "text": "enabled Kubernetes platform."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1612.1200000000001,
+            "end": 1614.1200000000001,
+            "text": "So, that multiple feature functionities that keep,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1614.1200000000001,
+            "end": 1615.1200000000001,
+            "text": "sorry,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1615.1200000000001,
+            "end": 1617.1200000000001,
+            "text": "doesn't have a Kubernetes."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1617.1200000000001,
+            "end": 1618.1200000000001,
+            "text": "Sorry, but the physics."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1618.1200000000001,
+            "end": 1619.1200000000001,
+            "text": "Sure."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1619.1200000000001,
+            "end": 1621.1200000000001,
+            "text": "Like, open stands,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1621.1200000000001,
+            "end": 1623.1200000000001,
+            "text": "on VMware,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1623.1200000000001,
+            "end": 1624.1200000000001,
+            "text": "okay."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1624.1200000000001,
+            "end": 1626.1200000000001,
+            "text": "Yes, I say."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1626.1200000000001,
+            "end": 1627.1200000000001,
+            "text": "So, open ships,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1627.1200000000001,
+            "end": 1628.1200000000001,
+            "text": "right?"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1628.1200000000001,
+            "end": 1629.1200000000001,
+            "text": "Open ships with,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1629.1200000000001,
+            "end": 1631.1200000000001,
+            "text": "which one we are using?"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1631.1200000000001,
+            "end": 1632.1200000000001,
+            "text": "Sure, people."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1632.1200000000001,
+            "end": 1634.1200000000001,
+            "text": "So, for our platform,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1634.1200000000001,
+            "end": 1635.1200000000001,
+            "text": "we will use open ships"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1635.1200000000001,
+            "end": 1637.1200000000001,
+            "text": "and our own Kubernetes."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1637.1200000000001,
+            "end": 1640.1200000000001,
+            "text": "So, we have our own Kubernetes certified distrosa."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1640.1200000000001,
+            "end": 1641.1200000000001,
+            "text": "We will go through."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1641.1200000000001,
+            "end": 1642.1200000000001,
+            "text": "You think,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1642.1200000000001,
+            "end": 1644.1200000000001,
+            "text": "you are using open ships platform for your ground?"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1644.1200000000001,
+            "end": 1645.1200000000001,
+            "text": "Sure."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1645.1200000000001,
+            "end": 1647.1200000000001,
+            "text": "Underline, we use,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1647.1200000000001,
+            "end": 1648.1200000000001,
+            "text": "for our platform,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1648.1200000000001,
+            "end": 1650.1200000000001,
+            "text": "just our CMP platform."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1650.1200000000001,
+            "end": 1651.1200000000001,
+            "text": "We use our own,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1651.1200000000001,
+            "end": 1653.1200000000001,
+            "text": "our own Kubernetes,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1653.1200000000001,
+            "end": 1655.1200000000001,
+            "text": "but for the customer requirement,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1655.1200000000001,
+            "end": 1656.1200000000001,
+            "text": "we use open shipsa."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1656.1200000000001,
+            "end": 1657.1200000000001,
+            "text": "By,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1657.1200000000001,
+            "end": 1659.1200000000001,
+            "text": "by mean of customer requirement,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1659.1200000000001,
+            "end": 1661.1200000000001,
+            "text": "I mean, your applications will be running on open ship."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1661.1200000000001,
+            "end": 1663.1200000000001,
+            "text": "We can run our platform as well."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1663.1200000000001,
+            "end": 1664.1200000000001,
+            "text": "It's a,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1664.1200000000001,
+            "end": 1665.1200000000001,
+            "text": "it's a five-grade."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1665.1200000000001,
+            "end": 1666.1200000000001,
+            "text": "I am planning on as monthly,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1666.1200000000001,
+            "end": 1667.1200000000001,
+            "text": "and you are doing,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1667.1200000000001,
+            "end": 1668.1200000000001,
+            "text": "okay."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1668.1200000000001,
+            "end": 1669.1200000000001,
+            "text": "The whole platform,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1669.1200000000001,
+            "end": 1671.1200000000001,
+            "text": "what you are providing on open ship,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1671.1200000000001,
+            "end": 1673.1200000000001,
+            "text": "in that one ship,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1673.1200000000001,
+            "end": 1675.1200000000001,
+            "text": "the bare metal to be added,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1675.1200000000001,
+            "end": 1677.1200000000001,
+            "text": "so that the bare metal system"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1677.1200000000001,
+            "end": 1678.1200000000001,
+            "text": "should have, again,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1678.1200000000001,
+            "end": 1679.1200000000001,
+            "text": "Linux system,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1679.1200000000001,
+            "end": 1680.1200000000001,
+            "text": "Linux system."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1680.1200000000001,
+            "end": 1681.1200000000001,
+            "text": "Yes."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1681.1200000000001,
+            "end": 1682.1200000000001,
+            "text": "Then only some of it."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1682.1200000000001,
+            "end": 1682.6200000000001,
+            "text": "Yes."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1682.6200000000001,
+            "end": 1685.1200000000001,
+            "text": "I have 150 servers already existing"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1685.1200000000001,
+            "end": 1687.1200000000001,
+            "text": "with Windows servers"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1687.1200000000001,
+            "end": 1688.1200000000001,
+            "text": "and running all the VMs."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1688.1200000000001,
+            "end": 1689.1200000000001,
+            "text": "So, you are syring that,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1689.1200000000001,
+            "end": 1690.1200000000001,
+            "text": "to add it to your"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1690.1200000000001,
+            "end": 1691.1200000000001,
+            "text": "top platform,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1691.1200000000001,
+            "end": 1692.1200000000001,
+            "text": "we need to,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1692.1200000000001,
+            "end": 1699.1200000000001,
+            "text": "to I.N. put more weld material of linux and more that my application I.N. to be so that"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1699.1200000000001,
+            "end": 1702.3000000000002,
+            "text": "one truth is my applications which are running at my advance, I can't farm it in a"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1702.3000000000002,
+            "end": 1707.72,
+            "text": "little bit again yeah. No no no sorry it is not that sir. I was talking about that fresh"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1707.72,
+            "end": 1713.46,
+            "text": "green feature for the existing we can manage hyper V as well as V.M. with existing"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1713.46,
+            "end": 1718.96,
+            "text": "platform with our other layer. We don't have V.M. with is not done on body in"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1718.96,
+            "end": 1725.96,
+            "text": "the same way. We have the hyper V in the individual server, Windows Server, I.N. to be"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1725.96,
+            "end": 1732.96,
+            "text": "in that way we are managing V.M. and run on each individual server. So like this we"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1732.96,
+            "end": 1739.96,
+            "text": "are almost 150 servers and Windows Server hyper V in the same way. So we know how to create"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1739.96,
+            "end": 1746.96,
+            "text": "a V.M. I should go and see in each physical system and see whether it was available"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1746.96,
+            "end": 1750.96,
+            "text": "on 10 and 20 minutes that's a my problem. So now we will see a thing that we want to"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1750.96,
+            "end": 1757.96,
+            "text": "record. So that's the other day we can be. I need to consider all my existing nodes,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1757.96,
+            "end": 1766.96,
+            "text": "mixed servers, Windows Server class, on V.M.. platform. So be careful that no concept doesn't"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1766.96,
+            "end": 1772.96,
+            "text": "support Windows Server with our material. We have been seeing it and it is very different."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1772.96,
+            "end": 1779.96,
+            "text": "So I've just, my poly, I think I just understood the question that 10 so I apologize on"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1779.96,
+            "end": 1784.96,
+            "text": "that. My point was that it's from the CMP platform layer. We can handle hyper V, we can"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1784.96,
+            "end": 1789.96,
+            "text": "handle open ship and open site. As you have right here, you have an environment you have"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1789.96,
+            "end": 1793.96,
+            "text": "got 150 nodes of hyper V machines, Windows machine, we will handle this to our platform."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 1793.96,
+            "end": 1796.96,
+            "text": "So it will not be migrated to open ship or anything."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1796.96,
+            "end": 1801.96,
+            "text": "Right. Right. So now it will be hyper V to hyper V just."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1801.96,
+            "end": 1806.96,
+            "text": "Yeah. Add it to those 150 nodes to this CMT management platform. That's all."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1806.96,
+            "end": 1810.96,
+            "text": "Now the current is not existing in my existing things, right? Yes."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1810.96,
+            "end": 1815.96,
+            "text": "Yes. Finally. One more thing is now this you are going to use the cloud"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1815.96,
+            "end": 1821.96,
+            "text": "back on CMT source support for the user except faster R2. Yes."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1821.96,
+            "end": 1824.96,
+            "text": "Now the other thing is which would be there in your cloud support."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1824.96,
+            "end": 1830.96,
+            "text": "Yes. And if you have any existing open site cluster, you can import that also."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1830.96,
+            "end": 1835.96,
+            "text": "We have a VAA GPU history index servers. We have a global history cluster already."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1835.96,
+            "end": 1841.96,
+            "text": "We have like both the entire co-partatic infrastructure to this. Right."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1841.96,
+            "end": 1845.96,
+            "text": "So now slowly that SalliSaus is one of the points to support by your front."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1845.96,
+            "end": 1848.96,
+            "text": "Okay. There's already a hotel. Yes. Okay."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1848.96,
+            "end": 1851.96,
+            "text": "So now. Sorry."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1851.96,
+            "end": 1852.96,
+            "text": "Sorry."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 1852.96,
+            "end": 1855.96,
+            "text": "We have one bit. Right. No. We have one bit."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1855.96,
+            "end": 1858.96,
+            "text": "So now for the remote."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1858.96,
+            "end": 1863.96,
+            "text": "I want to make sure that you have the infrastructure to your cloud CMT."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1863.96,
+            "end": 1867.96,
+            "text": "So remote servers may be something you might do with the restart?"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1867.96,
+            "end": 1870.96,
+            "text": "Same. Same software. Same software."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1870.96,
+            "end": 1879.96,
+            "text": "Yes. And the site requirements also we have mentioned just quickly."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1879.96,
+            "end": 1888.96,
+            "text": "Yeah. So this will be the site level requirement to run the CMT part on the CMT part in each site."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1888.96,
+            "end": 1890.96,
+            "text": "It's a very low. So."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1890.96,
+            "end": 1893.96,
+            "text": "Yeah. So this will be very good."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1893.96,
+            "end": 1903.96,
+            "text": "Next is with these bare metal management, bare metal machines also to be configured in your CMT. Right."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1903.96,
+            "end": 1904.96,
+            "text": "Yes."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1904.96,
+            "end": 1909.96,
+            "text": "So that's what the maintenance was telling sir."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1909.96,
+            "end": 1912.96,
+            "text": "So we can handle hypervee from a virtualization perspective."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1912.96,
+            "end": 1916.96,
+            "text": "We can handle hyperglue open shift open stack and virtualization layer."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1916.96,
+            "end": 1922.96,
+            "text": "Coopernet is we can import export the co-pandorize cluster and bare metal anyway."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 1922.96,
+            "end": 1929.96,
+            "text": "We will be holding the images which you will be approving so that you can create bare metal instances out of it."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1930.96,
+            "end": 1933.96,
+            "text": "I think it's not already my usage. I mean sorry."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1933.96,
+            "end": 1934.96,
+            "text": "You can say me."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1934.96,
+            "end": 1935.96,
+            "text": "I will be running on an off-road server."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1935.96,
+            "end": 1941.96,
+            "text": "So that to be again I want to add that machine into my cloud platform and I want to move it into the spotbox."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1941.96,
+            "end": 1943.96,
+            "text": "That's all. I don't want to touch anything next."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1943.96,
+            "end": 1945.96,
+            "text": "You can do that."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1945.96,
+            "end": 1947.96,
+            "text": "Right. That's all. Bare metal."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1947.96,
+            "end": 1950.96,
+            "text": "My intention of bare metal is to use this one."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1950.96,
+            "end": 1951.96,
+            "text": "Okay. Yeah."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1951.96,
+            "end": 1955.96,
+            "text": "No. Bare metal is made or we can trace it."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1955.96,
+            "end": 1958.96,
+            "text": "I want to create and data lake how."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1958.96,
+            "end": 1961.96,
+            "text": "Okay. To data lake house."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1961.96,
+            "end": 1968.96,
+            "text": "A.D.A. My data inputs, sources are image server of groups databases."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1968.96,
+            "end": 1972.96,
+            "text": "Almost for types. What I feel my school respects server will share the details with you."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1972.96,
+            "end": 1973.96,
+            "text": "Mango TV also."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1973.96,
+            "end": 1976.96,
+            "text": "So you should able to create the data by transfer that."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1976.96,
+            "end": 1984.96,
+            "text": "And we should able to create the open devular open file formats from your data lake house."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1984.96,
+            "end": 1989.96,
+            "text": "These are minimum bare machine bare requirement of data lake house."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1989.96,
+            "end": 1994.96,
+            "text": "So these infrastructure required for data lake house."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 1994.96,
+            "end": 2004.96,
+            "text": "Media container based servers are medium bare metal servers are to be configured as a processing being and is able to move it."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2004.96,
+            "end": 2006.96,
+            "text": "Yes. Pandora not."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2006.96,
+            "end": 2008.96,
+            "text": "Yes. Storage is managed."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2008.96,
+            "end": 2009.96,
+            "text": "Maybe."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2009.96,
+            "end": 2015.96,
+            "text": "Mandraji can bring up that storage part of things and should that."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2015.96,
+            "end": 2017.96,
+            "text": "To my bronze."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2017.96,
+            "end": 2019.96,
+            "text": "Good. I'm silver."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2019.96,
+            "end": 2021.96,
+            "text": "These layers are data lake house."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2021.96,
+            "end": 2023.96,
+            "text": "Many can tell because I see."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2023.96,
+            "end": 2026.96,
+            "text": "Rower data things and maybe of."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2026.96,
+            "end": 2029.96,
+            "text": "Processed one. I'm with that water further."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2029.96,
+            "end": 2031.96,
+            "text": "I'll be ready data."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2032.96,
+            "end": 2033.96,
+            "text": "Yeah."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2033.96,
+            "end": 2034.96,
+            "text": "Typically."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2034.96,
+            "end": 2038.96,
+            "text": "Typically like park a format or something or park or."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2038.96,
+            "end": 2040.96,
+            "text": "Or all those kind of types."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2040.96,
+            "end": 2044.96,
+            "text": "Well, you can do it as I think because we come to the implementation part now."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2044.96,
+            "end": 2048.96,
+            "text": "Okay. So do you believe me such a data lake house solution."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2048.96,
+            "end": 2050.96,
+            "text": "So the infrastructure required."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2050.96,
+            "end": 2052.96,
+            "text": "You can provide us."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2052.96,
+            "end": 2053.96,
+            "text": "So my."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2053.96,
+            "end": 2059.96,
+            "text": "We are called major thing is eBay servers databases and some already storage is there with us."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2059.96,
+            "end": 2062.96,
+            "text": "So I'm having a much uncertain facts are."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2062.96,
+            "end": 2064.96,
+            "text": "For data to be provided and to be."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2064.96,
+            "end": 2066.96,
+            "text": "Make a good for the data."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2066.96,
+            "end": 2069.96,
+            "text": "I know that they call it not an."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2069.96,
+            "end": 2074.96,
+            "text": "As it is storage only because it depends upon the use cases of the."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2074.96,
+            "end": 2077.96,
+            "text": "So you use cases are already given here on copy."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2077.96,
+            "end": 2079.96,
+            "text": "And I said that the copy also with you."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2079.96,
+            "end": 2081.96,
+            "text": "Almost showed it."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2081.96,
+            "end": 2085.96,
+            "text": "You see that I find so under the category of."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2086.96,
+            "end": 2090.96,
+            "text": "According to the."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2090.96,
+            "end": 2093.96,
+            "text": "It is like that is me are given the."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2093.96,
+            "end": 2095.96,
+            "text": "All these cases and go through that."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2095.96,
+            "end": 2096.96,
+            "text": "Thanks to the."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2096.96,
+            "end": 2097.96,
+            "text": "Yeah."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2097.96,
+            "end": 2099.96,
+            "text": "Now you show that use cases."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2099.96,
+            "end": 2103.96,
+            "text": "What are the data that calls you."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2103.96,
+            "end": 2104.96,
+            "text": "And it's David."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2104.96,
+            "end": 2106.96,
+            "text": "The."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2106.96,
+            "end": 2107.96,
+            "text": "And your."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2107.96,
+            "end": 2108.96,
+            "text": "Including you."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2108.96,
+            "end": 2109.96,
+            "text": "The reason."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2109.96,
+            "end": 2116.96,
+            "text": "of data length house solution for the specified AA use cases can be you can give it without"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2116.96,
+            "end": 2118.96,
+            "text": "a block, we love making it."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2118.96,
+            "end": 2123.96,
+            "text": "If you are doing the tools you are going to supply maybe the Thomas here and maybe open"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2123.96,
+            "end": 2124.96,
+            "text": "up a source list."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2124.96,
+            "end": 2128.96,
+            "text": "Okay, so what is your one time cost, what is your recurring cost?"
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2128.96,
+            "end": 2136.96,
+            "text": "One next five years you can give us a specific on site, decision engineers to build up any"
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2136.96,
+            "end": 2139.96,
+            "text": "new cases, use cases from something you have been doing."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2139.96,
+            "end": 2142.96,
+            "text": "So, solution I call not a product."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2142.96,
+            "end": 2143.96,
+            "text": "So, data length is a problem."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2143.96,
+            "end": 2144.96,
+            "text": "Yes, yes."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2144.96,
+            "end": 2150.96,
+            "text": "So, in that context to be my use cases then, and you should read us also on the other tools"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2150.96,
+            "end": 2151.96,
+            "text": "and the tiny photos are included."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2151.96,
+            "end": 2157.96,
+            "text": "So, that tomorrow my manpower and any load time goes on site, any specific use case"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2157.96,
+            "end": 2161.96,
+            "text": "can be you able to pick up on the data length house and from the day use case."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2162.96,
+            "end": 2163.96,
+            "text": "And you can do that."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2163.96,
+            "end": 2168.96,
+            "text": "So, for these information, data length house are many AADD."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2168.96,
+            "end": 2173.96,
+            "text": "What are the GPUs, what are the SQL level are based, what are the tools you are going to"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2173.96,
+            "end": 2179.96,
+            "text": "provide us, what is the cost of licensing power, all I want to do."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2179.96,
+            "end": 2185.96,
+            "text": "So, we are talking with you."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2186.96,
+            "end": 2187.96,
+            "text": "So, yeah."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2187.96,
+            "end": 2192.96,
+            "text": "So, the decision on understanding where ground level technology are we know it, we are seeing"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2192.96,
+            "end": 2193.96,
+            "text": "wrong back."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2193.96,
+            "end": 2194.96,
+            "text": "Okay."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2194.96,
+            "end": 2199.96,
+            "text": "So, for this second thing you come up with your solutions with your tools everything."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2199.96,
+            "end": 2201.96,
+            "text": "And put us the proper ones."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2201.96,
+            "end": 2202.96,
+            "text": "Sure, sir."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2202.96,
+            "end": 2206.96,
+            "text": "So, the proposal so far which is presented, sorry."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2206.96,
+            "end": 2210.96,
+            "text": "The proposal so far which is shared, it is only for the cloud management part, but we will"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2210.96,
+            "end": 2211.96,
+            "text": "add for the data length house."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2211.96,
+            "end": 2212.96,
+            "text": "Yes."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2212.96,
+            "end": 2215.96,
+            "text": "So, another thing I think today is Monday so Monday."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2215.96,
+            "end": 2219.96,
+            "text": "So, Wednesday, Wednesday, Thursday, Thursday, Thursday, Thursday, Thursday."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2219.96,
+            "end": 2220.96,
+            "text": "Okay."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2220.96,
+            "end": 2221.96,
+            "text": "Three components."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2221.96,
+            "end": 2228.96,
+            "text": "Now, what is the entry umbrella, another data record with the AADD or my content."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2228.96,
+            "end": 2232.96,
+            "text": "You can bring out very clearly about your things to us."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2232.96,
+            "end": 2233.96,
+            "text": "Yeah."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2233.96,
+            "end": 2237.96,
+            "text": "So, the cloud is already shared with you, the cloud world."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2237.96,
+            "end": 2239.96,
+            "text": "So, the soaring cloud part is already shared."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2239.96,
+            "end": 2245.96,
+            "text": "The data lake part and the tools which are required to extract data from data lake and run"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2245.96,
+            "end": 2248.96,
+            "text": "it in the AI part, we will go through the documentation."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2248.96,
+            "end": 2251.96,
+            "text": "It is the worry of shared with science right now."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2251.96,
+            "end": 2254.96,
+            "text": "We will go through that and we will come up with that."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2254.96,
+            "end": 2255.96,
+            "text": "We will be going to the side."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2255.96,
+            "end": 2256.96,
+            "text": "Sure."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2256.96,
+            "end": 2257.96,
+            "text": "We are ready."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2257.96,
+            "end": 2258.96,
+            "text": "Please."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2258.96,
+            "end": 2259.96,
+            "text": "Yeah."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2259.96,
+            "end": 2260.96,
+            "text": "Yeah."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2260.96,
+            "end": 2261.96,
+            "text": "Yeah, man."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2261.96,
+            "end": 2265.96,
+            "text": "So, sir, I said allow us a small demo."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2265.96,
+            "end": 2270.96,
+            "text": "I will be getting your input just, sorry that challenge we just got."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2270.96,
+            "end": 2272.96,
+            "text": "He is allow us a little bit."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2272.96,
+            "end": 2273.96,
+            "text": "Just a little bit."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2273.96,
+            "end": 2274.96,
+            "text": "Because we will talk about demo."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2274.96,
+            "end": 2275.96,
+            "text": "People are ready, sir."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2275.96,
+            "end": 2276.96,
+            "text": "No, no, no."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2276.96,
+            "end": 2277.96,
+            "text": "This is, please."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2277.96,
+            "end": 2278.96,
+            "text": "The demo is not a matter."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2278.96,
+            "end": 2280.96,
+            "text": "You do HS1, you see, it's because you are doing it."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2280.96,
+            "end": 2282.96,
+            "text": "So, that then we are able to see it."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2282.96,
+            "end": 2283.96,
+            "text": "Okay."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2283.96,
+            "end": 2292.96,
+            "text": "Because of the handout, one thing is, the little bandwidth required for you to run this solution is very important for you."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2292.96,
+            "end": 2301.96,
+            "text": "So, that also we have mentioned in that at least from the CMP perspective, we have put that one second."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2301.96,
+            "end": 2302.96,
+            "text": "How you are costing it?"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2302.96,
+            "end": 2305.96,
+            "text": "What you are pricing is a nice thing for you."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2305.96,
+            "end": 2306.96,
+            "text": "Nothing like that."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2306.96,
+            "end": 2310.96,
+            "text": "The core base or node base or is."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2310.96,
+            "end": 2311.96,
+            "text": "Sorry."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2311.96,
+            "end": 2312.96,
+            "text": "It's a node."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2312.96,
+            "end": 2313.96,
+            "text": "Let me take this."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2313.96,
+            "end": 2315.96,
+            "text": "No, it's not a device."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2315.96,
+            "end": 2316.96,
+            "text": "It's on G&G."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2316.96,
+            "end": 2317.96,
+            "text": "No, sir."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2317.96,
+            "end": 2319.96,
+            "text": "It's node base and second is GPU base."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2319.96,
+            "end": 2322.96,
+            "text": "So, there are two, how the pricing happens?"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2322.96,
+            "end": 2323.96,
+            "text": "So, these are two things, sir."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2323.96,
+            "end": 2328.96,
+            "text": "So, for the CPU, if it doesn't matter, you have 128, 4 or 256 core, one socket or two socket."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2328.96,
+            "end": 2331.96,
+            "text": "It is a single node for us on a licensing perspective."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2331.96,
+            "end": 2334.96,
+            "text": "And for GPU, we put it out by GPU."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2334.96,
+            "end": 2339.96,
+            "text": "You might have a server with 8 GPU, 2 GPU, 10 GPU or the way you wish to have it."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2339.96,
+            "end": 2342.96,
+            "text": "And you can have an AMD, NVIDIA or any XYZP."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2342.96,
+            "end": 2345.96,
+            "text": "So, our price doesn't change on that, sir."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2345.96,
+            "end": 2346.96,
+            "text": "Right."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2347.96,
+            "end": 2349.96,
+            "text": "So, this is on the connectivity parts, sir."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2349.96,
+            "end": 2356.96,
+            "text": "So, for DC, we have done active control plane with an MPLS and dedicated fiber."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2356.96,
+            "end": 2361.96,
+            "text": "DR is a standby control plane, again, MPLS and dedicated fiber."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2361.96,
+            "end": 2371.96,
+            "text": "Regional ones will be distributed at compute because that will be 38 different sites across the country, as well as some of their territories also."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2371.96,
+            "end": 2374.96,
+            "text": "So, there it will be MPLS and all the MPM."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2374.96,
+            "end": 2377.96,
+            "text": "If you say you can try to run a corn, and the GPU is..."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2377.96,
+            "end": 2378.96,
+            "text": "Yes, sir."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2378.96,
+            "end": 2380.96,
+            "text": "Those details will be reported."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2380.96,
+            "end": 2382.96,
+            "text": "So, this is a high level proposal."
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 2382.96,
+            "end": 2384.96,
+            "text": "And the exact details will be reported."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2384.96,
+            "end": 2386.96,
+            "text": "That's it for the engine, that is the product."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2386.96,
+            "end": 2387.96,
+            "text": "Yeah, actually."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2387.96,
+            "end": 2389.96,
+            "text": "One plane."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2389.96,
+            "end": 2391.96,
+            "text": "One plane."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2391.96,
+            "end": 2393.96,
+            "text": "Yes, sir."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2393.96,
+            "end": 2396.96,
+            "text": "Is this cloud..."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2396.96,
+            "end": 2399.96,
+            "text": "The water document has been implemented in India."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2399.96,
+            "end": 2401.96,
+            "text": "Yes, it is a little bit like that."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2401.96,
+            "end": 2402.96,
+            "text": "Yes, sir."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2402.96,
+            "end": 2406.96,
+            "text": "So, in India, we have deployed at..."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2406.96,
+            "end": 2410.96,
+            "text": "So, we started from an IC, that's where the journey started."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2410.96,
+            "end": 2422.96,
+            "text": "And then we have a deployment which has been done at, sir, a hotel where they were building their own cloud, as well as they wanted to move away from the VMware setup."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2422.96,
+            "end": 2424.96,
+            "text": "There we have more than 800 nodes."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2424.96,
+            "end": 2425.96,
+            "text": "Sir."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2425.96,
+            "end": 2426.96,
+            "text": "You come with..."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2426.96,
+            "end": 2427.96,
+            "text": "It's good to see you."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2427.96,
+            "end": 2432.96,
+            "text": "Sir, they have got two in North, two in South."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2432.96,
+            "end": 2435.96,
+            "text": "So, the cloud management platform there is provided by us."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2435.96,
+            "end": 2436.96,
+            "text": "Yeah, sir."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2436.96,
+            "end": 2438.96,
+            "text": "38 sites."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2438.96,
+            "end": 2439.96,
+            "text": "38 sites."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2439.96,
+            "end": 2441.96,
+            "text": "Now, my guys."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2441.96,
+            "end": 2446.96,
+            "text": "Sir, North, they have it in Manisad, as well as in Gurgaon, sir."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2446.96,
+            "end": 2448.96,
+            "text": "Well, we will be listed."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2448.96,
+            "end": 2454.96,
+            "text": "Yes, any other location is for right now."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2454.96,
+            "end": 2458.96,
+            "text": "So, this for a day apart from that, we have the..."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2458.96,
+            "end": 2464.96,
+            "text": "So, we are also helping the sovereign cloud for Kenya, that's outside India."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2464.96,
+            "end": 2473.96,
+            "text": "But apart from that, we have a deployment in Dhani Connects where we are holding a discount, the smart meter project in our real-time data center."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2473.96,
+            "end": 2474.96,
+            "text": "In that channel."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2474.96,
+            "end": 2475.96,
+            "text": "Okay."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2475.96,
+            "end": 2476.96,
+            "text": "Motion."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2476.96,
+            "end": 2477.96,
+            "text": "Okay."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2477.96,
+            "end": 2479.96,
+            "text": "These are running, sir."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2479.96,
+            "end": 2481.96,
+            "text": "We are running for growth."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2481.96,
+            "end": 2482.96,
+            "text": "Sir."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2482.96,
+            "end": 2485.96,
+            "text": "I mean, North, you are confident in your name."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2485.96,
+            "end": 2486.96,
+            "text": "Sir."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2486.96,
+            "end": 2491.96,
+            "text": "In your name, it is Chinese and North and 100 nodes are there for discount project."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2491.96,
+            "end": 2492.96,
+            "text": "But we have also..."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2492.96,
+            "end": 2494.96,
+            "text": "There are other projects going on."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2494.96,
+            "end": 2497.96,
+            "text": "But for a particular discount project, it's 100 nodes, sir."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2497.96,
+            "end": 2499.96,
+            "text": "We are going to have a good idea."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2499.96,
+            "end": 2502.96,
+            "text": "So, Gurgaon, sir, for the..."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2502.96,
+            "end": 2510.96,
+            "text": "Atel perspective, the project that we have deployed, overall, it has more than 800 nodes which are running, sir."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2510.96,
+            "end": 2511.96,
+            "text": "Gurgaon is 400 nodes."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2511.96,
+            "end": 2512.96,
+            "text": "Yes."
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 2512.96,
+            "end": 2513.96,
+            "text": "Yes."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2513.96,
+            "end": 2514.96,
+            "text": "Nice thing about Kavakav."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2514.96,
+            "end": 2515.96,
+            "text": "You are right, sir."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2515.96,
+            "end": 2517.96,
+            "text": "So, NICs are..."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2517.96,
+            "end": 2527.96,
+            "text": "When NIC started the first project, the Meghraj one, that is where the team was working and then we did not get the project directly because we didn't had a qualification."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2527.96,
+            "end": 2532.96,
+            "text": "So, we were with a company called Bangka, through which we are delivering this project."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2532.96,
+            "end": 2535.96,
+            "text": "We were delivering this project called TASPoli, sir."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2536.96,
+            "end": 2538.96,
+            "text": "Then we won with Yota also, sir."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2538.96,
+            "end": 2543.96,
+            "text": "The project that Yota won was 10% of the part-ed waste with Yota."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2543.96,
+            "end": 2545.96,
+            "text": "But this is the journey."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 2545.96,
+            "end": 2548.96,
+            "text": "Okay. Thank you."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2548.96,
+            "end": 2549.96,
+            "text": "Thank you."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2549.96,
+            "end": 2550.96,
+            "text": "Thank you."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2550.96,
+            "end": 2551.96,
+            "text": "Thanks."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2551.96,
+            "end": 2552.96,
+            "text": "Thank you."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2552.96,
+            "end": 2553.96,
+            "text": "Thank you."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2553.96,
+            "end": 2554.96,
+            "text": "Thank you all."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2554.96,
+            "end": 2555.96,
+            "text": "Thank you."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2555.96,
+            "end": 2557.96,
+            "text": "Thank you."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2557.96,
+            "end": 2558.96,
+            "text": "Thank you."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2558.96,
+            "end": 2559.96,
+            "text": "Thank you."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2559.96,
+            "end": 2560.96,
+            "text": "Thank you."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2560.96,
+            "end": 2561.96,
+            "text": "Thank you."
+        },
+        {
+            "speaker": "SPEAKER_04",
+            "start": 2565.96,
+            "end": 2566.96,
+            "text": "Thank you."
+        }
+    ],
+    "summary": "Summary generation failed."
+}
