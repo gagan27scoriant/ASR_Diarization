@@ -1,0 +1,140 @@
+# summarize.py
+
+import os
+import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM
+from docx import Document
+
+# ---------------------------------------
+# CONFIG
+# ---------------------------------------
+
+MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.1"
+MOM_FILE_PATH = "minutes_of_meeting.docx"
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+print("Using device:", device)
+
+# ---------------------------------------
+# LOAD MODEL (runs once)
+# ---------------------------------------
+
+print("Loading Mistral model...")
+
+tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+
+model = AutoModelForCausalLM.from_pretrained(
+    MODEL_NAME,
+    device_map="auto",      # auto GPU placement
+    torch_dtype=torch.float16,
+    load_in_4bit=True       # works well for 8GB GPU
+)
+
+model.eval()
+
+print("Model loaded.")
+
+
+# ---------------------------------------
+# BUILD MOM PROMPT
+# ---------------------------------------
+
+def build_prompt(transcript_text: str):
+    return f"""
+You are a professional meeting assistant.
+
+From the conversation below generate structured Minutes of Meeting.
+
+Conversation:
+{transcript_text}
+
+Return strictly in this format:
+
+MEETING SUMMARY:
+(1 short paragraph)
+
+KEY DISCUSSION POINTS:
+- bullet points
+
+DECISIONS MADE:
+- bullet points
+
+ACTION ITEMS:
+- bullet points with owner if possible
+"""
+
+
+# ---------------------------------------
+# GENERATE MOM USING MISTRAL
+# ---------------------------------------
+
+def generate_mom_text(transcript_text: str):
+
+    prompt = build_prompt(transcript_text)
+
+    inputs = tokenizer(
+        prompt,
+        return_tensors="pt",
+        truncation=True,
+        max_length=4096
+    ).to(device)
+
+    with torch.no_grad():
+        output = model.generate(
+            **inputs,
+            max_new_tokens=600,
+            temperature=0.2,
+            do_sample=True
+        )
+
+    result = tokenizer.decode(output[0], skip_special_tokens=True)
+
+    # remove prompt from output
+    return result.replace(prompt, "").strip()
+
+
+# ---------------------------------------
+# CREATE WORD DOCUMENT
+# ---------------------------------------
+
+def save_mom_to_word(mom_text: str):
+
+    doc = Document()
+
+    doc.add_heading("Minutes of Meeting", level=1)
+
+    for line in mom_text.split("\n"):
+        if line.strip():
+            doc.add_paragraph(line.strip())
+
+    doc.save(MOM_FILE_PATH)
+
+    return MOM_FILE_PATH
+
+
+# ---------------------------------------
+# MAIN FUNCTION (USED BY FLASK)
+# ---------------------------------------
+
+def generate_and_save_mom(transcript_text: str):
+    """
+    1. Generates Minutes of Meeting
+    2. Saves Word document
+    3. Returns file path + text
+    """
+
+    if not transcript_text or len(transcript_text.strip()) == 0:
+        raise ValueError("Empty transcript")
+
+    print("Generating Minutes of Meeting...")
+
+    mom_text = generate_mom_text(transcript_text)
+
+    file_path = save_mom_to_word(mom_text)
+
+    print("MoM saved:", file_path)
+
+    return {
+        "mom_text": mom_text,
+        "file_path": file_path
+    }

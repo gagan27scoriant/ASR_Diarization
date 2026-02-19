@@ -1,0 +1,17 @@
+[33mcommit 31b92c622e79af7df82571b188e00520cda643a5[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: jaden-scoriant <jaden@scoriant.com>
+Date:   Tue Feb 17 18:16:10 2026 +0530
+
+    Stable version , only summarization left
+
+[33mcommit ac897bcc514bd4dd9157102aac52b81bf30212d9[m
+Author: Gagan K M <gagan@scoriant.com>
+Date:   Fri Feb 13 12:49:32 2026 +0530
+
+    Update requirements.txt
+
+[33mcommit f91600fe315f54cb5ce1b737fbca6bddf443a4b2[m
+Author: Gagan K M <gagan@scoriant.com>
+Date:   Fri Feb 13 12:44:08 2026 +0530
+
+    inital test
