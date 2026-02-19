@@ -86,13 +86,6 @@ def process_audio():
         final_output = map_speakers(transcription_segments, diarization_result)
 
         # ----------------------------
-        # Summary
-        # ----------------------------
-        print("→ Generating summary...")
-        full_text = " ".join([seg["text"] for seg in final_output])
-        summary = summarize_text(full_text)
-
-        # ----------------------------
         # Save JSON Output
         # ----------------------------
         output_file = os.path.join(
@@ -104,7 +97,7 @@ def process_audio():
             json.dump(
                 {
                     "transcript": final_output,
-                    "summary": summary
+                    "summary": ""
                 },
                 f,
                 indent=4
@@ -114,11 +107,28 @@ def process_audio():
 
         return jsonify({
             "transcript": final_output,
-            "summary": summary
+            "summary": ""
         })
 
     except Exception as e:
         print("❌ Error:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/summarize_text", methods=["POST"])
+def summarize_from_text():
+    try:
+        data = request.get_json()
+        text = (data or {}).get("content", "")
+
+        if not text or not text.strip():
+            return jsonify({"error": "Content missing"}), 400
+
+        print("→ Generating summary from exported text...")
+        summary = summarize_text(text)
+        return jsonify({"summary": summary})
+    except Exception as e:
+        print("❌ Summary Error:", e)
         return jsonify({"error": str(e)}), 500
 
 # ----------------------------
