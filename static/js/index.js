@@ -3,8 +3,11 @@ let uniqueSpeakers = new Set();
 let speakerColors = {};
 let currentSummary = "";
 let lastAudioFile = "";
+let currentProcessedAudio = "";
 let speakerNameMap = {}; 
 let speakerOrderMap = {}; 
+let isSummaryLoading = false;
+let groupedTranscriptCache = [];
 
 function toggleSidebar() { document.getElementById("sidebar").classList.toggle("expanded"); }
 
@@ -21,6 +24,44 @@ function resizeSidebar(e) {
     }
 }
 function stopResize() { document.removeEventListener("mousemove", resizeSidebar); }
+
+const audioFileInput = document.getElementById("audioFile");
+const filePathInput = document.getElementById("filePath");
+const sourceIndicator = document.getElementById("sourceIndicator");
+
+function updateSourceIndicator() {
+    const hasFile = audioFileInput.files && audioFileInput.files.length > 0;
+    const hasPath = filePathInput.value.trim().length > 0;
+
+    if (hasFile) {
+        sourceIndicator.textContent = "Source: Uploaded file";
+    } else if (hasPath) {
+        sourceIndicator.textContent = "Source: Path file";
+    } else {
+        sourceIndicator.textContent = "Source: Not selected";
+    }
+}
+
+audioFileInput.addEventListener("change", () => {
+    if (audioFileInput.files && audioFileInput.files.length > 0) {
+        filePathInput.value = audioFileInput.files[0].name;
+    }
+    updateSourceIndicator();
+});
+
+filePathInput.addEventListener("input", () => {
+    // If user types manually, treat it as a path-source flow.
+    if (audioFileInput.files && audioFileInput.files.length > 0) {
+        audioFileInput.value = "";
+    }
+    updateSourceIndicator();
+});
+
+function openFilePicker() {
+    audioFileInput.click();
+}
+
+updateSourceIndicator();
 
 function formatTime(seconds) {
     const mins = Math.floor(seconds / 60);
@@ -40,21 +81,46 @@ function getSpeakerColor(idx) {
 }
 
 async function processAudio() {
-    const input = document.getElementById("filename");
-    const filename = input.value.trim();
-    if (!filename) return;
-    lastAudioFile = filename;
+    const inputValue = filePathInput.value.trim();
+    const selectedFile = audioFileInput.files && audioFileInput.files.length > 0 ? audioFileInput.files[0] : null;
+
+    if (!selectedFile && !inputValue) return;
+    lastAudioFile = selectedFile ? selectedFile.name : inputValue;
     
     // Show Loader and hide input
     document.getElementById("loadingOverlay").style.display = "flex";
     document.getElementById("inputGroup").classList.add("hidden");
 
     try {
-        const response = await fetch("/process", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ filename: filename }) });
+        let response;
+
+        if (selectedFile) {
+            const formData = new FormData();
+            formData.append("audio_file", selectedFile);
+            response = await fetch("/process", {
+                method: "POST",
+                body: formData
+            });
+        } else {
+            response = await fetch("/process", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ file_path: inputValue })
+            });
+        }
+
         const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || "Audio processing failed");
+        }
         
         transcriptData = result.transcript;
         currentSummary = result.summary;
+        if (result.processed_file) {
+            lastAudioFile = result.processed_file;
+            currentProcessedAudio = result.processed_file;
+        }
         
         uniqueSpeakers.clear();
         speakerNameMap = {};
@@ -84,7 +150,8 @@ async function processAudio() {
         document.getElementById("sumBtn").style.display = "flex";
     } catch (e) { 
         document.getElementById("loadingOverlay").style.display = "none";
-        alert("Connection failed."); 
+        document.getElementById("inputGroup").classList.remove("hidden");
+        alert(e.message || "Connection failed."); 
     }
 }
 
@@ -97,6 +164,23 @@ async function renderChatDelayed() {
     old.forEach(r => r.remove());
 
     if (transcriptData.length === 0) return;
+
+    if (currentProcessedAudio) {
+        const audioRow = document.createElement("div");
+        audioRow.className = "message-row transcription";
+        audioRow.innerHTML = `
+            <div class="avatar" style="background:#ef4444">♫</div>
+            <div class="content" style="border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.12);">
+                <span style="font-size:10px; font-weight:900; color:#ef4444; text-transform:uppercase;">AUDIO PREVIEW</span><br>
+                <audio controls preload="metadata" style="width:100%; margin-top:8px;">
+                    <source src="/audio/${encodeURIComponent(currentProcessedAudio)}" type="audio/wav">
+                    Your browser does not support audio playback.
+                </audio>
+                <span style="display:block; font-size:10px; color:var(--muted); margin-top:5px; font-weight:600;">${currentProcessedAudio}</span>
+            </div>
+        `;
+        chat.appendChild(audioRow);
+    }
 
     const groupedTranscript = [];
     let currentGroup = null;
@@ -116,8 +200,10 @@ async function renderChatDelayed() {
         }
     });
     if (currentGroup) groupedTranscript.push(currentGroup);
+    groupedTranscriptCache = groupedTranscript;
 
-    for (const group of groupedTranscript) {
+    for (let i = 0; i < groupedTranscript.length; i++) {
+        const group = groupedTranscript[i];
         const row = document.createElement("div");
         row.className = "message-row transcription";
         const colorSet = speakerColors[group.speaker];
@@ -127,7 +213,7 @@ async function renderChatDelayed() {
             ? group.texts.map(t => `• ${t}`).join('<br>') 
             : group.texts[0];
 
-        row.innerHTML = `<div class="avatar" style="background: ${colorSet.main}">${group.speaker[0]}</div><div class="content" style="border-left: 4px solid ${colorSet.main}; background: ${colorSet.glow}"><span style="font-size:10px; font-weight:900; color:${colorSet.main}; text-transform:uppercase;">${group.speaker}</span><br>${combinedText}<span style="display:block; font-size:10px; color:var(--muted); margin-top:5px; font-weight:600;">${ts}</span></div>`;
+        row.innerHTML = `<div class="avatar" style="background: ${colorSet.main}">${group.speaker[0]}</div><div class="content" style="border-left: 4px solid ${colorSet.main}; background: ${colorSet.glow}"><div class="copy-transcript-icon" onclick="copyTranscriptByIndex(${i})" title="Copy Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></div><span style="font-size:10px; font-weight:900; color:${colorSet.main}; text-transform:uppercase;">${group.speaker}</span><br>${combinedText}<span style="display:block; font-size:10px; color:var(--muted); margin-top:5px; font-weight:600;">${ts}</span></div>`;
         chat.appendChild(row);
     }
     chat.scrollTop = chat.scrollHeight;
@@ -202,65 +288,162 @@ function buildExportTranscriptText() {
     return content;
 }
 
-function renderSummaryCard(summaryText) {
-    const chat = document.getElementById("chat");
-    const row = document.createElement("div");
-    row.className = "message-row transcription";
+function copyTranscriptByIndex(index) {
+    const group = groupedTranscriptCache[index];
+    if (!group) return;
 
-    function escapeHTML(text) {
-        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
+    let text = `${group.speaker.toUpperCase()} [${formatTime(group.start || 0)} - ${formatTime(group.end || 0)}]:\n`;
+    group.texts.forEach(line => {
+        text += `- ${line}\n`;
+    });
 
-    let updatedSummary = summaryText;
+    navigator.clipboard.writeText(text.trim());
+    alert("Transcript copied to clipboard!");
+}
+
+function getResolvedSummaryText(summaryText) {
+    let updatedSummary = summaryText || "";
     const sortedEntries = Object.entries(speakerNameMap).sort((a, b) => b[0].length - a[0].length);
     for (let [originalSpeaker, finalizedName] of sortedEntries) {
         const regex = new RegExp('\\b' + originalSpeaker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'gi');
         updatedSummary = updatedSummary.replace(regex, finalizedName);
     }
+    return updatedSummary;
+}
 
-    let formatted = escapeHTML(updatedSummary)
-        .replace(/\*\*(.*?)\*\*/g, "$1")
-        .replace(/^One meaningfull paragraph Summary:/gim, "<h3>📌 Minutes of Meeting Summaried </h3>")
-        .replace(/^\* /gm, "• ")
-        .replace(/^- /gm, "• ")
-        .replace(/\n/g, "<br>");
+function escapeHTMLText(text) {
+    return (text || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
 
+function isSummaryHeadingLine(line) {
+    const value = (line || "").trim();
+    const headingPatterns = [
+        /^MINUTES OF A MEETING$/i,
+        /^TITLE\s*:.*/i,
+        /^DATE\s*:.*/i,
+        /^PLACE\s*:.*/i,
+        /^INTRODUCTION$/i,
+        /^ATTENDEES$/i,
+        /^SUMMARY OF THE MEETING$/i,
+        /^KEY ASPECTS DISCUSSED\s*:?$/i,
+        /^ACTION ITEMS AND ASSIGNED TO\s*:?$/i,
+        /^DEADLINES FOR THE TASKS\s*:?$/i,
+        /^THANK YOU$/i
+    ];
+    return headingPatterns.some((pattern) => pattern.test(value));
+}
+
+function renderSummaryCard(summaryText, targetCard = null) {
+    const updatedSummary = getResolvedSummaryText(summaryText);
+
+    const formattedLines = updatedSummary
+        .split("\n")
+        .map((line) => {
+            const normalized = line.replace(/^\* /, "• ").replace(/^- /, "• ");
+            const safe = escapeHTMLText(normalized);
+            return isSummaryHeadingLine(normalized) ? `<b>${safe}</b>` : safe;
+        });
+    const formatted = formattedLines.join("<br>");
+
+    const summaryMarkup = `
+        <div class="copy-sum-icon" onclick="copySummary()" title="Copy Summary"
+            style="position:absolute;top:10px;right:10px;cursor:pointer;opacity:0.7">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+        </div>
+        ${formatted}
+    `;
+
+    const chat = document.getElementById("chat");
+    if (targetCard) {
+        targetCard.id = "sumCard";
+        targetCard.innerHTML = summaryMarkup;
+        chat.scrollTop = chat.scrollHeight;
+        return;
+    }
+
+    const row = document.createElement("div");
+    row.className = "message-row transcription";
     row.innerHTML = `
         <div class="avatar" style="background:#10b981">Σ</div>
         <div class="content summary-card" id="sumCard" style="
             padding:16px; border-radius:12px; background:#111827; color:white; line-height:1.6; position:relative;">
-            <div class="copy-sum-icon" onclick="copySummary()" title="Copy Summary"
-                style="position:absolute;top:10px;right:10px;cursor:pointer;opacity:0.7">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="9" y="9" width="13" height="13" rx="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-            </div>
-            ${formatted}
+            ${summaryMarkup}
         </div>
     `;
-
     chat.appendChild(row);
     chat.scrollTop = chat.scrollHeight;
 }
 
+function renderSummaryLoadingCard() {
+    const chat = document.getElementById("chat");
+    const row = document.createElement("div");
+    row.className = "message-row transcription";
+    row.innerHTML = `
+        <div class="avatar" style="background:#10b981">Σ</div>
+        <div class="content summary-card" id="summaryPendingCard" style="
+            padding:16px; border-radius:12px; background:#111827; color:white; line-height:1.6; position:relative;">
+            <div class="summary-loading">
+                <span class="summary-loading-text">Generating Summary</span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+            </div>
+        </div>
+    `;
+    chat.appendChild(row);
+    chat.scrollTop = chat.scrollHeight;
+    return document.getElementById("summaryPendingCard");
+}
+
+function requestMeetingDetails() {
+    const meetingTitle = window.prompt("Enter Meeting Title:");
+    if (meetingTitle === null || !meetingTitle.trim()) return null;
+
+    const meetingDate = window.prompt("Enter Meeting Date:");
+    if (meetingDate === null || !meetingDate.trim()) return null;
+
+    const meetingPlace = window.prompt("Enter Meeting Place:");
+    if (meetingPlace === null || !meetingPlace.trim()) return null;
+
+    return {
+        meeting_title: meetingTitle.trim(),
+        meeting_date: meetingDate.trim(),
+        meeting_place: meetingPlace.trim()
+    };
+}
+
 async function showSummary() {
     if (!transcriptData || transcriptData.length === 0) return;
+    if (isSummaryLoading) return;
 
     if (currentSummary) {
         renderSummaryCard(currentSummary);
         return;
     }
 
-    document.getElementById("loadingOverlay").style.display = "flex";
-    document.querySelector(".loading-text").innerText = "GENERATING SUMMARY...";
+    const meetingDetails = requestMeetingDetails();
+    if (!meetingDetails) return;
+
+    isSummaryLoading = true;
+    const pendingCard = renderSummaryLoadingCard();
 
     try {
         const content = buildExportTranscriptText();
         const response = await fetch("/summarize_text", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content: content })
+            body: JSON.stringify({
+                content: content,
+                meeting_title: meetingDetails.meeting_title,
+                meeting_date: meetingDetails.meeting_date,
+                meeting_place: meetingDetails.meeting_place
+            })
         });
         const result = await response.json();
 
@@ -269,12 +452,14 @@ async function showSummary() {
         }
 
         currentSummary = result.summary || "";
-        renderSummaryCard(currentSummary);
+        renderSummaryCard(currentSummary, pendingCard);
     } catch (e) {
-        alert("Summary generation failed.");
+        if (pendingCard) {
+            pendingCard.textContent = "Summary generation failed.";
+            pendingCard.removeAttribute("id");
+        }
     } finally {
-        document.getElementById("loadingOverlay").style.display = "none";
-        document.querySelector(".loading-text").innerText = "GENERATING TRANSCRIPTION...";
+        isSummaryLoading = false;
     }
 }
 
@@ -303,7 +488,7 @@ function copySummary() {
 //     link.click();
 // }
 
-function exportData(format) {
+function exportTranscript() {
     if (!transcriptData || transcriptData.length === 0) return;
 
     // Group consecutive lines by speaker
@@ -356,4 +541,37 @@ function exportData(format) {
     link.click();
 }
 
+function exportSummary() {
+    if (!currentSummary || !currentSummary.trim()) {
+        alert("Summary is not available. Click Summarize first.");
+        return;
+    }
 
+    const updatedSummary = getResolvedSummaryText(currentSummary);
+    const lines = updatedSummary.split("\n");
+
+    let content = "";
+    lines.forEach((line) => {
+        const normalized = line.replace(/^\* /, "• ").replace(/^- /, "• ").trim();
+        if (!normalized) {
+            content += "<p>&nbsp;</p>";
+            return;
+        }
+        const safe = escapeHTMLText(normalized);
+        content += isSummaryHeadingLine(normalized) ? `<p><b>${safe}</b></p>` : `<p>${safe}</p>`;
+    });
+
+    const preamble = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office'
+              xmlns:w='urn:schemas-microsoft-com:office:word'
+              xmlns='http://www.w3.org/TR/REC-html40'>
+        <head><meta charset='utf-8'><title>Summary Export</title></head>
+        <body>${content}</body></html>
+    `;
+
+    const blob = new Blob([preamble], { type: "application/msword" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${lastAudioFile.split('.')[0] || 'ASR_Export'}_summary.doc`;
+    link.click();
+}

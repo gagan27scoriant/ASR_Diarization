@@ -18,24 +18,50 @@ if SUMMARY_BACKEND == "bart":
     model = BartForConditionalGeneration.from_pretrained(MODEL_NAME)
 
 
-def _build_prompt(transcript_text: str) -> str:
+def _build_prompt(
+    transcript_text: str,
+    meeting_title: str,
+    meeting_date: str,
+    meeting_place: str
+) -> str:
     return f"""
-Create a professional summary of this meeting: 
-1. MEETING TITLE and DATE and TIME 
-2. AJENDA OF THE MEETING 
-3. MAIN TOPICS DISCUSSED 
-4. ACTION ITEMS AND ASSIGNEES 
-5. DEADLINE FOR ACTION ITEMS.
+Create Minutes of a Meeting in this exact structure and heading order:
+MINUTES OF A MEETING
+TITLE :
+DATE :
+PLACE :
 
-IF Anthing is missing, just write "Not Applicable" for that section. Just write the summary in a clear and concise manner, without any additional explanations or formatting and keep it within 6 Points for each section. if Anything Not Applicable, just write "Not Applicable" for that section with no further explanation.
-Take the assignee name from the speaker names after the finalizing name and just mention their name without any further explanation. If there are multiple assignees, just write their names by Bullet Points. Take the following transcript of the meeting and create the summary based on the above structure:
+INTRODUCTION
+ATTENDEES
+SUMMARY OF THE MEETING
+KEY ASPECTS DISCUSSED :
+ACTION ITEMS AND ASSIGNED TO:
+DEADLINES FOR THE TASKS:
+THANK YOU
+
+Use only these user-provided values for header fields:
+- TITLE : {meeting_title}
+- DATE : [{meeting_date}]
+- PLACE : [{meeting_place}]
+
+Rules:
+- Do NOT include any transcript section.
+- Do NOT include timestamps.
+- Do NOT add explanations.
+- If any section data is missing, output exactly "Not Applicable".
+- Keep each section concise with bullet points where appropriate.
 
 Conversation:
 {transcript_text} """
 
 
-def _summarize_with_ollama(transcript_text: str) -> str:
-    prompt = _build_prompt(transcript_text)
+def _summarize_with_ollama(
+    transcript_text: str,
+    meeting_title: str,
+    meeting_date: str,
+    meeting_place: str
+) -> str:
+    prompt = _build_prompt(transcript_text, meeting_title, meeting_date, meeting_place)
     response = requests.post(
         OLLAMA_URL,
         json={
@@ -50,7 +76,12 @@ def _summarize_with_ollama(transcript_text: str) -> str:
     return result.get("response", "").strip()
 
 
-def _summarize_with_bart(transcript_text: str) -> str:
+def _summarize_with_bart(
+    transcript_text: str,
+    meeting_title: str,
+    meeting_date: str,
+    meeting_place: str
+) -> str:
     # Step 1: Preprocess transcript
     transcript_text = transcript_text.replace("\n", " ").strip()
 
@@ -75,7 +106,7 @@ def _summarize_with_bart(transcript_text: str) -> str:
     combined_summary = " ".join(chunk_summaries)
 
     # Step 4: Extract attendees (simple heuristic)
-    attendees = list(set(re.findall(r"(?:Speaker\d+|[A-Z][a-z]+(?: [A-Z][a-z]+)*)", transcript_text)))
+    attendees = sorted(set(re.findall(r"(?:Speaker\d+|[A-Z][a-z]+(?: [A-Z][a-z]+)*)", transcript_text)))
 
     # Step 5: Extract main topics (top 3 sentences)
     sentences = re.split(r'(?<=[.!?]) +', combined_summary)
@@ -84,28 +115,51 @@ def _summarize_with_bart(transcript_text: str) -> str:
     # Step 6: Extract actions (sentences with 'will' or 'should')
     actions = [s for s in sentences if re.search(r'\b(will|should)\b', s, re.IGNORECASE)]
 
+    attendee_lines = "\n".join(f"- {name}" for name in attendees[:6]) if attendees else "Not Applicable"
+    topic_lines = "\n".join(f"- {topic}" for topic in main_topics if topic.strip()) if main_topics else "Not Applicable"
+    action_lines = "\n".join(f"- {action}" for action in actions if action.strip()) if actions else "Not Applicable"
+
     # Step 7: Assemble structured summary (for web display)
     structured_summary = f"""
-One Paragraph Meaningful Summary:
-{combined_summary}
+MINUTES OF A MEETING
+TITLE : {meeting_title}
+DATE : [{meeting_date}]
+PLACE : [{meeting_place}]
 
-# Attendees:
-# - {"\n# - ".join(attendees)}
+INTRODUCTION
+Not Applicable
 
-# Main Topics and Key Decisions:
-# - {"\n# - ".join(main_topics)}
+ATTENDEES
+{attendee_lines}
 
-# Plan of Actions and Responsible Person:
-# - {"\n# - ".join(actions)}
+SUMMARY OF THE MEETING
+Not Applicable
 
-# Best Speaker:
-# - {attendees[0] if attendees else ""}
-# - Reason: Most active in conversation
+KEY ASPECTS DISCUSSED :
+{topic_lines}
+
+ACTION ITEMS AND ASSIGNED TO:
+{action_lines}
+
+DEADLINES FOR THE TASKS:
+Not Applicable
+
+THANK YOU
 """
 
     return structured_summary.strip()
 
-def summarize_text(transcript_text):
+def _strip_transcript_section(summary_text: str) -> str:
+    # Safety: remove transcript section if model adds it despite prompt constraints.
+    cleaned = re.sub(
+        r"(?is)\nTRANSCRIPTS OF THE MEETING:.*$",
+        "",
+        summary_text or "",
+    )
+    return cleaned.strip()
+
+
+def summarize_text(transcript_text, meeting_title, meeting_date, meeting_place):
     """
     Summarize transcript text.
     Backends:
@@ -118,8 +172,14 @@ def summarize_text(transcript_text):
 
     try:
         if SUMMARY_BACKEND == "ollama":
-            return _summarize_with_ollama(transcript_text)
-        return _summarize_with_bart(transcript_text)
+            raw = _summarize_with_ollama(
+                transcript_text, meeting_title, meeting_date, meeting_place
+            )
+            return _strip_transcript_section(raw)
+        raw = _summarize_with_bart(
+            transcript_text, meeting_title, meeting_date, meeting_place
+        )
+        return _strip_transcript_section(raw)
     except Exception as e:
         print("Summarization error:", e)
         return "Summary generation failed."
