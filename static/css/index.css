@@ -154,6 +154,35 @@ body{
   0%, 80%, 100% { transform: scale(0.7); opacity: 0.25; }
   40% { transform: scale(1); opacity: 1; }
 }
+.audio-preview-content { max-width: 96% !important; width: 96%; }
+.video-preview-content { max-width: 96% !important; width: 96%; }
+.doc-preview-content { max-width: 96% !important; width: 96%; }
+.doc-preview-panel {
+  resize: both;
+  overflow: auto;
+  min-height: 260px;
+  min-width: 320px;
+  width: 100%;
+  max-height: 70vh;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.03);
+  margin-top: 8px;
+}
+.doc-preview-frame {
+  width: 100%;
+  min-height: 420px;
+  border: none;
+  border-radius: 12px;
+}
+.doc-preview-text {
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #e2e8f0;
+  padding: 12px;
+}
 
 /* ---------- INPUT AREA ---------- */
 .input-wrapper { position: absolute; bottom: 0; left: 0; right: 0; padding: 35px 15%; background: linear-gradient(0deg, #0b1020 60%, transparent); }

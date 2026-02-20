@@ -41,16 +41,16 @@
     <div id="chat">
       <div class="message-row">
         <div class="avatar" style="background: var(--accent)">AI</div>
-        <div class="content">Upload or reference an audio file. Supported formats: .wav, .mp3, .aac, .aiff, .wma, .amr, .opus. Non-wav inputs are converted to wav automatically.</div>
+        <div class="content">Upload audio/video/documents. Audio: .wav, .mp3, .aac, .aiff, .wma, .amr, .opus. Video: .mp4, .mkv, .avi, .mov, .wmv, .mpeg, .3gp. Documents: .pdf, .docx, .txt.</div>
       </div>
     </div>
     <div class="input-wrapper">
       <div class="progress-container" id="pContainer"><div class="progress-bar" id="pBar"></div></div>
       <div id="inputGroup">
           <div class="input-container">
-            <input type="file" id="audioFile" accept=".wav,.mp3,.aac,.aiff,.wma,.amr,.opus" hidden>
+            <input type="file" id="audioFile" accept=".wav,.mp3,.aac,.aiff,.wma,.amr,.opus,.mp4,.mkv,.avi,.mov,.wmv,.mpeg,.3gp,.pdf,.docx,.txt" hidden>
             <button class="upload-btn" type="button" onclick="openFilePicker()">Upload</button>
-            <input type="text" id="filePath" placeholder="Paste file path (e.g., /home/user/meeting.mp3) or choose upload" onkeypress="if(event.key==='Enter') processAudio()">
+            <input type="text" id="filePath" placeholder="Paste media path or choose upload (audio/video; docs via upload)" onkeypress="if(event.key==='Enter') processAudio()">
             <button class="send-btn" onclick="processAudio()">➔</button>
           </div>
           <div id="sourceIndicator" class="source-indicator">Source: Not selected</div>

@@ -4,6 +4,10 @@ let speakerColors = {};
 let currentSummary = "";
 let lastAudioFile = "";
 let currentProcessedAudio = "";
+let currentProcessedVideo = "";
+let currentDocumentFilename = "";
+let currentDocumentType = "";
+let currentDocumentText = "";
 let speakerNameMap = {}; 
 let speakerOrderMap = {}; 
 let isSummaryLoading = false;
@@ -80,6 +84,21 @@ function getSpeakerColor(idx) {
     return palette[idx % palette.length];
 }
 
+function isAudioFile(name) {
+    const ext = (name.split(".").pop() || "").toLowerCase();
+    return ["wav", "mp3", "aac", "aiff", "wma", "amr", "opus"].includes(ext);
+}
+
+function isVideoFile(name) {
+    const ext = (name.split(".").pop() || "").toLowerCase();
+    return ["mp4", "mkv", "avi", "mov", "wmv", "mpeg", "3gp"].includes(ext);
+}
+
+function isDocumentFile(name) {
+    const ext = (name.split(".").pop() || "").toLowerCase();
+    return ["pdf", "docx", "txt"].includes(ext);
+}
+
 async function processAudio() {
     const inputValue = filePathInput.value.trim();
     const selectedFile = audioFileInput.files && audioFileInput.files.length > 0 ? audioFileInput.files[0] : null;
@@ -92,6 +111,48 @@ async function processAudio() {
     document.getElementById("inputGroup").classList.add("hidden");
 
     try {
+        if (selectedFile && isDocumentFile(selectedFile.name)) {
+            const meetingDetails = requestMeetingDetails();
+            if (!meetingDetails) {
+                document.getElementById("loadingOverlay").style.display = "none";
+                document.getElementById("inputGroup").classList.remove("hidden");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("document_file", selectedFile);
+            formData.append("meeting_title", meetingDetails.meeting_title);
+            formData.append("meeting_date", meetingDetails.meeting_date);
+            formData.append("meeting_place", meetingDetails.meeting_place);
+
+            const response = await fetch("/process_document", {
+                method: "POST",
+                body: formData
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || "Document processing failed");
+            }
+
+            transcriptData = [];
+            groupedTranscriptCache = [];
+            currentSummary = result.summary || "";
+            currentProcessedAudio = "";
+            currentProcessedVideo = "";
+            currentDocumentFilename = result.document_filename || "";
+            currentDocumentType = (result.document_type || "").toLowerCase();
+            currentDocumentText = result.document_text || "";
+            document.getElementById("sumBtn").style.display = "none";
+
+            renderDocumentResult();
+            return;
+        }
+
+        if (selectedFile && !isAudioFile(selectedFile.name) && !isVideoFile(selectedFile.name)) {
+            throw new Error("Unsupported file. Use audio/video or documents (.pdf/.docx/.txt).");
+        }
+
         let response;
 
         if (selectedFile) {
@@ -117,6 +178,10 @@ async function processAudio() {
         
         transcriptData = result.transcript;
         currentSummary = result.summary;
+        currentDocumentFilename = "";
+        currentDocumentType = "";
+        currentDocumentText = "";
+        currentProcessedVideo = result.source_video || "";
         if (result.processed_file) {
             lastAudioFile = result.processed_file;
             currentProcessedAudio = result.processed_file;
@@ -165,12 +230,29 @@ async function renderChatDelayed() {
 
     if (transcriptData.length === 0) return;
 
+    if (currentProcessedVideo) {
+        const videoRow = document.createElement("div");
+        videoRow.className = "message-row transcription";
+        videoRow.innerHTML = `
+            <div class="avatar" style="background:#f97316">▶</div>
+            <div class="content video-preview-content" style="border-left: 4px solid #f97316; background: rgba(249, 115, 22, 0.12);">
+                <span style="font-size:10px; font-weight:900; color:#f97316; text-transform:uppercase;">VIDEO PREVIEW</span><br>
+                <video controls preload="metadata" style="width:100%; margin-top:8px; border-radius:12px;">
+                    <source src="/videos/${encodeURIComponent(currentProcessedVideo)}">
+                    Your browser does not support video playback.
+                </video>
+                <span style="display:block; font-size:10px; color:var(--muted); margin-top:5px; font-weight:600;">${currentProcessedVideo}</span>
+            </div>
+        `;
+        chat.appendChild(videoRow);
+    }
+
     if (currentProcessedAudio) {
         const audioRow = document.createElement("div");
         audioRow.className = "message-row transcription";
         audioRow.innerHTML = `
             <div class="avatar" style="background:#ef4444">♫</div>
-            <div class="content" style="border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.12);">
+            <div class="content audio-preview-content" style="border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.12);">
                 <span style="font-size:10px; font-weight:900; color:#ef4444; text-transform:uppercase;">AUDIO PREVIEW</span><br>
                 <audio controls preload="metadata" style="width:100%; margin-top:8px;">
                     <source src="/audio/${encodeURIComponent(currentProcessedAudio)}" type="audio/wav">
@@ -215,6 +297,47 @@ async function renderChatDelayed() {
 
         row.innerHTML = `<div class="avatar" style="background: ${colorSet.main}">${group.speaker[0]}</div><div class="content" style="border-left: 4px solid ${colorSet.main}; background: ${colorSet.glow}"><div class="copy-transcript-icon" onclick="copyTranscriptByIndex(${i})" title="Copy Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></div><span style="font-size:10px; font-weight:900; color:${colorSet.main}; text-transform:uppercase;">${group.speaker}</span><br>${combinedText}<span style="display:block; font-size:10px; color:var(--muted); margin-top:5px; font-weight:600;">${ts}</span></div>`;
         chat.appendChild(row);
+    }
+    chat.scrollTop = chat.scrollHeight;
+}
+
+function renderDocumentResult() {
+    document.getElementById("loadingOverlay").style.display = "none";
+
+    const chat = document.getElementById("chat");
+    const old = chat.querySelectorAll(".transcription");
+    old.forEach((r) => r.remove());
+
+    const row = document.createElement("div");
+    row.className = "message-row transcription";
+
+    let previewMarkup = "";
+    if (currentDocumentType === "pdf") {
+        previewMarkup = `
+            <div class="doc-preview-panel">
+                <iframe class="doc-preview-frame" src="/documents/${encodeURIComponent(currentDocumentFilename)}"></iframe>
+            </div>
+        `;
+    } else {
+        previewMarkup = `
+            <div class="doc-preview-panel">
+                <div class="doc-preview-text">${escapeHTMLText(currentDocumentText || "No preview available.")}</div>
+            </div>
+        `;
+    }
+
+    row.innerHTML = `
+        <div class="avatar" style="background:#ef4444">DOC</div>
+        <div class="content doc-preview-content" style="border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.10);">
+            <span style="font-size:10px; font-weight:900; color:#ef4444; text-transform:uppercase;">DOCUMENT PREVIEW</span><br>
+            <span style="display:block; font-size:12px; color:var(--muted); margin-top:5px;">${escapeHTMLText(currentDocumentFilename)}</span>
+            ${previewMarkup}
+        </div>
+    `;
+
+    chat.appendChild(row);
+    if (currentSummary) {
+        renderSummaryCard(currentSummary);
     }
     chat.scrollTop = chat.scrollHeight;
 }
