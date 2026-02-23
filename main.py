@@ -11,7 +11,7 @@ from moviepy import VideoFileClip
 from pypdf import PdfReader
 from werkzeug.utils import secure_filename
 
-from app.asr import load_asr, transcribe
+from app.asr import load_asr, transcribe, transcribe_live_chunk
 from app.diarization import load_diarization, diarize
 from app.mapper import map_speakers
 from app.summarize import summarize_text
@@ -30,6 +30,7 @@ AUDIO_FOLDER = "audio"
 VIDEO_FOLDER = "videos"
 OUTPUT_FOLDER = "outputs"
 DOCUMENT_FOLDER = "documents"
+RECORDINGS_FOLDER = "recordings"
 
 SUPPORTED_AUDIO_EXTENSIONS = {
     ".wav", ".mp3", ".aac", ".aiff", ".wma", ".amr", ".opus"
@@ -43,6 +44,7 @@ os.makedirs(AUDIO_FOLDER, exist_ok=True)
 os.makedirs(VIDEO_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 os.makedirs(DOCUMENT_FOLDER, exist_ok=True)
+os.makedirs(RECORDINGS_FOLDER, exist_ok=True)
 
 
 # ----------------------------
@@ -380,6 +382,50 @@ def process_audio():
     except Exception as e:
         print("❌ Error:", e)
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/transcribe_chunk", methods=["POST"])
+def transcribe_chunk():
+    """
+    Transcribe a short microphone chunk for real-time UI updates.
+    """
+    try:
+        uploaded_chunk = request.files.get("audio_chunk")
+        if not uploaded_chunk or not uploaded_chunk.filename:
+            return jsonify({"error": "Audio chunk missing"}), 400
+
+        safe_name = secure_filename(uploaded_chunk.filename) or "chunk.webm"
+        chunk_ext = os.path.splitext(safe_name)[1].lower() or ".webm"
+        chunk_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        raw_path = os.path.join(RECORDINGS_FOLDER, f"chunk_{chunk_id}{chunk_ext}")
+        wav_path = os.path.join(RECORDINGS_FOLDER, f"chunk_{chunk_id}.wav")
+
+        uploaded_chunk.save(raw_path)
+
+        try:
+            (
+                ffmpeg
+                .input(raw_path)
+                .output(wav_path, acodec="pcm_s16le", ac=1, ar=16000)
+                .overwrite_output()
+                .run(capture_stdout=True, capture_stderr=True)
+            )
+        except ffmpeg.Error as e:
+            details = e.stderr.decode("utf-8", errors="ignore") if e.stderr else str(e)
+            return jsonify({"error": f"Chunk conversion failed: {details}"}), 500
+
+        text = transcribe_live_chunk(asr_model, wav_path)
+        return jsonify({"text": text})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        try:
+            if "raw_path" in locals() and os.path.isfile(raw_path):
+                os.remove(raw_path)
+            if "wav_path" in locals() and os.path.isfile(wav_path):
+                os.remove(wav_path)
+        except Exception:
+            pass
 
 
 @app.route("/summarize_text", methods=["POST"])

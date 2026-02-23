@@ -128,3 +128,35 @@ def transcribe(model, audio_path):
     first_score = (first_coverage * 0.6) + (min(first_chars, 4000) / 4000.0 * 0.4)
     second_score = (second_coverage * 0.6) + (min(second_chars, 4000) / 4000.0 * 0.4)
     return second_result if second_score > first_score else first_result
+
+
+def transcribe_live_chunk(model, audio_path):
+    """
+    Low-latency transcription for short live-recording chunks.
+    Returns plain text for immediate UI rendering.
+    """
+    task_mode = os.getenv("ASR_TASK", "translate").strip() or "translate"
+
+    segments, _ = model.transcribe(
+        audio_path,
+        task=task_mode,
+        language=None,
+        beam_size=2,
+        best_of=2,
+        temperature=0.0,
+        vad_filter=True,
+        vad_parameters={"min_silence_duration_ms": 180},
+        condition_on_previous_text=False,
+        no_speech_threshold=0.4,
+        compression_ratio_threshold=2.8,
+        log_prob_threshold=-1.5,
+        word_timestamps=False,
+    )
+
+    lines = []
+    for seg in segments:
+        text = (getattr(seg, "text", "") or "").strip()
+        if text:
+            lines.append(text)
+
+    return " ".join(lines).strip()

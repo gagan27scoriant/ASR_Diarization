@@ -14,6 +14,14 @@ let speakerOrderMap = {};
 let isSummaryLoading = false;
 let groupedTranscriptCache = [];
 let historyEntries = [];
+let mediaRecorder = null;
+let recordingStream = null;
+let isRecording = false;
+let isRecordingPaused = false;
+let recordChunkIndex = 0;
+let liveChunkQueue = Promise.resolve();
+let liveTranscriptLinesEl = null;
+let liveTranscriptStatusEl = null;
 
 function toggleSidebar() { document.getElementById("sidebar").classList.toggle("expanded"); }
 
@@ -34,6 +42,9 @@ function stopResize() { document.removeEventListener("mousemove", resizeSidebar)
 const audioFileInput = document.getElementById("audioFile");
 const filePathInput = document.getElementById("filePath");
 const sourceIndicator = document.getElementById("sourceIndicator");
+const recordBtn = document.getElementById("recordBtn");
+const pauseBtn = document.getElementById("pauseBtn");
+const stopBtn = document.getElementById("stopBtn");
 
 function updateSourceIndicator() {
     const hasFile = audioFileInput.files && audioFileInput.files.length > 0;
@@ -68,6 +79,171 @@ function openFilePicker() {
 }
 
 updateSourceIndicator();
+
+function setRecordingButtons(active, paused = false) {
+    if (!recordBtn || !pauseBtn || !stopBtn) return;
+    recordBtn.classList.toggle("hidden", active);
+    pauseBtn.classList.toggle("hidden", !active);
+    stopBtn.classList.toggle("hidden", !active);
+    pauseBtn.textContent = paused ? "Resume" : "Pause";
+}
+
+function ensureLiveTranscriptCard() {
+    if (
+        liveTranscriptLinesEl &&
+        liveTranscriptStatusEl &&
+        liveTranscriptLinesEl.isConnected &&
+        liveTranscriptStatusEl.isConnected
+    ) {
+        return;
+    }
+
+    const chat = document.getElementById("chat");
+    const row = document.createElement("div");
+    row.className = "message-row transcription";
+    row.innerHTML = `
+        <div class="avatar" style="background:#ef4444">REC</div>
+        <div class="content live-transcript-card">
+            <span class="live-transcript-badge">Live Transcription</span>
+            <div id="liveTranscriptStatus" style="font-size:12px;color:#fecaca;margin-bottom:6px;">Recording...</div>
+            <div id="liveTranscriptLines" class="live-transcript-lines"></div>
+        </div>
+    `;
+    chat.appendChild(row);
+    liveTranscriptStatusEl = row.querySelector("#liveTranscriptStatus");
+    liveTranscriptLinesEl = row.querySelector("#liveTranscriptLines");
+    chat.scrollTop = chat.scrollHeight;
+}
+
+function appendLiveTranscript(text) {
+    const value = (text || "").trim();
+    if (!value) return;
+    ensureLiveTranscriptCard();
+    if (liveTranscriptLinesEl.textContent.trim()) {
+        liveTranscriptLinesEl.textContent += `\n${value}`;
+    } else {
+        liveTranscriptLinesEl.textContent = value;
+    }
+    const chat = document.getElementById("chat");
+    chat.scrollTop = chat.scrollHeight;
+}
+
+function preferredRecorderMimeType() {
+    const types = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/ogg;codecs=opus",
+        "audio/mp4"
+    ];
+    for (const t of types) {
+        if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) {
+            return t;
+        }
+    }
+    return "";
+}
+
+async function sendLiveChunk(blob, chunkIndex) {
+    if (!blob || blob.size === 0) return;
+    const formData = new FormData();
+    const filename = `chunk_${chunkIndex}.webm`;
+    formData.append("audio_chunk", blob, filename);
+    formData.append("chunk_index", String(chunkIndex));
+
+    try {
+        const response = await fetch("/transcribe_chunk", {
+            method: "POST",
+            body: formData
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || "Live transcription failed");
+        }
+        appendLiveTranscript(result.text || "");
+    } catch (e) {
+        if (liveTranscriptStatusEl) {
+            liveTranscriptStatusEl.textContent = `Live transcription error: ${e.message || "unknown error"}`;
+        }
+    }
+}
+
+async function startRecording() {
+    if (isRecording) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Microphone recording is not supported in this browser.");
+        return;
+    }
+
+    try {
+        recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const options = {};
+        const mimeType = preferredRecorderMimeType();
+        if (mimeType) options.mimeType = mimeType;
+
+        mediaRecorder = new MediaRecorder(recordingStream, options);
+        isRecording = true;
+        isRecordingPaused = false;
+        recordChunkIndex = 0;
+        liveChunkQueue = Promise.resolve();
+        ensureLiveTranscriptCard();
+        if (liveTranscriptStatusEl) liveTranscriptStatusEl.textContent = "Recording...";
+        setRecordingButtons(true, false);
+
+        mediaRecorder.ondataavailable = (event) => {
+            if (!event.data || event.data.size === 0) return;
+            const idx = recordChunkIndex++;
+            liveChunkQueue = liveChunkQueue.then(() => sendLiveChunk(event.data, idx));
+        };
+
+        mediaRecorder.onerror = () => {
+            if (liveTranscriptStatusEl) liveTranscriptStatusEl.textContent = "Recorder error";
+        };
+
+        mediaRecorder.onstop = async () => {
+            await liveChunkQueue;
+            if (liveTranscriptStatusEl) {
+                liveTranscriptStatusEl.textContent = "Stopped";
+            }
+            if (recordingStream) {
+                recordingStream.getTracks().forEach((t) => t.stop());
+            }
+            recordingStream = null;
+            mediaRecorder = null;
+            isRecording = false;
+            isRecordingPaused = false;
+            setRecordingButtons(false, false);
+        };
+
+        mediaRecorder.start(2500);
+    } catch (e) {
+        alert(e.message || "Microphone permission denied.");
+        isRecording = false;
+        isRecordingPaused = false;
+        setRecordingButtons(false, false);
+    }
+}
+
+function togglePauseRecording() {
+    if (!mediaRecorder || !isRecording) return;
+    if (mediaRecorder.state === "recording") {
+        mediaRecorder.pause();
+        isRecordingPaused = true;
+        if (liveTranscriptStatusEl) liveTranscriptStatusEl.textContent = "Paused";
+        setRecordingButtons(true, true);
+    } else if (mediaRecorder.state === "paused") {
+        mediaRecorder.resume();
+        isRecordingPaused = false;
+        if (liveTranscriptStatusEl) liveTranscriptStatusEl.textContent = "Recording...";
+        setRecordingButtons(true, false);
+    }
+}
+
+function stopRecording() {
+    if (!mediaRecorder || !isRecording) return;
+    if (mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+    }
+}
 
 function formatHistoryLabel(iso) {
     if (!iso) return "";
@@ -211,6 +387,11 @@ function isDocumentFile(name) {
 }
 
 async function processAudio() {
+    if (isRecording) {
+        alert("Stop recording before processing another file.");
+        return;
+    }
+
     const inputValue = filePathInput.value.trim();
     const selectedFile = audioFileInput.files && audioFileInput.files.length > 0 ? audioFileInput.files[0] : null;
 
