@@ -3,105 +3,81 @@
         {
             "speaker": "SPEAKER_00",
             "start": 0.0,
-            "end": 5.28,
-            "text": "The interviewer asked you that you have 128 Olympic medals in your life?"
-        },
-        {
-            "speaker": "SPEAKER_00",
-            "start": 5.28,
-            "end": 6.32,
-            "text": "No, yeah, 23 of them."
-        },
-        {
-            "speaker": "SPEAKER_00",
-            "start": 6.32,
-            "end": 8.4,
-            "text": "And you said no, just 23, that counts."
+            "end": 8.18,
+            "text": "The interviewer asks you that you have won 28 Olympic medals in your life. Oh yeah, 23. And you said, no, just 23, that counts."
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 8.4,
-            "end": 9.200000000000001,
-            "text": "Yeah."
-        },
-        {
-            "speaker": "SPEAKER_01",
-            "start": 9.200000000000001,
-            "end": 11.44,
+            "start": 9.48,
+            "end": 10.68,
             "text": "Here's a better way of saying it."
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 11.44,
-            "end": 15.44,
-            "text": "I meddled in 28 out of 30 of my races at the Olympic Games."
+            "start": 11.28,
+            "end": 14.92,
+            "text": "I medaled in 28 out of 30 of my races at the Olympic Games."
         },
         {
             "speaker": "SPEAKER_01",
             "start": 16.56,
-            "end": 18.88,
-            "text": "23 are only the ones that we need to talk to."
+            "end": 18.8,
+            "text": "23 are only the ones that we need to talk about."
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 20.080000000000002,
-            "end": 24.560000000000002,
+            "start": 19.91,
+            "end": 24.49,
             "text": "Because again, like, I was unprepared in the other ones."
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 25.2,
-            "end": 27.2,
-            "text": "Somebody else is more prepared than..."
+            "start": 25.05,
+            "end": 26.79,
+            "text": "Somebody else was more prepared than me."
         },
         {
-            "speaker": "SPEAKER_00",
-            "start": 27.2,
-            "end": 28.16,
+            "speaker": "SPEAKER_01",
+            "start": 27.05,
+            "end": 27.89,
             "text": "Silver is losing."
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 29.12,
-            "end": 29.92,
-            "text": "You're a second."
+            "start": 29.18,
+            "end": 30.88,
+            "text": "You're second. Second, right?"
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 30.96,
-            "end": 32.16,
-            "text": "All right, you got second place."
+            "start": 31.21,
+            "end": 32.17,
+            "text": "You got second place."
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 34.32,
-            "end": 34.8,
+            "start": 34.06,
+            "end": 34.7,
             "text": "You lost."
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 35.6,
-            "end": 36.16,
-            "text": "Third place?"
+            "start": 35.35,
+            "end": 37.15,
+            "text": "Third place, you lost."
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 36.72,
-            "end": 37.36,
-            "text": "You lost."
-        },
-        {
-            "speaker": "SPEAKER_01",
-            "start": 38.0,
-            "end": 39.120000000000005,
+            "start": 38.05,
+            "end": 39.01,
             "text": "Yeah, it's losing."
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 39.6,
-            "end": 42.0,
+            "start": 39.41,
+            "end": 40.79,
             "text": "I don't talk about the other five."
         }
     ],
-    "summary": "One Paragraph Meaningful Summary:\nI meddled in 28 out of 30 of my races at the Olympic Games. 23 are only the ones that we need to talk to. Because again, like, I was unprepared in the other ones. I don't talk about the other five. Silver is losing. All right, you got second place. You lost. Third place? you lost.\n\n# Attendees:\n# - You\n# - Olympic Games\n# - No\n# - Silver\n# - Third\n# - Olympic\n# - And\n# - Somebody\n# - Yeah\n# - The\n# - All\n# - Because\n# - Here\n\n# Main Topics and Key Decisions:\n# - I meddled in 28 out of 30 of my races at the Olympic Games.\n# - 23 are only the ones that we need to talk to.\n# - Because again, like, I was unprepared in the other ones.\n\n# Plan of Actions and Responsible Person:\n# - \n\n# Best Speaker:\n# - You\n# - Reason: Most active in conversation"
+    "summary": ""
 }

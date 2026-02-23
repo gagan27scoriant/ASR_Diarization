@@ -95,8 +95,50 @@ body{
 .sidebar.expanded h2 { display: block; }
 .sidebar h1 { display: none; font-size: 11px; color: var(--muted); text-transform: uppercase; margin-top: 20px; font-weight: 600; }
 .sidebar.expanded h1 { display: block; }
+#sidebarContent { display: flex; flex-direction: column; min-height: 0; height: 100%; }
 #renameBox { display: none; flex-direction: column; gap: 12px; }
 .sidebar.expanded #renameBox { display: flex; }
+
+.history-list {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 35vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.sidebar.expanded .history-list { display: flex; }
+.history-empty {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 8px 10px;
+}
+.history-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px;
+  cursor: pointer;
+}
+.history-item:hover { border-color: rgba(124, 92, 255, 0.35); background: rgba(124, 92, 255, 0.12); }
+.history-item.active { border-color: rgba(124, 92, 255, 0.7); background: rgba(124, 92, 255, 0.2); }
+.history-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.history-meta {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--muted);
+}
 
 .rename-item { display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px; }
 .rename-item label { font-size: 11px; color: var(--accent); font-weight: 800; }

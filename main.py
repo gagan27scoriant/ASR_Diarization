@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify, render_template, send_from_directory
 import os
 import json
 import shutil
+from glob import glob
+from datetime import datetime
 
 import ffmpeg
 from docx import Document as DocxDocument
@@ -199,6 +201,37 @@ def _extract_text_from_document(file_path: str, filename: str) -> str:
     raise ValueError("Unsupported document format. Use: .pdf, .docx, .txt")
 
 
+def _history_json_path(session_id: str) -> str:
+    safe_id = secure_filename(session_id or "").strip()
+    if not safe_id:
+        return ""
+    return os.path.join(OUTPUT_FOLDER, f"{safe_id}.json")
+
+
+def _history_entry_from_file(json_path: str) -> dict | None:
+    try:
+        with open(json_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return None
+
+    transcript = data.get("transcript") or []
+    summary = data.get("summary") or ""
+    session_id = os.path.splitext(os.path.basename(json_path))[0]
+    ts = os.path.getmtime(json_path)
+    updated_at = datetime.fromtimestamp(ts).isoformat(timespec="seconds")
+
+    return {
+        "session_id": session_id,
+        "title": data.get("title") or session_id,
+        "processed_file": data.get("processed_file") or "",
+        "source_video": data.get("source_video") or "",
+        "segments": len(transcript),
+        "has_summary": bool(str(summary).strip()),
+        "updated_at": updated_at,
+    }
+
+
 # ----------------------------
 # Serve Frontend
 # ----------------------------
@@ -317,13 +350,18 @@ def process_audio():
         # Save JSON Output
         # ----------------------------
         output_stem = secure_filename(os.path.splitext(processed_filename)[0]) or "output"
-        output_file = os.path.join(OUTPUT_FOLDER, f"{output_stem}.json")
+        session_id = f"{output_stem}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        output_file = _history_json_path(session_id)
 
-        with open(output_file, "w") as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             json.dump(
                 {
+                    "session_id": session_id,
+                    "title": filename,
+                    "processed_file": processed_filename,
+                    "source_video": source_video,
                     "transcript": final_output,
-                    "summary": ""
+                    "summary": "",
                 },
                 f,
                 indent=4
@@ -332,6 +370,7 @@ def process_audio():
         print("✅ Completed:", processed_filename)
 
         return jsonify({
+            "session_id": session_id,
             "transcript": final_output,
             "summary": "",
             "processed_file": processed_filename,
@@ -359,6 +398,20 @@ def summarize_from_text():
 
         print("→ Generating summary from exported text...")
         summary = summarize_text(text, meeting_title, meeting_date, meeting_place)
+
+        session_id = (data or {}).get("session_id", "").strip()
+        if session_id:
+            history_path = _history_json_path(session_id)
+            if history_path and os.path.isfile(history_path):
+                try:
+                    with open(history_path, "r", encoding="utf-8") as f:
+                        history_data = json.load(f)
+                    history_data["summary"] = summary
+                    with open(history_path, "w", encoding="utf-8") as f:
+                        json.dump(history_data, f, indent=4)
+                except Exception as write_err:
+                    print(f"⚠️ Failed to persist summary to history '{session_id}': {write_err}")
+
         return jsonify({"summary": summary})
     except Exception as e:
         print("❌ Summary Error:", e)
@@ -404,6 +457,75 @@ def process_document():
         })
     except Exception as e:
         print("❌ Document Processing Error:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/history", methods=["GET"])
+def list_history():
+    try:
+        entries = []
+        for path in sorted(glob(os.path.join(OUTPUT_FOLDER, "*.json")), key=os.path.getmtime, reverse=True):
+            entry = _history_entry_from_file(path)
+            if entry:
+                entries.append(entry)
+        return jsonify({"history": entries})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/history/<session_id>", methods=["GET"])
+def get_history_item(session_id):
+    try:
+        history_path = _history_json_path(session_id)
+        if not history_path or not os.path.isfile(history_path):
+            return jsonify({"error": "History not found"}), 404
+
+        with open(history_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        return jsonify(
+            {
+                "session_id": session_id,
+                "title": data.get("title") or session_id,
+                "processed_file": data.get("processed_file") or "",
+                "source_video": data.get("source_video") or "",
+                "transcript": data.get("transcript") or [],
+                "summary": data.get("summary") or "",
+            }
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/history/<session_id>/transcript", methods=["POST"])
+def save_history_transcript(session_id):
+    try:
+        history_path = _history_json_path(session_id)
+        if not history_path or not os.path.isfile(history_path):
+            return jsonify({"error": "History not found"}), 404
+
+        payload = request.get_json(silent=True) or {}
+        transcript = payload.get("transcript")
+        summary = payload.get("summary")
+
+        if transcript is not None and not isinstance(transcript, list):
+            return jsonify({"error": "Invalid transcript payload"}), 400
+        if summary is not None and not isinstance(summary, str):
+            return jsonify({"error": "Invalid summary payload"}), 400
+
+        with open(history_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        if transcript is not None:
+            data["transcript"] = transcript
+        if summary is not None:
+            data["summary"] = summary
+
+        with open(history_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4)
+
+        return jsonify({"ok": True})
+    except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 

@@ -3,6 +3,7 @@ let uniqueSpeakers = new Set();
 let speakerColors = {};
 let currentSummary = "";
 let lastAudioFile = "";
+let currentSessionId = "";
 let currentProcessedAudio = "";
 let currentProcessedVideo = "";
 let currentDocumentFilename = "";
@@ -12,6 +13,7 @@ let speakerNameMap = {};
 let speakerOrderMap = {}; 
 let isSummaryLoading = false;
 let groupedTranscriptCache = [];
+let historyEntries = [];
 
 function toggleSidebar() { document.getElementById("sidebar").classList.toggle("expanded"); }
 
@@ -66,6 +68,115 @@ function openFilePicker() {
 }
 
 updateSourceIndicator();
+
+function formatHistoryLabel(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleString();
+}
+
+function truncateText(value, maxLen = 28) {
+    const txt = String(value || "").trim();
+    if (txt.length <= maxLen) return txt;
+    return `${txt.slice(0, maxLen - 1)}…`;
+}
+
+function renderHistoryList() {
+    const list = document.getElementById("historyList");
+    if (!list) return;
+
+    if (!historyEntries || historyEntries.length === 0) {
+        list.innerHTML = `<div class="history-empty">No history yet</div>`;
+        return;
+    }
+
+    list.innerHTML = historyEntries.map((entry) => {
+        const activeClass = entry.session_id === currentSessionId ? "active" : "";
+        const title = truncateText(entry.title || entry.processed_file || entry.session_id);
+        const meta = `${entry.segments || 0} segments • ${formatHistoryLabel(entry.updated_at)}`;
+        return `
+            <button class="history-item ${activeClass}" onclick="openHistorySession('${entry.session_id}')" title="${escapeHTMLText(entry.title || entry.session_id)}">
+                <span class="history-title">${escapeHTMLText(title)}</span>
+                <span class="history-meta">${escapeHTMLText(meta)}</span>
+            </button>
+        `;
+    }).join("");
+}
+
+async function refreshHistory() {
+    try {
+        const response = await fetch("/history");
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || "Failed to load history");
+        }
+        historyEntries = result.history || [];
+        renderHistoryList();
+    } catch (e) {
+        const list = document.getElementById("historyList");
+        if (list) {
+            list.innerHTML = `<div class="history-empty">History unavailable</div>`;
+        }
+    }
+}
+
+function rebuildSpeakerState() {
+    uniqueSpeakers.clear();
+    speakerNameMap = {};
+    speakerOrderMap = {};
+
+    let speakerIndex = 0;
+    let tempSpeakerOrder = [];
+    transcriptData.forEach(seg => {
+        if (!uniqueSpeakers.has(seg.speaker)) {
+            uniqueSpeakers.add(seg.speaker);
+            speakerOrderMap[seg.speaker] = speakerIndex;
+            tempSpeakerOrder.push(seg.speaker);
+            speakerIndex++;
+        }
+        if (!speakerNameMap[seg.speaker]) {
+            speakerNameMap[seg.speaker] = seg.speaker;
+        }
+    });
+
+    tempSpeakerOrder.forEach((speaker, idx) => {
+        speakerColors[speaker] = getSpeakerColor(idx);
+    });
+}
+
+async function openHistorySession(sessionId) {
+    if (!sessionId) return;
+    document.getElementById("loadingOverlay").style.display = "flex";
+    try {
+        const response = await fetch(`/history/${encodeURIComponent(sessionId)}`);
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || "Failed to open history");
+        }
+
+        currentSessionId = result.session_id || sessionId;
+        transcriptData = result.transcript || [];
+        currentSummary = result.summary || "";
+        currentProcessedAudio = result.processed_file || "";
+        currentProcessedVideo = result.source_video || "";
+        currentDocumentFilename = "";
+        currentDocumentType = "";
+        currentDocumentText = "";
+        lastAudioFile = result.processed_file || result.title || sessionId;
+
+        rebuildSpeakerState();
+        await renderChatDelayed();
+        setupRenameSidebar();
+        document.getElementById("sumBtn").style.display = transcriptData.length ? "flex" : "none";
+        renderHistoryList();
+    } catch (e) {
+        alert(e.message || "Failed to open history");
+    } finally {
+        document.getElementById("loadingOverlay").style.display = "none";
+        document.getElementById("inputGroup").classList.remove("hidden");
+    }
+}
 
 function formatTime(seconds) {
     const mins = Math.floor(seconds / 60);
@@ -178,6 +289,7 @@ async function processAudio() {
         
         transcriptData = result.transcript;
         currentSummary = result.summary;
+        currentSessionId = result.session_id || "";
         currentDocumentFilename = "";
         currentDocumentType = "";
         currentDocumentText = "";
@@ -187,31 +299,11 @@ async function processAudio() {
             currentProcessedAudio = result.processed_file;
         }
         
-        uniqueSpeakers.clear();
-        speakerNameMap = {};
-        speakerOrderMap = {};
-        
-        let speakerIndex = 0;
-        let tempSpeakerOrder = [];
-        
-        transcriptData.forEach(seg => {
-            if (!uniqueSpeakers.has(seg.speaker)) {
-                uniqueSpeakers.add(seg.speaker);
-                speakerOrderMap[seg.speaker] = speakerIndex;
-                tempSpeakerOrder.push(seg.speaker);
-                speakerIndex++;
-            }
-            if (!speakerNameMap[seg.speaker]) {
-                speakerNameMap[seg.speaker] = seg.speaker;
-            }
-        });
-        
-        tempSpeakerOrder.forEach((speaker, idx) => {
-            speakerColors[speaker] = getSpeakerColor(idx);
-        });
+        rebuildSpeakerState();
         
         renderChatDelayed();
         setupRenameSidebar();
+        await refreshHistory();
         document.getElementById("sumBtn").style.display = "flex";
     } catch (e) { 
         document.getElementById("loadingOverlay").style.display = "none";
@@ -223,6 +315,7 @@ async function processAudio() {
 async function renderChatDelayed() {
     // Hide Loader once rendering starts
     document.getElementById("loadingOverlay").style.display = "none";
+    document.getElementById("inputGroup").classList.remove("hidden");
     
     const chat = document.getElementById("chat");
     const old = chat.querySelectorAll(".transcription");
@@ -345,6 +438,7 @@ function renderDocumentResult() {
     `;
 
     chat.appendChild(row);
+    document.getElementById("inputGroup").classList.remove("hidden");
     if (currentSummary) {
         renderSummaryCard(currentSummary);
     }
@@ -385,6 +479,24 @@ function applyNames() {
     renderChatDelayed();
     setupRenameSidebar();
     currentSummary = "";
+    persistSessionTranscript();
+}
+
+async function persistSessionTranscript() {
+    if (!currentSessionId) return;
+    try {
+        await fetch(`/history/${encodeURIComponent(currentSessionId)}/transcript`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                transcript: transcriptData,
+                summary: currentSummary || ""
+            })
+        });
+        await refreshHistory();
+    } catch (e) {
+        // Non-blocking persistence; UI should continue even if save fails.
+    }
 }
 
 function buildExportTranscriptText() {
@@ -572,6 +684,7 @@ async function showSummary() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 content: content,
+                session_id: currentSessionId,
                 meeting_title: meetingDetails.meeting_title,
                 meeting_date: meetingDetails.meeting_date,
                 meeting_place: meetingDetails.meeting_place
@@ -585,6 +698,7 @@ async function showSummary() {
 
         currentSummary = result.summary || "";
         renderSummaryCard(currentSummary, pendingCard);
+        await refreshHistory();
     } catch (e) {
         if (pendingCard) {
             pendingCard.textContent = "Summary generation failed.";
@@ -594,6 +708,8 @@ async function showSummary() {
         isSummaryLoading = false;
     }
 }
+
+refreshHistory();
 
 function copySummary() {
     const text = document.getElementById("sumCard").innerText;

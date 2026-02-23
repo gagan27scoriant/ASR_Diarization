@@ -3,134 +3,152 @@
         {
             "speaker": "SPEAKER_00",
             "start": 0.0,
-            "end": 1.98,
-            "text": "My name is Pradhan Tyagi At the age of 13 Oh!"
+            "end": 1.16,
+            "text": "My name is Pradhan Tyagi. At the age of 13,"
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 3.06,
-            "end": 4.92,
-            "text": "I am building this vision Wow!"
-        },
-        {
-            "speaker": "SPEAKER_01",
-            "start": 5.32,
-            "end": 5.96,
-            "text": "At"
+            "start": 1.78,
+            "end": 3.38,
+            "text": "I am"
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 5.96,
-            "end": 7.3,
-            "text": "the age of 13 You are only"
-        },
-        {
-            "speaker": "SPEAKER_01",
-            "start": 7.3,
-            "end": 10.06,
-            "text": "4 years older than my daughter I"
+            "start": 3.76,
+            "end": 13.14,
+            "text": "building this vision in the form"
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 10.7,
-            "end": 20.34,
-            "text": "am building this vision at the age of 13 in the form of Neurofix AI An assistive med tech platform which provides clarity and assistance in understanding, tracking, and managing patients' health"
+            "start": 13.78,
+            "end": 17.349999999999994,
+            "text": "of Neurofix AI, an assistive med tech platform that provides clarity and assistance in understanding,"
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 20.96,
-            "end": 27.16,
-            "text": "This platform analyzes your MRI scans, lab reports, skin images, and medical history"
+            "start": 17.7,
+            "end": 19.62,
+            "text": "tracking and managing patients'"
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 27.82,
+            "start": 21.1,
+            "end": 23.26,
+            "text": "This platform analyzes your MRI scans,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 23.58,
+            "end": 24.42,
+            "text": "lab reports,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 24.7,
+            "end": 30.46,
+            "text": "skin images and medical history and gives a clear and actionable report in a few"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 31.02,
+            "end": 32.52,
+            "text": "Here you get the clarity instantly,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 33.04,
             "end": 35.92,
-            "text": "and gives a clear and actionable report in a few minutes Here you get that clarity instantly which takes normal healthcare many days and sometimes weeks"
+            "text": "which takes normal healthcare days and sometimes weeks."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 36.44,
-            "end": 55.9,
-            "text": "And this specialist -made healthcare you will be able to access from your phone at zero cost It started as a simple project But now it's Neurofix AI a fully functional product to launch it my request is 60 lakhs for 5 % equity so that an AI specialist can come in everyone's pocket Oh!"
+            "start": 36.96,
+            "end": 41.52,
+            "text": "And you will be able to access this specialist -made healthcare from your phone at zero cost."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 57.53,
-            "end": 59.23,
-            "text": "Jai Vardhan Why"
-        },
-        {
-            "speaker": "SPEAKER_01",
-            "start": 59.23,
-            "end": 61.43,
-            "text": "are you 13 years old?"
-        },
-        {
-            "speaker": "SPEAKER_01",
-            "start": 61.77,
-            "end": 62.15,
-            "text": "Yes sir"
-        },
-        {
-            "speaker": "SPEAKER_01",
-            "start": 62.45,
-            "end": 64.67,
-            "text": "Kids these days are playing Roblox"
+            "start": 42.12,
+            "end": 50.06,
+            "text": "It started as a simple project, but now it's Neurofix AI, a fully functional product. To launch it,"
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 65.53,
-            "end": 68.74,
-            "text": "When did you start?"
+            "start": 50.32,
+            "end": 55.32,
+            "text": "my ask is 60 lakhs for 5 % equity, so that an AI specialist can come in everyone's"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 56.99,
+            "end": 58.19,
+            "text": "Hey brother, Jai"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 58.19,
+            "end": 61.37,
+            "text": "Vardhan, you are 13 years old."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 62.27,
+            "end": 65.19,
+            "text": "People are playing Roblox these days."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 66.07,
+            "end": 66.75,
+            "text": "When"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 68.22,
+            "end": 68.76,
+            "text": "did you start?"
         },
         {
             "speaker": "SPEAKER_00",
             "start": 69.34,
-            "end": 78.52,
-            "text": "Sir, Neurofix is one year old and it started as a simple MRI Alzheimer's classifier The journey started when I was 9 years old"
+            "end": 78.46,
+            "text": "Sir, Neurofix is one year old and it started as a simple MRI Alzheimer's classifier. The journey started when I was 9 years old."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 79.08,
-            "end": 82.5,
-            "text": "I was very great at chess and I wanted to become a chess grandmaster"
+            "start": 78.76,
+            "end": 82.48,
+            "text": "I was very great at chess and I wanted to become a chess grandmaster."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 83.24,
-            "end": 85.4,
-            "text": "Okay Then my attention went to programming"
+            "start": 83.48,
+            "end": 97.88,
+            "text": "Then my attention went to programming and I started block coding on platforms like Code .org and Scratch. And while coding on that, I shifted into web development and I tried to create an all -in -one social media site."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 86.22,
-            "end": 92.84,
-            "text": "and I started block coding platforms like Code .org and Scratch and while coding on those platforms,"
-        },
-        {
-            "speaker": "SPEAKER_00",
-            "start": 93.24,
-            "end": 97.9,
-            "text": "I shifted into web development and I tried to create an all -in -one social media site"
-        },
-        {
-            "speaker": "SPEAKER_00",
-            "start": 98.98,
-            "end": 99.76,
+            "start": 99.0,
+            "end": 99.78,
             "text": "This was your"
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 99.76,
-            "end": 100.7,
+            "start": 99.77,
+            "end": 100.66,
             "text": "social media website?"
         },
         {
             "speaker": "SPEAKER_00",
             "start": 101.24,
+            "end": 101.52,
+            "text": "Yes."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 101.8,
             "end": 102.9,
-            "text": "Yes sir At what age did you"
+            "text": "At what age did you"
         },
         {
             "speaker": "SPEAKER_01",
@@ -142,187 +160,211 @@
             "speaker": "SPEAKER_01",
             "start": 103.6,
             "end": 105.28,
-            "text": "I was 10 years old Crazy!"
+            "text": "I was 10. Crazy."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 105.86,
-            "end": 115.03,
-            "text": "In Soshi Prisma It meant that when the diverse people of India get passed through one platform we can generate a beautiful white light"
+            "start": 106.75,
+            "end": 132.43,
+            "text": "It meant that when the diverse people of India pass through one platform, we can generate a beautiful white light. I couldn't complete it completely because my Windows system got corrupted and the whole virus went away. Then I got fascinated by rocket science as well. I tried to make a rocket without Well, it didn't fly because of some nozzle issues."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 115.69,
-            "end": 122.83,
-            "text": "I couldn't complete this because my Windows system was corrupted and this entire file was lost Then"
+            "start": 132.95,
+            "end": 136.69,
+            "text": "But I got an inspiration from it that I should learn more about"
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 123.85,
-            "end": 130.29,
-            "text": "I got fascinated by rocket science as well I tried to make a rocket without studying but it didn't work"
+            "start": 137.13,
+            "end": 140.85,
+            "text": "And I took some books like Adventures in Rocket Science by NASA."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 130.71,
-            "end": 149.92,
-            "text": "because of some nozzle issues But I got an inspiration from it that I should learn more about it and I took some books like Adventures in Rocket Science by NASA I also got some knowledge from encyclopedias and that's the rocket You are still running a Diwali rocket and you have already sent a rocket"
+            "start": 141.15,
+            "end": 142.03,
+            "text": "I also got some knowledge from Encyclopedia."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 150.58,
-            "end": 152.98,
-            "text": "Actually, I didn't have a launch pad so I used bricks"
+            "start": 145.01,
+            "end": 145.51,
+            "text": "So, that's the rocket."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 147.16,
+            "end": 149.88,
+            "text": "So, you've been running a rocket for Diwali and you've sent me a rocket."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 151.12,
+            "end": 153.3,
+            "text": "Actually, I didn't have a launch pad so I put bricks on it."
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 153.68,
-            "end": 155.72,
-            "text": "I used bricks as a launch pad At what"
+            "start": 154.88,
+            "end": 155.74,
+            "text": "And at what"
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 155.72,
-            "end": 159.56,
-            "text": "age did you create this? Sir, I was 10 It was around social media"
+            "start": 155.74,
+            "end": 156.6,
+            "text": "age did you create"
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 160.2,
-            "end": 160.76,
-            "text": "But"
+            "start": 157.06,
+            "end": 159.52,
+            "text": "Sir, I was 10. It was around social media."
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 160.76,
-            "end": 161.12,
-            "text": "tell"
-        },
-        {
-            "speaker": "SPEAKER_00",
-            "start": 161.12,
-            "end": 161.12,
-            "text": "me one"
+            "start": 160.56,
+            "end": 166.12,
+            "text": "But tell me one thing, where did you get your inspiration from? Did your parents inspire you? Do you have any siblings?"
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 161.12,
-            "end": 166.06,
-            "text": "thing where did you get your inspiration from? Did your parents inspire you? Do you have any siblings?"
+            "start": 167.32,
+            "end": 167.76,
+            "text": "We"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 167.76,
+            "end": 171.84,
+            "text": "can consider those individuals as our inspiration like Napoleon."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 172.16,
+            "end": 174.42,
+            "text": "I know it's a little unusual. No,"
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 166.42,
-            "end": 167.7,
-            "text": "Any elder brother or elder sister?"
+            "start": 174.64,
+            "end": 175.46,
+            "text": "it's very good."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 167.98,
-            "end": 173.36,
-            "text": "Inspiration We can consider those individuals like Napoleon I know it's a little unusual"
+            "start": 175.74,
+            "end": 176.76,
+            "text": "And Steve Jobs."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 173.96,
-            "end": 174.92,
-            "text": "No bro,"
+            "start": 177.02,
+            "end": 183.54,
+            "text": "I had studied a lot about him when I was 10 -11 years Is there any role of your parents in this?"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 183.84,
+            "end": 188.58,
+            "text": "Yes, sir. My father is a mathematics professor at SRIT University."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 188.84,
+            "end": 189.82,
+            "text": "It's in Gajipal."
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 174.94,
-            "end": 175.48,
-            "text": "it's very good"
-        },
-        {
-            "speaker": "SPEAKER_00",
-            "start": 175.48,
-            "end": 183.1,
-            "text": "And Steve Jobs I read a lot about him when I was 10 or 11 What about your parents? Do they have any role?"
-        },
-        {
-            "speaker": "SPEAKER_00",
-            "start": 183.7,
-            "end": 190.32,
-            "text": "Yes sir My father is a mathematics professor at SRIT University It's in Gajipal Okay"
-        },
-        {
-            "speaker": "SPEAKER_01",
-            "start": 190.32,
-            "end": 191.14,
+            "start": 190.1,
+            "end": 191.12,
             "text": "And mom?"
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 191.52,
-            "end": 201.66,
-            "text": "Mom is housewife He wanted me to do something big and separate the kids And he was very open about any career I chose Sometimes he would tell me to do boxing"
+            "start": 191.66,
+            "end": 195.32,
+            "text": "Mom is a housewife. She wanted me to do something big."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 202.28,
+            "start": 195.62,
+            "end": 199.5,
+            "text": "And he was very open about any career I chose."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 199.76,
+            "end": 201.64,
+            "text": "Sometimes he would ask me to do boxing."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 203.32,
+            "end": 204.16,
+            "text": "He was that much open."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 204.54,
             "end": 205.66,
-            "text": "He was that much open Actually, he used to teach me maths"
+            "text": "Actually, he used to teach me maths."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 206.46,
+            "end": 212.26,
+            "text": "And I built a logical temperament. And I think for a software engineer,"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 212.58,
+            "end": 215.34,
+            "text": "that's the most important thing. How do you know so much at 13?"
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 206.3,
-            "end": 206.64,
-            "text": "And"
-        },
-        {
-            "speaker": "SPEAKER_00",
-            "start": 206.64,
-            "end": 213.84,
-            "text": "I built a logical temperament And I think that's the most important thing for"
+            "start": 218.15,
+            "end": 221.55,
+            "text": "Full credit to you and credit to your parents also."
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 213.84,
-            "end": 213.84,
-            "text": "a software engineer"
-        },
-        {
-            "speaker": "SPEAKER_00",
-            "start": 213.84,
-            "end": 215.32,
-            "text": "How do you know so much at 13?"
+            "start": 221.83,
+            "end": 223.85,
+            "text": "They have given you such a good upbringing,"
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 218.17,
-            "end": 227.71,
-            "text": "Full credit to you and credit to your parents also that they have given you such a good upbringing such a good focus such a good temperament Are"
-        },
-        {
-            "speaker": "SPEAKER_00",
-            "start": 227.71,
-            "end": 228.63,
-            "text": "you still studying?"
-        },
-        {
-            "speaker": "SPEAKER_00",
-            "start": 229.11,
-            "end": 232.01,
-            "text": "Yes, I am Are you good at studies? Yes, I am good"
+            "start": 224.39,
+            "end": 225.13,
+            "text": "such a good focus,"
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 232.01,
-            "end": 232.31,
-            "text": "at studies Which"
+            "start": 225.47,
+            "end": 226.95,
+            "text": "such a good temperament."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 232.31,
-            "end": 233.13,
-            "text": "school do you go to?"
+            "start": 227.57,
+            "end": 228.59,
+            "text": "Are you still studying?"
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 233.43,
+            "start": 228.91,
+            "end": 229.61,
+            "text": "Yes, I am."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 231.61,
             "end": 235.27,
-            "text": "DPSG Delhi Public School, Gajipal"
+            "text": "Which school do you go to? DPSG, Delhi Public School, Gajipal."
         }
     ],
     "summary": ""

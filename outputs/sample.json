@@ -2,202 +2,76 @@
     "transcript": [
         {
             "speaker": "SPEAKER_03",
-            "start": 0.0,
-            "end": 2.0,
+            "start": 0.08,
+            "end": 1.94,
             "text": "Tell me something where the babies come from"
         },
         {
             "speaker": "SPEAKER_05",
-            "start": 2.0,
-            "end": 4.0,
-            "text": "Babies come from Amazon"
-        },
-        {
-            "speaker": "SPEAKER_05",
-            "start": 4.0,
-            "end": 6.0,
-            "text": "Amazon?"
-        },
-        {
-            "speaker": "SPEAKER_05",
-            "start": 6.0,
-            "end": 10.0,
-            "text": "Yes, my mommy said delivery was coming"
-        },
-        {
-            "speaker": "SPEAKER_05",
-            "start": 10.0,
-            "end": 12.0,
-            "text": "Then she came home with my baby brother"
+            "start": 6.68,
+            "end": 13.65,
+            "text": "Yes, my mommy said delivery was coming then she came home with my baby brother So same place"
         },
         {
             "speaker": "SPEAKER_03",
-            "start": 12.0,
-            "end": 14.0,
-            "text": "So same place"
-        },
-        {
-            "speaker": "SPEAKER_03",
-            "start": 14.0,
-            "end": 18.0,
-            "text": "So you mean you gotta ask mommy before you do anything?"
-        },
-        {
-            "speaker": "SPEAKER_05",
-            "start": 18.0,
-            "end": 20.0,
-            "text": "Yes, even daddy"
-        },
-        {
-            "speaker": "SPEAKER_05",
-            "start": 20.0,
-            "end": 22.0,
-            "text": "Oh wow, even daddy?"
-        },
-        {
-            "speaker": "SPEAKER_05",
-            "start": 22.0,
-            "end": 24.0,
-            "text": "Yes, daddy come do anything"
-        },
-        {
-            "speaker": "SPEAKER_05",
-            "start": 24.0,
-            "end": 26.0,
-            "text": "And this mommy says okay"
+            "start": 15.4,
+            "end": 18.5,
+            "text": "So you mean you gotta ask mommy before you do anything? Yes"
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 26.0,
-            "end": 32.0,
-            "text": "So tell me why do you love your daddy?"
+            "start": 28.61,
+            "end": 31.981022335165502,
+            "text": "So tell me why do you love"
         },
         {
             "speaker": "SPEAKER_05",
-            "start": 32.0,
-            "end": 34.0,
-            "text": "Because he lets me"
-        },
-        {
-            "speaker": "SPEAKER_05",
-            "start": 34.0,
-            "end": 36.0,
-            "text": "Let's you how?"
-        },
-        {
-            "speaker": "SPEAKER_05",
-            "start": 36.0,
-            "end": 38.0,
-            "text": "Let's me decide"
-        },
-        {
-            "speaker": "SPEAKER_05",
-            "start": 38.0,
-            "end": 40.0,
-            "text": "Let's me finish my words"
+            "start": 31.981022335165502,
+            "end": 34.66,
+            "text": "your daddy let's you how"
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 42.0,
-            "end": 46.0,
-            "text": "Quick question, who do you trust the most?"
+            "start": 43.1,
+            "end": 47.15540633924187,
+            "text": "Quick question, who do you trust the most daddy?"
         },
         {
             "speaker": "SPEAKER_05",
-            "start": 46.0,
-            "end": 48.0,
-            "text": "Daddy"
-        },
-        {
-            "speaker": "SPEAKER_00",
-            "start": 48.0,
-            "end": 50.0,
-            "text": "Why daddy?"
-        },
-        {
-            "speaker": "SPEAKER_05",
-            "start": 50.0,
-            "end": 52.0,
-            "text": "He knows where the snacks are"
+            "start": 47.15540633924187,
+            "end": 50.68,
+            "text": "Why daddy? He knows where the snacks are"
         },
         {
             "speaker": "SPEAKER_04",
-            "start": 52.0,
-            "end": 56.0,
-            "text": "Today is your first day as the boss"
-        },
-        {
-            "speaker": "SPEAKER_04",
-            "start": 56.0,
-            "end": 60.0,
-            "text": "Okay, as the boss, who are you firing first?"
+            "start": 54.04,
+            "end": 58.96,
+            "text": "Today is your first day as the boss. Okay as the boss. Who are you firing first?"
         },
         {
             "speaker": "SPEAKER_05",
-            "start": 60.0,
-            "end": 62.0,
-            "text": "Daddy"
-        },
-        {
-            "speaker": "SPEAKER_05",
-            "start": 62.0,
-            "end": 64.0,
-            "text": "He drinks things for real"
-        },
-        {
-            "speaker": "SPEAKER_05",
-            "start": 64.0,
-            "end": 66.0,
-            "text": "He eats my snacks, sleep with my spines"
-        },
-        {
-            "speaker": "SPEAKER_05",
-            "start": 66.0,
-            "end": 68.0,
-            "text": "Do my name, mom calls him baby"
-        },
-        {
-            "speaker": "SPEAKER_05",
-            "start": 68.0,
-            "end": 70.0,
-            "text": "And that's my name"
+            "start": 59.82,
+            "end": 61.06,
+            "text": "Wow, why daddy?"
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 72.0,
-            "end": 74.0,
-            "text": "Let's be honest for a second, who's really in charge at your house?"
+            "start": 71.96,
+            "end": 75.94,
+            "text": "Let's be honest for a second who's really in charge at your house daddy, huh?"
         },
         {
             "speaker": "SPEAKER_05",
-            "start": 74.0,
-            "end": 76.0,
-            "text": "Daddy"
+            "start": 78.32,
+            "end": 83.84,
+            "text": "Oh really, what does he say? He says anything you want is fine. Then he says just please don't shout at me"
         },
         {
             "speaker": "SPEAKER_05",
-            "start": 76.0,
-            "end": 78.0,
-            "text": "Daddy, huh?"
-        },
-        {
-            "speaker": "SPEAKER_02",
-            "start": 78.0,
-            "end": 80.0,
-            "text": "Yeah, because he tells mommy what to cook"
-        },
-        {
-            "speaker": "SPEAKER_05",
-            "start": 80.0,
-            "end": 82.0,
-            "text": "He says anything you want is fine"
-        },
-        {
-            "speaker": "SPEAKER_05",
-            "start": 82.0,
-            "end": 84.0,
-            "text": "Then he says just please don't shout at me"
+            "start": 84.1,
+            "end": 85.18,
+            "text": "I'm sorry daddy I'm sorry daddy"
         }
     ],
-    "summary": "<A child is learning about family and boundaries.  The child's father has a lot of authority and control in the home, making decisions like who gets fired (it's Daddy). The child also learns that they need to ask their mother for permission before doing things or interacting with others.> \n\n# Attendees:\n# - Child, Father\n# - Mother\n\n# identify the Main Topics and Key Decisions:\n#  - Baby Origins & Parental Authority\n#  - Child's Relationship with Parents & Daddy's Influence\n#  -  Setting Boundaries & Family Dynamics\n\n\n# identify the Plan of Actions and the Responsible Person for tht tasks: \n# - None explicitly stated\n\n# Best Speaker:\n# - Father  (He holds influence in various decisions and actions)"
+    "summary": ""
 }

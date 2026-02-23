@@ -35,10 +35,15 @@ def load_diarization():
 
 
 def diarize(pipeline, audio_path):
+    num_speakers = os.getenv("DIARIZATION_NUM_SPEAKERS")
     min_speakers = os.getenv("DIARIZATION_MIN_SPEAKERS")
     max_speakers = os.getenv("DIARIZATION_MAX_SPEAKERS")
 
     kwargs = {}
+    if num_speakers and num_speakers.isdigit():
+        kwargs["num_speakers"] = int(num_speakers)
+        return pipeline(audio_path, **kwargs)
+
     if min_speakers and min_speakers.isdigit():
         kwargs["min_speakers"] = int(min_speakers)
     if max_speakers and max_speakers.isdigit():
