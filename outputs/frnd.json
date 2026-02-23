@@ -3,62 +3,80 @@
         {
             "speaker": "SPEAKER_00",
             "start": 0.08,
-            "end": 8.26,
-            "text": "You told me I was the only one all right look that's it"
+            "end": 1.74,
+            "text": "You told me I was the only one!"
         },
         {
             "speaker": "SPEAKER_04",
-            "start": 8.26,
-            "end": 11.02,
-            "text": "I don't think we should see each other anymore, right look"
+            "start": 6.4,
+            "end": 10.32,
+            "text": "All right, look. That's it. I don't think we should see each other anymore, all right?"
         },
         {
             "speaker": "SPEAKER_04",
-            "start": 11.02,
-            "end": 15.5,
-            "text": "I know I should have told you this a long time ago, but I am not Drake Ramore, okay?"
-        },
-        {
-            "speaker": "SPEAKER_04",
-            "start": 15.5,
-            "end": 20.14,
-            "text": "I'm not even a doctor. I'm an actor. I just pretend to be a doctor. Oh my god"
+            "start": 10.6,
+            "end": 19.26,
+            "text": "Look, I know I should have told you this a long time ago, but I am not Drake Ramore, okay? I'm not even a doctor. I'm an actor. I just pretend to be a doctor."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 20.74,
-            "end": 22.82,
+            "start": 19.52,
+            "end": 20.08,
+            "text": "Oh, my God."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 20.84,
+            "end": 22.8,
             "text": "Do the people at the hospital know about this?"
         },
         {
             "speaker": "SPEAKER_05",
-            "start": 25.22,
-            "end": 30.21,
-            "text": "I'm not Drake. That's right. He's not Drake. He's"
+            "start": 25.61,
+            "end": 26.81,
+            "text": "I'm not Drake."
         },
         {
             "speaker": "SPEAKER_05",
-            "start": 31.01,
-            "end": 33.25,
-            "text": "Huns Ramore Drake Seval Twin"
+            "start": 27.31,
+            "end": 29.51,
+            "text": "That's right. He's not Drake."
+        },
+        {
+            "speaker": "SPEAKER_05",
+            "start": 30.67,
+            "end": 33.11,
+            "text": "He's Hans Ramore, Drake's evil twin."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 38.46,
-            "end": 40.46,
+            "start": 38.38,
+            "end": 39.46,
             "text": "Is this true?"
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 40.98,
-            "end": 48.82,
-            "text": "Yes, yes, it is true and I know this because because he pretended to be Drake to to sleep with me"
+            "start": 41.2,
+            "end": 48.76,
+            "text": "Yes. Yes, it is true. And I know this because he pretended to be Drake to sleep with me."
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 50.7,
-            "end": 63.95,
-            "text": "Then he told me he would run away with me and he did it and you let the toilet seat up you bastard"
+            "start": 50.14,
+            "end": 57.41,
+            "text": "Then he told me he would run away with me."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 57.85,
+            "end": 59.39,
+            "text": "And he didn't!"
+        },
+        {
+            "speaker": "SPEAKER_03",
+            "start": 61.11,
+            "end": 63.61,
+            "text": "And you left the toilet seat up, you bastard!"
         }
     ],
     "summary": ""

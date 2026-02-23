@@ -3,14 +3,8 @@
         {
             "speaker": "SPEAKER_00",
             "start": 0.0,
-            "end": 0.42,
-            "text": "My name is Pradhan Tyagi"
-        },
-        {
-            "speaker": "SPEAKER_00",
-            "start": 0.72,
             "end": 1.98,
-            "text": "At the age of 13 Oh!"
+            "text": "My name is Pradhan Tyagi At the age of 13 Oh!"
         },
         {
             "speaker": "SPEAKER_00",
@@ -19,40 +13,34 @@
             "text": "I am building this vision Wow!"
         },
         {
-            "speaker": "SPEAKER_00",
+            "speaker": "SPEAKER_01",
             "start": 5.32,
-            "end": 6.34,
-            "text": "At the age of 13"
+            "end": 5.96,
+            "text": "At"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 5.96,
+            "end": 7.3,
+            "text": "the age of 13 You are only"
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 6.34,
-            "end": 8.78,
-            "text": "You are only 4 years older than my daughter"
+            "start": 7.3,
+            "end": 10.06,
+            "text": "4 years older than my daughter I"
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 8.78,
+            "start": 10.7,
             "end": 20.34,
-            "text": "I am building this vision at the age of 13 in the form of Neurofix AI An assistive med tech platform which provides clarity and assistance in understanding, tracking, and managing patients' health"
+            "text": "am building this vision at the age of 13 in the form of Neurofix AI An assistive med tech platform which provides clarity and assistance in understanding, tracking, and managing patients' health"
         },
         {
             "speaker": "SPEAKER_00",
             "start": 20.96,
-            "end": 23.3,
-            "text": "This platform analyzes your MRI scans,"
-        },
-        {
-            "speaker": "SPEAKER_00",
-            "start": 23.58,
-            "end": 25.86,
-            "text": "lab reports, skin images,"
-        },
-        {
-            "speaker": "SPEAKER_00",
-            "start": 26.14,
             "end": 27.16,
-            "text": "and medical history"
+            "text": "This platform analyzes your MRI scans, lab reports, skin images, and medical history"
         },
         {
             "speaker": "SPEAKER_00",
@@ -64,19 +52,19 @@
             "speaker": "SPEAKER_00",
             "start": 36.44,
             "end": 55.9,
-            "text": "And this specialist-made healthcare you will be able to access from your phone at zero cost It started as a simple project But now it's Neurofix AI a fully functional product to launch it my request is 60 lakhs for 5% equity so that an AI specialist can come in everyone's pocket Oh!"
+            "text": "And this specialist -made healthcare you will be able to access from your phone at zero cost It started as a simple project But now it's Neurofix AI a fully functional product to launch it my request is 60 lakhs for 5 % equity so that an AI specialist can come in everyone's pocket Oh!"
         },
         {
             "speaker": "SPEAKER_00",
             "start": 57.53,
-            "end": 58.57,
-            "text": "Jai Vardhan"
+            "end": 59.23,
+            "text": "Jai Vardhan Why"
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 58.57,
+            "start": 59.23,
             "end": 61.43,
-            "text": "Why are you 13 years old?"
+            "text": "are you 13 years old?"
         },
         {
             "speaker": "SPEAKER_01",
@@ -118,37 +106,43 @@
             "speaker": "SPEAKER_00",
             "start": 86.22,
             "end": 92.84,
-            "text": "and I started block coding platforms like Code.org and Scratch and while coding on those platforms,"
+            "text": "and I started block coding platforms like Code .org and Scratch and while coding on those platforms,"
         },
         {
             "speaker": "SPEAKER_00",
             "start": 93.24,
             "end": 97.9,
-            "text": "I shifted into web development and I tried to create an all-in-one social media site"
+            "text": "I shifted into web development and I tried to create an all -in -one social media site"
         },
         {
-            "speaker": "SPEAKER_01",
+            "speaker": "SPEAKER_00",
             "start": 98.98,
-            "end": 100.7,
-            "text": "This was your social media website?"
+            "end": 99.76,
+            "text": "This was your"
         },
         {
             "speaker": "SPEAKER_01",
+            "start": 99.76,
+            "end": 100.7,
+            "text": "social media website?"
+        },
+        {
+            "speaker": "SPEAKER_00",
             "start": 101.24,
+            "end": 102.9,
+            "text": "Yes sir At what age did you"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 102.9,
             "end": 103.2,
-            "text": "Yes sir At what age did you create it?"
+            "text": "create it?"
         },
         {
             "speaker": "SPEAKER_01",
             "start": 103.6,
-            "end": 104.7,
-            "text": "I was 10 years old"
-        },
-        {
-            "speaker": "SPEAKER_01",
-            "start": 104.96,
             "end": 105.28,
-            "text": "Crazy!"
+            "text": "I was 10 years old Crazy!"
         },
         {
             "speaker": "SPEAKER_00",
@@ -183,26 +177,38 @@
         {
             "speaker": "SPEAKER_01",
             "start": 153.68,
-            "end": 155.4,
-            "text": "I used bricks as a launch pad"
+            "end": 155.72,
+            "text": "I used bricks as a launch pad At what"
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 155.4,
+            "start": 155.72,
             "end": 159.56,
-            "text": "At what age did you create this? Sir, I was 10 It was around social media"
+            "text": "age did you create this? Sir, I was 10 It was around social media"
         },
         {
             "speaker": "SPEAKER_00",
             "start": 160.2,
-            "end": 161.22,
-            "text": "But tell me one thing"
+            "end": 160.76,
+            "text": "But"
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 161.22,
+            "start": 160.76,
+            "end": 161.12,
+            "text": "tell"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 161.12,
+            "end": 161.12,
+            "text": "me one"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 161.12,
             "end": 166.06,
-            "text": "where did you get your inspiration from? Did your parents inspire you? Do you have any siblings?"
+            "text": "thing where did you get your inspiration from? Did your parents inspire you? Do you have any siblings?"
         },
         {
             "speaker": "SPEAKER_01",
@@ -217,10 +223,16 @@
             "text": "Inspiration We can consider those individuals like Napoleon I know it's a little unusual"
         },
         {
-            "speaker": "SPEAKER_01",
+            "speaker": "SPEAKER_00",
             "start": 173.96,
+            "end": 174.92,
+            "text": "No bro,"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 174.94,
             "end": 175.48,
-            "text": "No bro, it's very good"
+            "text": "it's very good"
         },
         {
             "speaker": "SPEAKER_00",
@@ -253,28 +265,58 @@
             "text": "He was that much open Actually, he used to teach me maths"
         },
         {
-            "speaker": "SPEAKER_00",
+            "speaker": "SPEAKER_01",
             "start": 206.3,
+            "end": 206.64,
+            "text": "And"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 206.64,
+            "end": 213.84,
+            "text": "I built a logical temperament And I think that's the most important thing for"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 213.84,
+            "end": 213.84,
+            "text": "a software engineer"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 213.84,
             "end": 215.32,
-            "text": "And I built a logical temperament And I think that's the most important thing for a software engineer How do you know so much at 13?"
+            "text": "How do you know so much at 13?"
         },
         {
             "speaker": "SPEAKER_01",
             "start": 218.17,
-            "end": 226.97,
-            "text": "Full credit to you and credit to your parents also that they have given you such a good upbringing such a good focus such a good temperament"
+            "end": 227.71,
+            "text": "Full credit to you and credit to your parents also that they have given you such a good upbringing such a good focus such a good temperament Are"
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 226.97,
+            "start": 227.71,
             "end": 228.63,
-            "text": "Are you still studying?"
+            "text": "you still studying?"
         },
         {
             "speaker": "SPEAKER_00",
             "start": 229.11,
+            "end": 232.01,
+            "text": "Yes, I am Are you good at studies? Yes, I am good"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 232.01,
+            "end": 232.31,
+            "text": "at studies Which"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 232.31,
             "end": 233.13,
-            "text": "Yes, I am Are you good at studies? Yes, I am good at studies Which school do you go to?"
+            "text": "school do you go to?"
         },
         {
             "speaker": "SPEAKER_00",
