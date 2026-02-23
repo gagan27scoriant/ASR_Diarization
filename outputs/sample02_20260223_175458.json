@@ -1,0 +1,57 @@
+{
+    "session_id": "sample02_20260223_175458",
+    "title": "sample02.wav",
+    "processed_file": "sample02.wav",
+    "source_video": "",
+    "transcript": [
+        {
+            "speaker": "SPEAKER_01",
+            "start": 0.0,
+            "end": 4.96,
+            "text": "All in all, in summary, people call you chore, people call you fugitive, people call you fraud."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 5.4,
+            "end": 8.36,
+            "text": "Now explain me in summary, what is your side of story?"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 30.51,
+            "end": 32.29,
+            "text": "Once the money has"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 32.71,
+            "end": 37.47,
+            "text": "been fully recovered, including interest, the root cause is taken care of."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 37.67,
+            "end": 40.01,
+            "text": "But you have a problem with they"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 40.42,
+            "end": 42.32,
+            "text": "calling you chore because you've repaid the money."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 42.52,
+            "end": 49.06,
+            "text": "I'm probably the only chore who's been called chore after repaying two and a half times."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 49.36,
+            "end": 51.28,
+            "text": "But it's okay, it's part of life."
+        }
+    ],
+    "summary": "MINUTES OF A MEETING\n\nTITLE : Discussion on Financial Matters\nDATE : [b]\nPLACE : [j]\n\nINTRODUCTION\n- Meeting commenced for discussions regarding financial matters.\n\nATTENDEES\n- SPEAKER_01\n- SPEAKER_00\n\nSUMMARY OF THE MEETING\n- The discussion revolved around the recovery of funds and related issues.\n- SPEAKER_00 explained that the full recovery of money, including interest, addresses the root cause of the issue.\n- SPEAKER_01 addressed the negative perceptions towards SPEAKER_00, emphasizing that repayment should not lead to being labeled as a \"chore\".\n\nKEY ASPECTS DISCUSSED :\n- Financial recovery and implications.\n- Perception and reputation management.\n\nACTION ITEMS AND ASSIGNED TO:\n- SPEAKER_00 - To ensure complete financial recovery with interest.\n- Not Applicable - No specific action item assigned for addressing perception issues.\n\nDEADLINES FOR THE TASKS:\n- Deadline for financial recovery not explicitly mentioned.\n\nTHANK YOU\n- Meeting concluded, appreciating the open discussion and commitment towards resolution."
+}

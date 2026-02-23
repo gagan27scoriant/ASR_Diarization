@@ -385,6 +385,9 @@ async function openHistorySession(sessionId) {
 
         rebuildSpeakerState();
         await renderChatDelayed();
+        if (currentSummary && currentSummary.trim()) {
+            renderSummaryCard(currentSummary);
+        }
         setupRenameSidebar();
         document.getElementById("sumBtn").style.display = transcriptData.length ? "flex" : "none";
         renderHistoryList();
@@ -894,8 +897,7 @@ function renderSummaryCard(summaryText, targetCard = null) {
     row.className = "message-row transcription";
     row.innerHTML = `
         <div class="avatar" style="background:#10b981">Σ</div>
-        <div class="content summary-card" id="sumCard" style="
-            padding:16px; border-radius:12px; background:#111827; color:white; line-height:1.6; position:relative;">
+        <div class="content summary-card" id="sumCard" style="position:relative;">
             ${summaryMarkup}
         </div>
     `;
@@ -909,13 +911,10 @@ function renderSummaryLoadingCard() {
     row.className = "message-row transcription";
     row.innerHTML = `
         <div class="avatar" style="background:#10b981">Σ</div>
-        <div class="content summary-card" id="summaryPendingCard" style="
-            padding:16px; border-radius:12px; background:#111827; color:white; line-height:1.6; position:relative;">
+        <div class="content summary-card" id="summaryPendingCard" style="position:relative;">
             <div class="summary-loading">
-                <span class="summary-loading-text">Generating Summary</span>
-                <span class="dot"></span>
-                <span class="dot"></span>
-                <span class="dot"></span>
+                <span class="summary-spinner" aria-hidden="true"></span>
+                <span class="summary-loading-text">Generating Summary...</span>
             </div>
         </div>
     `;
