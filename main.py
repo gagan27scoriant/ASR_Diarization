@@ -47,7 +47,13 @@ os.makedirs(DOCUMENT_FOLDER, exist_ok=True)
 # Load models ONCE (important)
 # ----------------------------
 print("🚀 Loading ASR model...")
-asr_model = load_asr("base")  # or "tiny" for faster CPU
+preferred_asr = os.getenv("ASR_MODEL_SIZE", "large-v3")
+try:
+    asr_model = load_asr(preferred_asr)
+except Exception as asr_err:
+    print(f"⚠️ Failed to load ASR model '{preferred_asr}': {asr_err}")
+    print("↪ Falling back to ASR model 'medium'...")
+    asr_model = load_asr("medium")
 
 print("🚀 Loading diarization model...")
 pipeline = load_diarization()

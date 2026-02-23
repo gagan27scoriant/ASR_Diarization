@@ -2,346 +2,394 @@
     "transcript": [
         {
             "speaker": "SPEAKER_00",
-            "start": 0.0,
-            "end": 1.4000000000000001,
+            "start": 0.27,
+            "end": 1.77,
             "text": "That's wrong."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 1.4000000000000001,
-            "end": 3.4,
-            "text": "Please put your hand down."
+            "start": 1.77,
+            "end": 3.77,
+            "text": "She'll put your hand down."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 3.4,
-            "end": 5.4,
+            "start": 3.77,
+            "end": 5.77,
             "text": "Sorry, please continue."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 5.4,
-            "end": 7.0,
+            "start": 5.77,
+            "end": 7.27,
             "text": "It's okay, Mary."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 7.0,
-            "end": 8.4,
+            "start": 7.27,
+            "end": 8.77,
             "text": "It's Sheldon, right?"
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 8.4,
-            "end": 9.4,
+            "start": 8.77,
+            "end": 9.77,
             "text": "Yes, sir."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 9.4,
-            "end": 12.8,
-            "text": "Well, Sheldon, why don't you come on up here and tell me how I'm wrong?"
+            "start": 9.77,
+            "end": 11.77,
+            "text": "Well, Sheldon, why don't you come on up here"
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 12.8,
-            "end": 13.8,
+            "start": 11.77,
+            "end": 13.27,
+            "text": "and tell me how I'm wrong?"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 13.27,
+            "end": 13.77,
             "text": "No."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 13.8,
-            "end": 14.8,
+            "start": 13.77,
+            "end": 15.25,
             "text": "Okay."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 14.8,
-            "end": 16.8,
+            "start": 15.25,
+            "end": 17.25,
             "text": "Let's give him a hand, everybody."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 16.8,
-            "end": 19.8,
+            "start": 17.25,
+            "end": 22.88,
             "text": "What's happening?"
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 22.8,
-            "end": 24.8,
+            "start": 22.88,
+            "end": 24.88,
             "text": "Sheldon's going to eat him alive."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 24.8,
-            "end": 25.8,
+            "start": 24.88,
+            "end": 25.88,
             "text": "So?"
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 25.8,
-            "end": 28.8,
-            "text": "You've confused possibilities with probabilities,"
+            "start": 25.88,
+            "end": 28.88,
+            "text": "You've confused possibilities with probabilities."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 28.8,
-            "end": 34.2,
-            "text": "according to your analogy, when I go home, I might find a million dollars on my bed or I might not."
+            "start": 28.88,
+            "end": 30.38,
+            "text": "According to your analogy,"
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 34.2,
-            "end": 37.2,
+            "start": 30.38,
+            "end": 32.38,
+            "text": "when I go home, I might find a million dollars"
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 32.38,
+            "end": 34.38,
+            "text": "on my bed or I might not."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 34.38,
+            "end": 37.39,
             "text": "And what universe is that 50-50?"
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 37.2,
-            "end": 41.2,
+            "start": 37.39,
+            "end": 41.45,
             "text": "So, what do you think the odds are that God exists?"
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 41.2,
-            "end": 44.2,
-            "text": "I think there's zero, I believe, in science."
+            "start": 41.45,
+            "end": 42.45,
+            "text": "I think there's zero."
+        },
+        {
+            "speaker": "SPEAKER_00",
+            "start": 42.45,
+            "end": 46.32,
+            "text": "I believe in science."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 46.2,
-            "end": 49.6,
+            "start": 46.32,
+            "end": 49.32,
             "text": "So, you don't think science and religion can go hand in hand?"
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 49.6,
-            "end": 52.400000000000006,
+            "start": 49.32,
+            "end": 52.32,
             "text": "Science is facts, religion is faith."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 52.400000000000006,
-            "end": 54.400000000000006,
+            "start": 52.32,
+            "end": 54.32,
             "text": "I prefer facts."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 54.400000000000006,
-            "end": 56.0,
+            "start": 54.32,
+            "end": 56.32,
             "text": "I understand that."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 56.2,
-            "end": 57.6,
+            "start": 56.32,
+            "end": 57.32,
             "text": "Here's a cool fact for you."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 57.6,
-            "end": 61.4,
+            "start": 57.32,
+            "end": 61.17,
             "text": "A lot of famous scientists believed in God."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 61.4,
-            "end": 65.4,
-            "text": "Isaac Newton, Albert Einstein, even Charles Darwin."
+            "start": 61.17,
+            "end": 63.67,
+            "text": "Isaac Newton, Albert Einstein,"
+        },
+        {
+            "speaker": "SPEAKER_02",
+            "start": 63.67,
+            "end": 65.67,
+            "text": "even Charles Darwin."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 67.6,
-            "end": 71.0,
+            "start": 65.67,
+            "end": 71.01,
             "text": "So, Darwin's right about God and wrong about evolution?"
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 71.0,
-            "end": 72.0,
+            "start": 71.01,
+            "end": 72.01,
             "text": "Now you're getting it."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 72.0,
-            "end": 73.8,
+            "start": 72.01,
+            "end": 74.01,
             "text": "Let's give it up for Sheldon, everybody."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 73.8,
-            "end": 75.8,
+            "start": 74.01,
+            "end": 76.01,
             "text": "What a good sport."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 75.8,
-            "end": 76.8,
+            "start": 76.01,
+            "end": 77.43,
             "text": "Oh."
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 77.4,
-            "end": 79.4,
+            "start": 77.43,
+            "end": 79.43,
             "text": "But I wasn't a good sport."
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 79.4,
-            "end": 85.2,
-            "text": "At that moment, I vowed to come back the following Sunday and destroy Pastor Jeff."
+            "start": 79.43,
+            "end": 81.43,
+            "text": "At that moment, I vowed to come back"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 81.43,
+            "end": 85.06,
+            "text": "the following Sunday and destroy Pastor Jeff."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 85.2,
-            "end": 86.2,
+            "start": 85.06,
+            "end": 86.63,
             "text": "Good."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 86.2,
-            "end": 88.2,
+            "start": 86.63,
+            "end": 88.48,
             "text": "Oh, here we go."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 88.2,
-            "end": 90.2,
+            "start": 88.48,
+            "end": 89.98,
             "text": "Yes, Sheldon."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 90.2,
-            "end": 93.2,
+            "start": 89.98,
+            "end": 93.48,
             "text": "You said he didn't create the sun until day four."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 93.2,
-            "end": 94.2,
-            "text": "Yeah."
+            "start": 93.48,
+            "end": 94.48,
+            "text": "Yeah?"
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 94.2,
-            "end": 96.2,
-            "text": "So, how could there be light the first three days?"
+            "start": 94.48,
+            "end": 96.48,
+            "text": "How could there be light the first three days?"
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 96.2,
-            "end": 98.2,
+            "start": 96.48,
+            "end": 98.48,
             "text": "God is light."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 98.2,
-            "end": 99.2,
+            "start": 98.48,
+            "end": 99.48,
             "text": "So, God's a photon."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 102.2,
-            "end": 103.80000000000001,
+            "start": 99.48,
+            "end": 103.6,
             "text": "God's what made photons possible."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 103.80000000000001,
-            "end": 105.60000000000001,
+            "start": 103.6,
+            "end": 105.6,
             "text": "And what day did he do that?"
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 105.60000000000001,
-            "end": 107.2,
+            "start": 105.6,
+            "end": 106.6,
             "text": "I would think day one."
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 107.2,
-            "end": 109.80000000000001,
-            "text": "I grabbed my chest and keel over, maybe we can get out of here."
+            "start": 106.6,
+            "end": 107.6,
+            "text": "How could you do that?"
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 107.6,
+            "end": 108.6,
+            "text": "I grabbed my chest and killed over."
+        },
+        {
+            "speaker": "SPEAKER_01",
+            "start": 108.6,
+            "end": 109.6,
+            "text": "Maybe we can get out of here."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 109.80000000000001,
-            "end": 110.80000000000001,
+            "start": 109.6,
+            "end": 110.6,
             "text": "That's a terrible thing."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 110.80000000000001,
-            "end": 111.80000000000001,
-            "text": "There were times when he said,"
+            "start": 110.6,
+            "end": 111.6,
+            "text": "There was nothing you said."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 111.80000000000001,
-            "end": 113.60000000000001,
-            "text": "because the first day had just begun."
+            "start": 111.6,
+            "end": 113.6,
+            "text": "Because the first day had just begun."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 113.60000000000001,
-            "end": 115.2,
-            "text": "So, before the Big Bang."
+            "start": 113.6,
+            "end": 114.6,
+            "text": "So, before the big bang."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 115.2,
-            "end": 116.60000000000001,
-            "text": "There was no Big Bang."
+            "start": 114.6,
+            "end": 116.6,
+            "text": "There was no big bang."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 116.60000000000001,
-            "end": 118.00000000000001,
+            "start": 116.6,
+            "end": 117.6,
             "text": "There was only the word."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 118.00000000000001,
-            "end": 120.00000000000001,
+            "start": 117.6,
+            "end": 119.6,
             "text": "Was the word kaboom?"
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 120.00000000000001,
-            "end": 121.00000000000001,
+            "start": 119.6,
+            "end": 122.3,
             "text": "Okay, do it."
         },
         {
             "speaker": "SPEAKER_01",
-            "start": 122.2,
-            "end": 123.2,
+            "start": 122.3,
+            "end": 123.3,
             "text": "We gotta go."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 123.2,
-            "end": 124.2,
+            "start": 123.3,
+            "end": 124.3,
             "text": "Oh."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 124.2,
-            "end": 126.2,
-            "text": "Let's have the big."
+            "start": 124.3,
+            "end": 126.3,
+            "text": "Let's have the name."
         },
         {
             "speaker": "SPEAKER_00",
-            "start": 126.2,
-            "end": 127.2,
-            "text": "Is it a whole part?"
+            "start": 126.3,
+            "end": 127.3,
+            "text": "Yeah."
         },
         {
             "speaker": "SPEAKER_02",
-            "start": 127.2,
-            "end": 128.20000000000002,
+            "start": 127.3,
+            "end": 128.3,
             "text": "Yeah."
         }
     ],
-    "summary": "One Paragraph Meaningful Summary:\nSheldon: \"I think there's zero, I believe, in science. Science is facts, religion is faith. I prefer facts\" Sheldon: \"How could there be light the first three days? God is light. So, God's a photon. God's what made photons possible\"\n\n# Attendees:\n# - Charles Darwin\n# - Well\n# - It\n# - Please\n# - Is\n# - Yeah\n# - Here\n# - Sunday\n# - You\n# - What\n# - Science\n# - Darwin\n# - And\n# - God\n# - There\n# - That\n# - We\n# - Albert Einstein\n# - But\n# - Okay\n# - Oh\n# - Mary\n# - Let\n# - Isaac Newton\n# - So\n# - Sheldon\n# - No\n# - Sorry\n# - Big Bang\n# - At\n# - Good\n# - Yes\n# - Pastor Jeff\n# - Now\n# - Was\n\n# Main Topics and Key Decisions:\n# - Sheldon: \"I think there's zero, I believe, in science.\n# - Science is facts, religion is faith.\n# - I prefer facts\" Sheldon: \"How could there be light the first three days?\n\n# Plan of Actions and Responsible Person:\n# - \n\n# Best Speaker:\n# - Charles Darwin\n# - Reason: Most active in conversation"
+    "summary": ""
 }

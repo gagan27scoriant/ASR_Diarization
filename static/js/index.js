@@ -237,7 +237,7 @@ async function renderChatDelayed() {
             <div class="avatar" style="background:#f97316">▶</div>
             <div class="content video-preview-content" style="border-left: 4px solid #f97316; background: rgba(249, 115, 22, 0.12);">
                 <span style="font-size:10px; font-weight:900; color:#f97316; text-transform:uppercase;">VIDEO PREVIEW</span><br>
-                <video controls preload="metadata" style="width:100%; margin-top:8px; border-radius:12px;">
+                <video class="video-preview-player" controls preload="metadata" style="width:600px; height:400px; max-width:100%; margin-top:8px; border-radius:12px; background:#000;">
                     <source src="/videos/${encodeURIComponent(currentProcessedVideo)}">
                     Your browser does not support video playback.
                 </video>
@@ -245,6 +245,15 @@ async function renderChatDelayed() {
             </div>
         `;
         chat.appendChild(videoRow);
+
+        const videoEl = videoRow.querySelector(".video-preview-player");
+        if (videoEl) {
+            videoEl.addEventListener("loadedmetadata", () => {
+                const isLandscape = videoEl.videoWidth >= videoEl.videoHeight;
+                videoEl.style.width = isLandscape ? "600px" : "400px";
+                videoEl.style.height = isLandscape ? "400px" : "600px";
+            });
+        }
     }
 
     if (currentProcessedAudio) {
