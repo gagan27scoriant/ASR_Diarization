@@ -1,0 +1,57 @@
+{
+    "session_id": "sample02_20260223_172308",
+    "title": "sample02.wav",
+    "processed_file": "sample02.wav",
+    "source_video": "",
+    "transcript": [
+        {
+            "end": 4.96,
+            "speaker": "GAGAN K M",
+            "start": 0,
+            "text": "All in all, in summary, people call you chore, people call you fugitive, people call you fraud."
+        },
+        {
+            "end": 8.36,
+            "speaker": "GAGAN K M",
+            "start": 5.4,
+            "text": "Now explain me in summary, what is your side of story?"
+        },
+        {
+            "end": 32.29,
+            "speaker": "VIJAY MALYA",
+            "start": 30.51,
+            "text": "Once the money has"
+        },
+        {
+            "end": 37.47,
+            "speaker": "VIJAY MALYA",
+            "start": 32.71,
+            "text": "been fully recovered, including interest, the root cause is taken care of."
+        },
+        {
+            "end": 40.01,
+            "speaker": "GAGAN K M",
+            "start": 37.67,
+            "text": "But you have a problem with they"
+        },
+        {
+            "end": 42.32,
+            "speaker": "GAGAN K M",
+            "start": 40.42,
+            "text": "calling you chore because you've repaid the money."
+        },
+        {
+            "end": 49.06,
+            "speaker": "VIJAY MALYA",
+            "start": 42.52,
+            "text": "I'm probably the only chore who's been called chore after repaying two and a half times."
+        },
+        {
+            "end": 51.28,
+            "speaker": "VIJAY MALYA",
+            "start": 49.36,
+            "text": "But it's okay, it's part of life."
+        }
+    ],
+    "summary": ""
+}

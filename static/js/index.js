@@ -23,7 +23,10 @@ let liveChunkQueue = Promise.resolve();
 let liveTranscriptLinesEl = null;
 let liveTranscriptStatusEl = null;
 
-function toggleSidebar() { document.getElementById("sidebar").classList.toggle("expanded"); }
+function toggleSidebar() {
+    document.getElementById("sidebar").classList.toggle("expanded");
+    updateTranscriptDependentUI();
+}
 
 const sidebar = document.getElementById("sidebar");
 const resizer = document.getElementById("resizer");
@@ -40,45 +43,78 @@ function resizeSidebar(e) {
 function stopResize() { document.removeEventListener("mousemove", resizeSidebar); }
 
 const audioFileInput = document.getElementById("audioFile");
-const filePathInput = document.getElementById("filePath");
-const sourceIndicator = document.getElementById("sourceIndicator");
 const recordBtn = document.getElementById("recordBtn");
 const pauseBtn = document.getElementById("pauseBtn");
 const stopBtn = document.getElementById("stopBtn");
-
-function updateSourceIndicator() {
-    const hasFile = audioFileInput.files && audioFileInput.files.length > 0;
-    const hasPath = filePathInput.value.trim().length > 0;
-
-    if (hasFile) {
-        sourceIndicator.textContent = "Source: Uploaded file";
-    } else if (hasPath) {
-        sourceIndicator.textContent = "Source: Path file";
-    } else {
-        sourceIndicator.textContent = "Source: Not selected";
-    }
-}
+const finalizeBtn = document.getElementById("finalizeBtn");
+const exportTranscriptBtn = document.getElementById("exportTranscriptBtn");
+const exportSummaryBtn = document.getElementById("exportSummaryBtn");
 
 audioFileInput.addEventListener("change", () => {
-    if (audioFileInput.files && audioFileInput.files.length > 0) {
-        filePathInput.value = audioFileInput.files[0].name;
+    if (audioFileInput.files && audioFileInput.files.length > 0 && !isRecording) {
+        processAudio();
     }
-    updateSourceIndicator();
-});
-
-filePathInput.addEventListener("input", () => {
-    // If user types manually, treat it as a path-source flow.
-    if (audioFileInput.files && audioFileInput.files.length > 0) {
-        audioFileInput.value = "";
-    }
-    updateSourceIndicator();
 });
 
 function openFilePicker() {
     audioFileInput.click();
 }
 
-updateSourceIndicator();
+function setUploadHeroVisible(visible) {
+    const hero = document.querySelector("#chat .upload-hero");
+    if (!hero) return;
+    hero.classList.toggle("hidden", !visible);
+}
+
+function updateTranscriptDependentUI() {
+    const hasTranscript = Array.isArray(transcriptData) && transcriptData.length > 0;
+    const isExpanded = sidebar.classList.contains("expanded");
+    const sideHeading = document.getElementById("sideHeading");
+    const renameBox = document.getElementById("renameBox");
+
+    [finalizeBtn, exportTranscriptBtn, exportSummaryBtn].forEach((btn) => {
+        if (!btn) return;
+        btn.classList.toggle("hidden", !hasTranscript);
+    });
+
+    if (sideHeading) {
+        sideHeading.style.display = hasTranscript && isExpanded ? "block" : "none";
+    }
+    if (!hasTranscript && renameBox) {
+        renameBox.innerHTML = "";
+    }
+}
+
+function initDropZone() {
+    const dropZone = document.getElementById("dropZoneCard");
+    if (!dropZone) return;
+
+    ["dragenter", "dragover"].forEach((evtName) => {
+        dropZone.addEventListener(evtName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add("drag-over");
+        });
+    });
+
+    ["dragleave", "drop"].forEach((evtName) => {
+        dropZone.addEventListener(evtName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove("drag-over");
+        });
+    });
+
+    dropZone.addEventListener("drop", (e) => {
+        const files = e.dataTransfer && e.dataTransfer.files ? e.dataTransfer.files : null;
+        if (!files || files.length === 0) return;
+
+        const dt = new DataTransfer();
+        dt.items.add(files[0]);
+        audioFileInput.files = dt.files;
+        processAudio();
+    });
+}
 
 function setRecordingButtons(active, paused = false) {
     if (!recordBtn || !pauseBtn || !stopBtn) return;
@@ -272,10 +308,16 @@ function renderHistoryList() {
         const title = truncateText(entry.title || entry.processed_file || entry.session_id);
         const meta = `${entry.segments || 0} segments • ${formatHistoryLabel(entry.updated_at)}`;
         return `
-            <button class="history-item ${activeClass}" onclick="openHistorySession('${entry.session_id}')" title="${escapeHTMLText(entry.title || entry.session_id)}">
-                <span class="history-title">${escapeHTMLText(title)}</span>
-                <span class="history-meta">${escapeHTMLText(meta)}</span>
-            </button>
+            <div class="history-item ${activeClass}" title="${escapeHTMLText(entry.title || entry.session_id)}">
+                <button class="history-open-btn" onclick="openHistorySession('${entry.session_id}')">
+                    <span class="history-title">${escapeHTMLText(title)}</span>
+                    <span class="history-meta">${escapeHTMLText(meta)}</span>
+                </button>
+                <div class="history-actions">
+                    <button class="history-action-btn" onclick="renameHistorySession('${entry.session_id}')" title="Rename">✎</button>
+                    <button class="history-action-btn delete" onclick="deleteHistorySession('${entry.session_id}')" title="Delete">🗑</button>
+                </div>
+            </div>
         `;
     }).join("");
 }
@@ -346,11 +388,70 @@ async function openHistorySession(sessionId) {
         setupRenameSidebar();
         document.getElementById("sumBtn").style.display = transcriptData.length ? "flex" : "none";
         renderHistoryList();
+        updateTranscriptDependentUI();
     } catch (e) {
         alert(e.message || "Failed to open history");
     } finally {
         document.getElementById("loadingOverlay").style.display = "none";
-        document.getElementById("inputGroup").classList.remove("hidden");
+    }
+}
+
+async function renameHistorySession(sessionId) {
+    const entry = (historyEntries || []).find((x) => x.session_id === sessionId);
+    const currentTitle = (entry && entry.title) ? entry.title : sessionId;
+    const nextTitle = window.prompt("Rename chat title:", currentTitle);
+    if (nextTitle === null) return;
+    const clean = nextTitle.trim();
+    if (!clean) return;
+
+    try {
+        const response = await fetch(`/history/${encodeURIComponent(sessionId)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: clean })
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || "Failed to rename history");
+        }
+        await refreshHistory();
+    } catch (e) {
+        alert(e.message || "Failed to rename history");
+    }
+}
+
+async function deleteHistorySession(sessionId) {
+    const ok = window.confirm("Delete this history item?");
+    if (!ok) return;
+
+    try {
+        const response = await fetch(`/history/${encodeURIComponent(sessionId)}`, {
+            method: "DELETE"
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || "Failed to delete history");
+        }
+
+        if (currentSessionId === sessionId) {
+            currentSessionId = "";
+            transcriptData = [];
+            currentSummary = "";
+            currentProcessedAudio = "";
+            currentProcessedVideo = "";
+            groupedTranscriptCache = [];
+            uniqueSpeakers.clear();
+            speakerNameMap = {};
+            speakerOrderMap = {};
+            await renderChatDelayed();
+            setupRenameSidebar();
+            document.getElementById("sumBtn").style.display = "none";
+            updateTranscriptDependentUI();
+        }
+
+        await refreshHistory();
+    } catch (e) {
+        alert(e.message || "Failed to delete history");
     }
 }
 
@@ -392,22 +493,19 @@ async function processAudio() {
         return;
     }
 
-    const inputValue = filePathInput.value.trim();
     const selectedFile = audioFileInput.files && audioFileInput.files.length > 0 ? audioFileInput.files[0] : null;
 
-    if (!selectedFile && !inputValue) return;
-    lastAudioFile = selectedFile ? selectedFile.name : inputValue;
+    if (!selectedFile) return;
+    lastAudioFile = selectedFile.name;
     
-    // Show Loader and hide input
+    // Show Loader
     document.getElementById("loadingOverlay").style.display = "flex";
-    document.getElementById("inputGroup").classList.add("hidden");
 
     try {
         if (selectedFile && isDocumentFile(selectedFile.name)) {
             const meetingDetails = requestMeetingDetails();
             if (!meetingDetails) {
                 document.getElementById("loadingOverlay").style.display = "none";
-                document.getElementById("inputGroup").classList.remove("hidden");
                 return;
             }
 
@@ -436,6 +534,7 @@ async function processAudio() {
             currentDocumentType = (result.document_type || "").toLowerCase();
             currentDocumentText = result.document_text || "";
             document.getElementById("sumBtn").style.display = "none";
+            updateTranscriptDependentUI();
 
             renderDocumentResult();
             return;
@@ -445,22 +544,12 @@ async function processAudio() {
             throw new Error("Unsupported file. Use audio/video or documents (.pdf/.docx/.txt).");
         }
 
-        let response;
-
-        if (selectedFile) {
-            const formData = new FormData();
-            formData.append("audio_file", selectedFile);
-            response = await fetch("/process", {
-                method: "POST",
-                body: formData
-            });
-        } else {
-            response = await fetch("/process", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ file_path: inputValue })
-            });
-        }
+        const formData = new FormData();
+        formData.append("audio_file", selectedFile);
+        const response = await fetch("/process", {
+            method: "POST",
+            body: formData
+        });
 
         const result = await response.json();
 
@@ -486,23 +575,31 @@ async function processAudio() {
         setupRenameSidebar();
         await refreshHistory();
         document.getElementById("sumBtn").style.display = "flex";
+        updateTranscriptDependentUI();
     } catch (e) { 
         document.getElementById("loadingOverlay").style.display = "none";
-        document.getElementById("inputGroup").classList.remove("hidden");
         alert(e.message || "Connection failed."); 
+    } finally {
+        if (audioFileInput) {
+            audioFileInput.value = "";
+        }
     }
 }
 
 async function renderChatDelayed() {
     // Hide Loader once rendering starts
     document.getElementById("loadingOverlay").style.display = "none";
-    document.getElementById("inputGroup").classList.remove("hidden");
     
     const chat = document.getElementById("chat");
     const old = chat.querySelectorAll(".transcription");
     old.forEach(r => r.remove());
 
-    if (transcriptData.length === 0) return;
+    if (transcriptData.length === 0) {
+        setUploadHeroVisible(true);
+        return;
+    }
+
+    setUploadHeroVisible(false);
 
     if (currentProcessedVideo) {
         const videoRow = document.createElement("div");
@@ -586,6 +683,7 @@ async function renderChatDelayed() {
 
 function renderDocumentResult() {
     document.getElementById("loadingOverlay").style.display = "none";
+    setUploadHeroVisible(true);
 
     const chat = document.getElementById("chat");
     const old = chat.querySelectorAll(".transcription");
@@ -619,7 +717,6 @@ function renderDocumentResult() {
     `;
 
     chat.appendChild(row);
-    document.getElementById("inputGroup").classList.remove("hidden");
     if (currentSummary) {
         renderSummaryCard(currentSummary);
     }
@@ -628,7 +725,6 @@ function renderDocumentResult() {
 
 function setupRenameSidebar() {
     const box = document.getElementById("renameBox");
-    document.getElementById("sideHeading").style.display = "block";
     box.innerHTML = "";
     
     const sortedSpeakers = Array.from(uniqueSpeakers).sort((a, b) => {
@@ -638,9 +734,11 @@ function setupRenameSidebar() {
     sortedSpeakers.forEach(s => {
         const div = document.createElement("div");
         div.className = "rename-item";
-        div.innerHTML = `<label>RENAME ${s}</label><input type="text" id="name_${s}" placeholder="Enter name...">`;
+        const speakerNo = (speakerOrderMap[s] ?? 0) + 1;
+        div.innerHTML = `<input type="text" id="name_${s}" placeholder="Enter speaker ${speakerNo} Name">`;
         box.appendChild(div);
     });
+    updateTranscriptDependentUI();
 }
 
 function applyNames() {
@@ -891,6 +989,9 @@ async function showSummary() {
 }
 
 refreshHistory();
+initDropZone();
+updateTranscriptDependentUI();
+setUploadHeroVisible(true);
 
 function copySummary() {
     const text = document.getElementById("sumCard").innerText;

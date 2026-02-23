@@ -575,6 +575,44 @@ def save_history_transcript(session_id):
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/history/<session_id>", methods=["PATCH"])
+def rename_history_item(session_id):
+    try:
+        history_path = _history_json_path(session_id)
+        if not history_path or not os.path.isfile(history_path):
+            return jsonify({"error": "History not found"}), 404
+
+        payload = request.get_json(silent=True) or {}
+        new_title = (payload.get("title") or "").strip()
+        if not new_title:
+            return jsonify({"error": "Title is required"}), 400
+
+        with open(history_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        data["title"] = new_title
+
+        with open(history_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4)
+
+        return jsonify({"ok": True, "title": new_title})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/history/<session_id>", methods=["DELETE"])
+def delete_history_item(session_id):
+    try:
+        history_path = _history_json_path(session_id)
+        if not history_path or not os.path.isfile(history_path):
+            return jsonify({"error": "History not found"}), 404
+
+        os.remove(history_path)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ----------------------------
 # Run Server
 # ----------------------------

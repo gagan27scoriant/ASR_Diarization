@@ -17,16 +17,22 @@
 
 <div class="sidebar" id="sidebar">
     <div class="sidebar-resizer" id="resizer"></div>
-    <button class="collapse-btn" onclick="toggleSidebar()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-    </button>
+    <div class="brand-row">
+        <button class="collapse-btn" onclick="toggleSidebar()" title="Toggle Sidebar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
+    </div>
     <div id="sidebarContent">
         <h1 id="sideHeading" style="display:none;">Speaker Mapping</h1>
         <div id="renameBox"></div>
-        <button class="sidebar-btn finalize-btn" onclick="applyNames()">Finalize Names</button>
+        <button class="sidebar-btn finalize-btn hidden" id="finalizeBtn" onclick="applyNames()">Finalize Names</button>
         <h1>Export Options</h1>
-        <button class="sidebar-btn btn-export" onclick="exportTranscript()">Export Transcript</button>
-        <button class="sidebar-btn btn-export" onclick="exportSummary()">Export Summary</button>
+        <button class="sidebar-btn btn-export hidden" id="exportTranscriptBtn" onclick="exportTranscript()">Export Transcript</button>
+        <button class="sidebar-btn btn-export hidden" id="exportSummaryBtn" onclick="exportSummary()">Export Summary</button>
         <h1>History</h1>
         <div id="historyList" class="history-list">
             <div class="history-empty">No history yet</div>
@@ -38,31 +44,30 @@
     <div class="navbar">
         <h1>🎙️ ASR Studio</h1>
         <div class="nav-controls">
+            <button class="nav-btn start-meeting-btn" id="recordBtn" onclick="startRecording()">Start live Meeting</button>
+            <button class="nav-btn hidden" id="pauseBtn" onclick="togglePauseRecording()">Pause</button>
+            <button class="nav-btn hidden" id="stopBtn" onclick="stopRecording()">Stop</button>
             <button class="nav-btn sum-nav-btn" id="sumBtn" onclick="showSummary()">✨ Summarize</button>
             <button class="nav-btn new-chat-btn" onclick="location.reload()">New Session</button>
         </div>
     </div>
     <div id="chat">
+      <div class="upload-hero">
+        <h2 style="font-family:'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;"></h2>
+        <p></p>
+        <div class="drop-zone-card" id="dropZoneCard" onclick="openFilePicker()">
+            <div class="drop-zone-icon">🎙</div>
+            <div class="drop-zone-title"></div>
+            <div class="drop-zone-subtitle"><button class="browse-inline-btn" type="button" onclick="event.stopPropagation(); openFilePicker();">Browse File</button></div>
+            <div class="drop-zone-support">Supported: MP3, WAV, MP4, PDF, DOCX • Max size 500MB</div>
+        </div>
+      </div>
       <div class="message-row">
-        <div class="avatar" style="background: var(--accent)">AI</div>
-        <div class="content">Upload audio/video/documents. Audio: .wav, .mp3, .aac, .aiff, .wma, .amr, .opus. Video: .mp4, .mkv, .avi, .mov, .wmv, .mpeg, .3gp. Documents: .pdf, .docx, .txt.</div>
+        <div class="avatar" style="background: #f59e0b">AI</div>
+        <div class="content">Upload a recording or start a meeting to generate transcripts and summaries.</div>
       </div>
     </div>
-    <div class="input-wrapper">
-      <div class="progress-container" id="pContainer"><div class="progress-bar" id="pBar"></div></div>
-      <div id="inputGroup">
-          <div class="input-container">
-            <input type="file" id="audioFile" accept=".wav,.mp3,.aac,.aiff,.wma,.amr,.opus,.mp4,.mkv,.avi,.mov,.wmv,.mpeg,.3gp,.pdf,.docx,.txt" hidden>
-            <button class="upload-btn" type="button" onclick="openFilePicker()">Upload</button>
-            <button class="record-btn" id="recordBtn" type="button" onclick="startRecording()">Record</button>
-            <button class="pause-btn hidden" id="pauseBtn" type="button" onclick="togglePauseRecording()">Pause</button>
-            <button class="stop-btn hidden" id="stopBtn" type="button" onclick="stopRecording()">Stop</button>
-            <input type="text" id="filePath" placeholder="Paste media path or choose upload (audio/video; docs via upload)" onkeypress="if(event.key==='Enter') processAudio()">
-            <button class="send-btn" onclick="processAudio()">➔</button>
-          </div>
-          <div id="sourceIndicator" class="source-indicator">Source: Not selected</div>
-      </div>
-    </div>
+    <input type="file" id="audioFile" accept=".wav,.mp3,.aac,.aiff,.wma,.amr,.opus,.mp4,.mkv,.avi,.mov,.wmv,.mpeg,.3gp,.pdf,.docx,.txt" hidden>
 </div>
 
 <script src="{{ url_for('static', filename='js/index.js') }}"></script>
