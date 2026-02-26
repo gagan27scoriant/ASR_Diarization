@@ -1,57 +1,70 @@
-from flask import Flask, request, jsonify, render_template, send_from_directory
 import os
-import json
-import shutil
-from glob import glob
-from datetime import datetime
+import warnings
 
-import ffmpeg
-from docx import Document as DocxDocument
-from moviepy import VideoFileClip
-from pypdf import PdfReader
+from flask import Flask, jsonify, render_template, request, send_from_directory
 from werkzeug.utils import secure_filename
 
-from app.asr import load_asr, transcribe, transcribe_live_chunk
-from app.diarization import load_diarization, diarize
-from app.mapper import map_speakers
-from app.summarize import summarize_text
+from app.asr import load_asr
+from app.config import (
+    AUDIO_FOLDER,
+    DOCUMENT_FOLDER,
+    DOCUMENT_FORMAT_ERROR,
+    VIDEO_FOLDER,
+    ensure_workspace_folders,
+    is_supported_document,
+)
+from app.diarization import load_diarization
+from app.history_store import (
+    delete_history_item as remove_history_item,
+    history_json_path,
+    list_history_entries,
+    read_history_item,
+    rename_history_item as rename_history_record,
+    update_history_transcript,
+)
+from app.processing_service import (
+    process_document_upload,
+    process_media_pipeline,
+    resolve_uploaded_or_path_media,
+    summarize_and_persist,
+    transcribe_live_audio_chunk,
+)
+from app.translation import get_translator
 
 
-# ----------------------------
-# Flask Setup
-# ----------------------------
-app = Flask(
-    __name__,
-    template_folder="templates",
-    static_folder="static"
+warnings.filterwarnings(
+    "ignore",
+    message=r"(?s).*torchcodec is not installed correctly.*",
+    category=UserWarning,
+)
+warnings.filterwarnings(
+    "ignore",
+    message=r".*torchaudio\._backend\.list_audio_backends has been deprecated.*",
+    category=UserWarning,
+)
+warnings.filterwarnings(
+    "ignore",
+    message=r".*implementation will be changed to use torchaudio\.load_with_torchcodec.*",
+    category=UserWarning,
+)
+warnings.filterwarnings(
+    "ignore",
+    message=r".*StreamingMediaDecoder has been deprecated.*",
+    category=UserWarning,
+)
+warnings.filterwarnings(
+    "ignore",
+    message=r".*Module 'speechbrain\.pretrained' was deprecated.*",
+    category=UserWarning,
 )
 
-AUDIO_FOLDER = "audio"
-VIDEO_FOLDER = "videos"
-OUTPUT_FOLDER = "outputs"
-DOCUMENT_FOLDER = "documents"
-RECORDINGS_FOLDER = "recordings"
 
-SUPPORTED_AUDIO_EXTENSIONS = {
-    ".wav", ".mp3", ".aac", ".aiff", ".wma", ".amr", ".opus"
-}
-SUPPORTED_VIDEO_EXTENSIONS = {
-    ".mp4", ".mkv", ".avi", ".mov", ".wmv", ".mpeg", ".3gp"
-}
-SUPPORTED_DOCUMENT_EXTENSIONS = {".pdf", ".docx", ".txt"}
-
-os.makedirs(AUDIO_FOLDER, exist_ok=True)
-os.makedirs(VIDEO_FOLDER, exist_ok=True)
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-os.makedirs(DOCUMENT_FOLDER, exist_ok=True)
-os.makedirs(RECORDINGS_FOLDER, exist_ok=True)
+app = Flask(__name__, template_folder="templates", static_folder="static")
+ensure_workspace_folders()
 
 
-# ----------------------------
-# Load models ONCE (important)
-# ----------------------------
 print("🚀 Loading ASR model...")
-preferred_asr = os.getenv("ASR_MODEL_SIZE", "large-v3")
+preferred_asr = os.getenv("ASR_MODEL_SIZE", "medium")
 try:
     asr_model = load_asr(preferred_asr)
 except Exception as asr_err:
@@ -60,183 +73,10 @@ except Exception as asr_err:
     asr_model = load_asr("medium")
 
 print("🚀 Loading diarization model...")
-pipeline = load_diarization()
-
+diarization_pipeline = load_diarization()
 print("✅ Models ready\n")
 
 
-def _is_supported_audio(filename: str) -> bool:
-    return os.path.splitext(filename.lower())[1] in SUPPORTED_AUDIO_EXTENSIONS
-
-
-def _is_supported_video(filename: str) -> bool:
-    return os.path.splitext(filename.lower())[1] in SUPPORTED_VIDEO_EXTENSIONS
-
-
-def _is_supported_media(filename: str) -> bool:
-    return _is_supported_audio(filename) or _is_supported_video(filename)
-
-
-def _ensure_wav(audio_path: str, filename: str) -> tuple[str, str]:
-    ext = os.path.splitext(filename.lower())[1]
-    if ext == ".wav":
-        return audio_path, filename
-
-    safe_base = secure_filename(os.path.splitext(filename)[0]) or "uploaded_audio"
-    wav_filename = f"{safe_base}.wav"
-    wav_path = os.path.join(AUDIO_FOLDER, wav_filename)
-
-    try:
-        (
-            ffmpeg
-            .input(audio_path)
-            .output(wav_path, acodec="pcm_s16le", ac=1, ar=16000)
-            .overwrite_output()
-            .run(capture_stdout=True, capture_stderr=True)
-        )
-    except ffmpeg.Error as e:
-        details = e.stderr.decode("utf-8", errors="ignore") if e.stderr else str(e)
-        raise RuntimeError(f"Audio conversion failed: {details}")
-
-    return wav_path, wav_filename
-
-
-def _resolve_media_source(path_or_name: str) -> tuple[str, str]:
-    value = (path_or_name or "").strip()
-    if not value:
-        raise ValueError("File path is missing")
-
-    expanded = os.path.expanduser(value)
-    if os.path.isfile(expanded):
-        filename = os.path.basename(expanded)
-        if not _is_supported_media(filename):
-            raise ValueError(
-                "Unsupported media format. Audio: .wav, .mp3, .aac, .aiff, .wma, .amr, .opus | "
-                "Video: .mp4, .mkv, .avi, .mov, .wmv, .mpeg, .3gp"
-            )
-        return expanded, filename
-
-    filename = os.path.basename(expanded)
-    if not filename:
-        raise ValueError("Invalid file path")
-    if not _is_supported_media(filename):
-        raise ValueError(
-            "Unsupported media format. Audio: .wav, .mp3, .aac, .aiff, .wma, .amr, .opus | "
-            "Video: .mp4, .mkv, .avi, .mov, .wmv, .mpeg, .3gp"
-        )
-
-    fallback_audio_path = os.path.join(AUDIO_FOLDER, filename)
-    fallback_video_path = os.path.join(VIDEO_FOLDER, filename)
-    if os.path.isfile(fallback_audio_path):
-        return fallback_audio_path, filename
-    if os.path.isfile(fallback_video_path):
-        return fallback_video_path, filename
-
-    raise FileNotFoundError(
-        "Media file not found. Provide a valid file path or upload from UI."
-    )
-
-
-def _ensure_audio_in_workspace(audio_path: str, filename: str) -> tuple[str, str]:
-    target_filename = secure_filename(filename) or "audio.wav"
-    target_path = os.path.join(AUDIO_FOLDER, target_filename)
-
-    if os.path.abspath(audio_path) == os.path.abspath(target_path):
-        return audio_path, target_filename
-
-    shutil.copy2(audio_path, target_path)
-    return target_path, target_filename
-
-
-def _ensure_video_in_workspace(video_path: str, filename: str) -> tuple[str, str]:
-    target_filename = secure_filename(filename) or "video.mp4"
-    target_path = os.path.join(VIDEO_FOLDER, target_filename)
-
-    if os.path.abspath(video_path) == os.path.abspath(target_path):
-        return video_path, target_filename
-
-    shutil.copy2(video_path, target_path)
-    return target_path, target_filename
-
-
-def _extract_audio_from_video(video_path: str, filename: str) -> tuple[str, str]:
-    safe_base = secure_filename(os.path.splitext(filename)[0]) or "uploaded_video"
-    wav_filename = f"{safe_base}_from_video.wav"
-    wav_path = os.path.join(AUDIO_FOLDER, wav_filename)
-
-    try:
-        with VideoFileClip(video_path) as clip:
-            if clip.audio is None:
-                raise RuntimeError("Video has no audio track")
-            clip.audio.write_audiofile(
-                wav_path,
-                codec="pcm_s16le",
-                fps=16000,
-                ffmpeg_params=["-ac", "1"],
-                logger=None
-            )
-    except Exception as e:
-        raise RuntimeError(f"Video audio extraction failed: {e}")
-
-    return wav_path, wav_filename
-
-
-def _extract_text_from_document(file_path: str, filename: str) -> str:
-    ext = os.path.splitext(filename.lower())[1]
-
-    if ext == ".pdf":
-        reader = PdfReader(file_path)
-        text_parts = []
-        for page in reader.pages:
-            text_parts.append(page.extract_text() or "")
-        return "\n".join(text_parts).strip()
-
-    if ext == ".docx":
-        doc = DocxDocument(file_path)
-        parts = [p.text for p in doc.paragraphs if p.text and p.text.strip()]
-        return "\n".join(parts).strip()
-
-    if ext == ".txt":
-        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-            return f.read().strip()
-
-    raise ValueError("Unsupported document format. Use: .pdf, .docx, .txt")
-
-
-def _history_json_path(session_id: str) -> str:
-    safe_id = secure_filename(session_id or "").strip()
-    if not safe_id:
-        return ""
-    return os.path.join(OUTPUT_FOLDER, f"{safe_id}.json")
-
-
-def _history_entry_from_file(json_path: str) -> dict | None:
-    try:
-        with open(json_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except Exception:
-        return None
-
-    transcript = data.get("transcript") or []
-    summary = data.get("summary") or ""
-    session_id = os.path.splitext(os.path.basename(json_path))[0]
-    ts = os.path.getmtime(json_path)
-    updated_at = datetime.fromtimestamp(ts).isoformat(timespec="seconds")
-
-    return {
-        "session_id": session_id,
-        "title": data.get("title") or session_id,
-        "processed_file": data.get("processed_file") or "",
-        "source_video": data.get("source_video") or "",
-        "segments": len(transcript),
-        "has_summary": bool(str(summary).strip()),
-        "updated_at": updated_at,
-    }
-
-
-# ----------------------------
-# Serve Frontend
-# ----------------------------
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -266,119 +106,18 @@ def serve_document(filename):
     return send_from_directory(DOCUMENT_FOLDER, safe_name)
 
 
-# ----------------------------
-# Process Audio API
-# Called from index.html fetch("/process")
-# ----------------------------
 @app.route("/process", methods=["POST"])
 def process_audio():
-
     try:
-        filename = ""
-        source_path = ""
-        source_video = ""
-
         uploaded_file = request.files.get("audio_file")
-        if uploaded_file and uploaded_file.filename:
-            filename = secure_filename(uploaded_file.filename.strip())
-            if not filename:
-                return jsonify({"error": "Invalid uploaded filename"}), 400
-
-            if not _is_supported_media(filename):
-                return jsonify({
-                    "error": "Unsupported media format. Audio: .wav, .mp3, .aac, .aiff, .wma, .amr, .opus | "
-                             "Video: .mp4, .mkv, .avi, .mov, .wmv, .mpeg, .3gp"
-                }), 400
-
-            upload_folder = VIDEO_FOLDER if _is_supported_video(filename) else AUDIO_FOLDER
-            source_path = os.path.join(upload_folder, filename)
-            uploaded_file.save(source_path)
-        else:
-            data = request.get_json(silent=True)
-            if not data:
-                return jsonify({"error": "Upload a media file or provide file path"}), 400
-
-            incoming_value = (data.get("file_path") or data.get("filename") or "").strip()
-            if not incoming_value:
-                return jsonify({"error": "File path is missing"}), 400
-
-            try:
-                source_path, filename = _resolve_media_source(incoming_value)
-            except ValueError as e:
-                return jsonify({"error": str(e)}), 400
-            except FileNotFoundError as e:
-                return jsonify({"error": str(e)}), 404
-
-        if _is_supported_video(filename):
-            source_path, source_video = _ensure_video_in_workspace(source_path, filename)
-            audio_path, extracted_audio_filename = _extract_audio_from_video(source_path, source_video)
-            audio_path, processed_filename = _ensure_wav(audio_path, extracted_audio_filename)
-        else:
-            audio_path = source_path
-            processed_filename = filename
-            source_video = ""
-
-        # Convert anything except wav into wav before pipeline
-        audio_path, processed_filename = _ensure_wav(audio_path, processed_filename)
-        audio_path, processed_filename = _ensure_audio_in_workspace(audio_path, processed_filename)
-
-        print("\n" + "="*50)
-        print("Processing:", filename)
-        if source_video:
-            print("Video source:", source_video)
-        if processed_filename != filename:
-            print("Converted to:", processed_filename)
-
-        # ----------------------------
-        # ASR (Faster-Whisper)
-        # ----------------------------
-        print("→ Running transcription...")
-        # Faster-Whisper returns a list of segments
-        transcription_segments = transcribe(asr_model, audio_path)
-
-        # ----------------------------
-        # Diarization
-        # ----------------------------
-        print("→ Running speaker diarization...")
-        diarization_result = diarize(pipeline, audio_path)
-
-        # ----------------------------
-        # Speaker Mapping
-        # ----------------------------
-        print("→ Mapping speakers...")
-        final_output = map_speakers(transcription_segments, diarization_result)
-
-        # ----------------------------
-        # Save JSON Output
-        # ----------------------------
-        output_stem = secure_filename(os.path.splitext(processed_filename)[0]) or "output"
-        session_id = f"{output_stem}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        output_file = _history_json_path(session_id)
-
-        with open(output_file, "w", encoding="utf-8") as f:
-            json.dump(
-                {
-                    "session_id": session_id,
-                    "title": filename,
-                    "processed_file": processed_filename,
-                    "source_video": source_video,
-                    "transcript": final_output,
-                    "summary": "",
-                },
-                f,
-                indent=4
-            )
-
-        print("✅ Completed:", processed_filename)
-
-        return jsonify({
-            "session_id": session_id,
-            "transcript": final_output,
-            "summary": "",
-            "processed_file": processed_filename,
-            "source_video": source_video
-        })
-
+        payload = request.get_json(silent=True) if not uploaded_file else None
+        source_path, filename = resolve_uploaded_or_path_media(uploaded_file, payload)
+        result = process_media_pipeline(source_path, filename, asr_model, diarization_pipeline)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except FileNotFoundError as e:
+        return jsonify({"error": str(e)}), 404
     except Exception as e:
         print("❌ Error:", e)
         return jsonify({"error": str(e)}), 500
@@ -386,56 +125,24 @@ def process_audio():
 
 @app.route("/transcribe_chunk", methods=["POST"])
 def transcribe_chunk():
-    """
-    Transcribe a short microphone chunk for real-time UI updates.
-    """
     try:
         uploaded_chunk = request.files.get("audio_chunk")
         if not uploaded_chunk or not uploaded_chunk.filename:
             return jsonify({"error": "Audio chunk missing"}), 400
-
-        safe_name = secure_filename(uploaded_chunk.filename) or "chunk.webm"
-        chunk_ext = os.path.splitext(safe_name)[1].lower() or ".webm"
-        chunk_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        raw_path = os.path.join(RECORDINGS_FOLDER, f"chunk_{chunk_id}{chunk_ext}")
-        wav_path = os.path.join(RECORDINGS_FOLDER, f"chunk_{chunk_id}.wav")
-
-        uploaded_chunk.save(raw_path)
-
-        try:
-            (
-                ffmpeg
-                .input(raw_path)
-                .output(wav_path, acodec="pcm_s16le", ac=1, ar=16000)
-                .overwrite_output()
-                .run(capture_stdout=True, capture_stderr=True)
-            )
-        except ffmpeg.Error as e:
-            details = e.stderr.decode("utf-8", errors="ignore") if e.stderr else str(e)
-            return jsonify({"error": f"Chunk conversion failed: {details}"}), 500
-
-        text = transcribe_live_chunk(asr_model, wav_path)
+        text = transcribe_live_audio_chunk(uploaded_chunk, asr_model)
         return jsonify({"text": text})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    finally:
-        try:
-            if "raw_path" in locals() and os.path.isfile(raw_path):
-                os.remove(raw_path)
-            if "wav_path" in locals() and os.path.isfile(wav_path):
-                os.remove(wav_path)
-        except Exception:
-            pass
 
 
 @app.route("/summarize_text", methods=["POST"])
 def summarize_from_text():
     try:
-        data = request.get_json()
-        text = (data or {}).get("content", "")
-        meeting_title = (data or {}).get("meeting_title", "").strip()
-        meeting_date = (data or {}).get("meeting_date", "").strip()
-        meeting_place = (data or {}).get("meeting_place", "").strip()
+        data = request.get_json() or {}
+        text = data.get("content", "")
+        meeting_title = (data.get("meeting_title") or "").strip()
+        meeting_date = (data.get("meeting_date") or "").strip()
+        meeting_place = (data.get("meeting_place") or "").strip()
 
         if not text or not text.strip():
             return jsonify({"error": "Content missing"}), 400
@@ -443,21 +150,13 @@ def summarize_from_text():
             return jsonify({"error": "Meeting title, date, and place are required"}), 400
 
         print("→ Generating summary from exported text...")
-        summary = summarize_text(text, meeting_title, meeting_date, meeting_place)
-
-        session_id = (data or {}).get("session_id", "").strip()
-        if session_id:
-            history_path = _history_json_path(session_id)
-            if history_path and os.path.isfile(history_path):
-                try:
-                    with open(history_path, "r", encoding="utf-8") as f:
-                        history_data = json.load(f)
-                    history_data["summary"] = summary
-                    with open(history_path, "w", encoding="utf-8") as f:
-                        json.dump(history_data, f, indent=4)
-                except Exception as write_err:
-                    print(f"⚠️ Failed to persist summary to history '{session_id}': {write_err}")
-
+        summary = summarize_and_persist(
+            text,
+            meeting_title,
+            meeting_date,
+            meeting_place,
+            (data.get("session_id") or "").strip(),
+        )
         return jsonify({"summary": summary})
     except Exception as e:
         print("❌ Summary Error:", e)
@@ -470,14 +169,8 @@ def process_document():
         uploaded_file = request.files.get("document_file")
         if not uploaded_file or not uploaded_file.filename:
             return jsonify({"error": "Document file missing"}), 400
-
-        filename = secure_filename(uploaded_file.filename.strip())
-        if not filename:
-            return jsonify({"error": "Invalid document filename"}), 400
-
-        ext = os.path.splitext(filename.lower())[1]
-        if ext not in SUPPORTED_DOCUMENT_EXTENSIONS:
-            return jsonify({"error": "Unsupported document format. Use: .pdf, .docx, .txt"}), 400
+        if not is_supported_document(uploaded_file.filename):
+            return jsonify({"error": DOCUMENT_FORMAT_ERROR}), 400
 
         meeting_title = (request.form.get("meeting_title") or "").strip()
         meeting_date = (request.form.get("meeting_date") or "").strip()
@@ -485,36 +178,78 @@ def process_document():
         if not meeting_title or not meeting_date or not meeting_place:
             return jsonify({"error": "Meeting title, date, and place are required"}), 400
 
-        doc_path = os.path.join(DOCUMENT_FOLDER, filename)
-        uploaded_file.save(doc_path)
-
-        extracted_text = _extract_text_from_document(doc_path, filename)
-        if not extracted_text:
-            return jsonify({"error": "No readable text found in document"}), 400
-
         print("→ Generating summary from uploaded document...")
-        summary = summarize_text(extracted_text, meeting_title, meeting_date, meeting_place)
-
-        return jsonify({
-            "summary": summary,
-            "document_filename": filename,
-            "document_type": ext.lstrip("."),
-            "document_text": extracted_text
-        })
+        result = process_document_upload(
+            uploaded_file,
+            meeting_title=meeting_title,
+            meeting_date=meeting_date,
+            meeting_place=meeting_place,
+        )
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         print("❌ Document Processing Error:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/translate", methods=["POST"])
+def translate_content():
+    try:
+        data = request.get_json(silent=True) or {}
+        target_lang = (data.get("target_lang") or "").strip()
+        source_lang = (data.get("source_lang") or "").strip()
+        text = data.get("text")
+        texts = data.get("texts")
+
+        if not target_lang:
+            return jsonify({"error": "target_lang is required"}), 400
+
+        translator = get_translator()
+        resolved_target = translator.resolve_lang_code(target_lang, is_target=True)
+        resolved_source = translator.resolve_lang_code(source_lang or "", is_target=False)
+
+        if texts is not None:
+            if not isinstance(texts, list):
+                return jsonify({"error": "texts must be an array"}), 400
+            translated_texts = translator.translate_lines(
+                [str(x or "") for x in texts],
+                target_lang=resolved_target,
+                source_lang=resolved_source,
+            )
+            return jsonify(
+                {
+                    "texts": translated_texts,
+                    "target_lang": resolved_target,
+                    "source_lang": resolved_source,
+                }
+            )
+
+        if not isinstance(text, str):
+            return jsonify({"error": "text must be a string"}), 400
+
+        translated_text = translator.translate_text(
+            text,
+            target_lang=resolved_target,
+            source_lang=resolved_source,
+        )
+        return jsonify(
+            {
+                "text": translated_text,
+                "target_lang": resolved_target,
+                "source_lang": resolved_source,
+            }
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 @app.route("/history", methods=["GET"])
 def list_history():
     try:
-        entries = []
-        for path in sorted(glob(os.path.join(OUTPUT_FOLDER, "*.json")), key=os.path.getmtime, reverse=True):
-            entry = _history_entry_from_file(path)
-            if entry:
-                entries.append(entry)
-        return jsonify({"history": entries})
+        return jsonify({"history": list_history_entries()})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -522,18 +257,17 @@ def list_history():
 @app.route("/history/<session_id>", methods=["GET"])
 def get_history_item(session_id):
     try:
-        history_path = _history_json_path(session_id)
-        if not history_path or not os.path.isfile(history_path):
+        data = read_history_item(session_id)
+        if data is None:
             return jsonify({"error": "History not found"}), 404
-
-        with open(history_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
 
         return jsonify(
             {
                 "session_id": session_id,
                 "title": data.get("title") or session_id,
                 "processed_file": data.get("processed_file") or "",
+                "before_audio_file": data.get("before_audio_file") or data.get("processed_file") or "",
+                "after_audio_file": data.get("after_audio_file") or data.get("processed_file") or "",
                 "source_video": data.get("source_video") or "",
                 "transcript": data.get("transcript") or [],
                 "summary": data.get("summary") or "",
@@ -546,8 +280,7 @@ def get_history_item(session_id):
 @app.route("/history/<session_id>/transcript", methods=["POST"])
 def save_history_transcript(session_id):
     try:
-        history_path = _history_json_path(session_id)
-        if not history_path or not os.path.isfile(history_path):
+        if not history_json_path(session_id) or read_history_item(session_id) is None:
             return jsonify({"error": "History not found"}), 404
 
         payload = request.get_json(silent=True) or {}
@@ -559,17 +292,7 @@ def save_history_transcript(session_id):
         if summary is not None and not isinstance(summary, str):
             return jsonify({"error": "Invalid summary payload"}), 400
 
-        with open(history_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-
-        if transcript is not None:
-            data["transcript"] = transcript
-        if summary is not None:
-            data["summary"] = summary
-
-        with open(history_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4)
-
+        update_history_transcript(session_id, transcript=transcript, summary=summary)
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -578,8 +301,7 @@ def save_history_transcript(session_id):
 @app.route("/history/<session_id>", methods=["PATCH"])
 def rename_history_item(session_id):
     try:
-        history_path = _history_json_path(session_id)
-        if not history_path or not os.path.isfile(history_path):
+        if not history_json_path(session_id) or read_history_item(session_id) is None:
             return jsonify({"error": "History not found"}), 404
 
         payload = request.get_json(silent=True) or {}
@@ -587,14 +309,7 @@ def rename_history_item(session_id):
         if not new_title:
             return jsonify({"error": "Title is required"}), 400
 
-        with open(history_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-
-        data["title"] = new_title
-
-        with open(history_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4)
-
+        rename_history_record(session_id, new_title)
         return jsonify({"ok": True, "title": new_title})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -603,18 +318,14 @@ def rename_history_item(session_id):
 @app.route("/history/<session_id>", methods=["DELETE"])
 def delete_history_item(session_id):
     try:
-        history_path = _history_json_path(session_id)
-        if not history_path or not os.path.isfile(history_path):
+        if not remove_history_item(session_id):
             return jsonify({"error": "History not found"}), 404
-
-        os.remove(history_path)
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-# ----------------------------
-# Run Server
-# ----------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    debug_mode = os.getenv("FLASK_DEBUG", "1").strip().lower() in {"1", "true", "yes", "on"}
+    use_reloader = os.getenv("FLASK_USE_RELOADER", "0").strip().lower() in {"1", "true", "yes", "on"}
+    app.run(host="0.0.0.0", port=5000, debug=debug_mode, use_reloader=use_reloader)

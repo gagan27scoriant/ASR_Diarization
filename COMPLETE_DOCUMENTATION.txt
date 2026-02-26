@@ -1,0 +1,298 @@
+ASR STUDIO - COMPLETE TECHNICAL DOCUMENTATION
+=============================================
+
+1. OVERVIEW
+-----------
+ASR Studio is a Flask application for speech-to-text workflows with:
+- media ingestion (audio/video)
+- transcription (faster-whisper)
+- speaker diarization (pyannote)
+- speaker mapping and smoothing
+- summary generation (Ollama or BART)
+- translation (NLLB)
+- live chunk transcription
+- session history persistence
+
+
+2. RUNTIME FLOW
+---------------
+Startup sequence:
+1. Flask app created.
+2. Workspace folders ensured:
+   audio/, videos/, outputs/, documents/, recordings/
+3. ASR model loads (preferred ASR_MODEL_SIZE; fallback to "medium").
+4. Diarization pipeline loads.
+5. HTTP routes are served.
+
+Primary media flow (/process):
+1. Accept uploaded media or path payload.
+2. If video, extract audio.
+3. Ensure WAV + workspace copy.
+4. Try Demucs enhancement (if enabled); fallback to original on error.
+5. Transcribe audio segments with timestamps and words.
+6. Run diarization.
+7. Map words/segments to speakers.
+8. Persist session JSON to outputs/.
+9. Return transcript + metadata.
+
+
+3. PROJECT STRUCTURE
+--------------------
+main.py
+- Flask app + all routes
+
+app/asr.py
+- faster-whisper model loading
+- transcription logic with retry scoring strategy
+- live chunk transcription
+
+app/diarization.py
+- pyannote pipeline loading
+- diarization execution and optional waveform preload
+
+app/mapper.py
+- speaker mapping algorithm
+- overlap scoring, nearest fallback, smoothing, merge logic
+
+app/media_utils.py
+- media conversion, extraction, Demucs enhancement
+- document text extraction
+
+app/summarize.py
+- summary backend integration (Ollama/BART)
+- structured meeting-minutes formatting
+
+app/translation.py
+- NLLB loading (offline-first)
+- translation API methods and language code resolution
+
+app/processing_service.py
+- orchestration for media/document processing
+- persistence helpers
+
+app/history_store.py
+- session history CRUD using JSON files in outputs/
+
+templates/index.html + static/js/index.js + static/css/index.css
+- web UI
+- recording controls
+- translation dropdown auto-translation behavior
+- history rendering
+- export actions
+
+scripts/download_nllb_model.py
+- utility script to download NLLB locally and generate env file
+
+
+4. API ROUTES
+-------------
+GET /
+- returns web UI (index.html)
+
+GET /audio/<filename>
+GET /videos/<filename>
+GET /documents/<filename>
+- static file serving for previews/playback
+
+POST /process
+Input:
+- multipart/form-data: audio_file=<file>
+  OR
+- JSON: {"file_path":"...", "filename":"..."}
+Output:
+- {
+    "session_id": str,
+    "transcript": [ {speaker,start,end,text}, ... ],
+    "summary": str,
+    "processed_file": str,
+    "before_audio_file": str,
+    "after_audio_file": str,
+    "source_video": str
+  }
+
+POST /transcribe_chunk
+Input:
+- multipart/form-data: audio_chunk=<blob>
+Output:
+- {"text": "chunk transcription"}
+
+POST /summarize_text
+Input JSON:
+- content (required)
+- meeting_title (required)
+- meeting_date (required)
+- meeting_place (required)
+- session_id (optional, for persistence)
+Output:
+- {"summary": "..."}
+
+POST /process_document
+Input form-data:
+- document_file (required)
+- meeting_title, meeting_date, meeting_place (required)
+Output:
+- {
+    "summary": str,
+    "document_filename": str,
+    "document_type": str,
+    "document_text": str
+  }
+
+POST /translate
+Input JSON:
+- target_lang (required)
+- source_lang (optional)
+- text (string) OR texts (array of strings)
+Output for text:
+- {"text": "...", "target_lang":"...", "source_lang":"..."}
+Output for texts:
+- {"texts":[...], "target_lang":"...", "source_lang":"..."}
+
+GET /history
+Output:
+- {"history": [history_entry, ...]}
+
+GET /history/<session_id>
+Output:
+- full session payload with transcript + summary
+
+POST /history/<session_id>/transcript
+Input JSON:
+- transcript (optional list)
+- summary (optional string)
+Output:
+- {"ok": true}
+
+PATCH /history/<session_id>
+Input JSON:
+- title (required)
+Output:
+- {"ok": true, "title": "..."}
+
+DELETE /history/<session_id>
+Output:
+- {"ok": true}
+
+
+5. HISTORY JSON SCHEMA
+----------------------
+Stored file: outputs/<session_id>.json
+
+Fields:
+- session_id
+- title
+- processed_file
+- before_audio_file
+- after_audio_file
+- source_video
+- transcript: list of segments
+  - speaker: str
+  - start: float seconds
+  - end: float seconds
+  - text: str
+- summary: str
+
+
+6. ENVIRONMENT VARIABLES
+------------------------
+Flask:
+- FLASK_DEBUG (default: 1)
+- FLASK_USE_RELOADER (default: 0)
+
+ASR:
+- ASR_MODEL_PATH
+- ASR_MODEL_SIZE (default: medium)
+- ASR_TASK (transcribe|translate; default: transcribe)
+- ASR_MULTILINGUAL (default: 1)
+- ASR_OUTPUT_ENGLISH (default: 1)
+- ASR_LANGUAGE
+- ASR_AUTO_LANGUAGE (default: 1)
+- ASR_AUTO_LANGUAGE_MIN_PROB (default: 0.55)
+- ASR_INITIAL_PROMPT
+
+Diarization:
+- HUGGINGFACE_TOKEN
+- DIARIZATION_NUM_SPEAKERS
+- DIARIZATION_MIN_SPEAKERS
+- DIARIZATION_MAX_SPEAKERS
+- DIARIZATION_PRELOAD_AUDIO (default: 1)
+
+Demucs:
+- DEMUCS_ENABLED (default: 1)
+- DEMUCS_MODEL (default: htdemucs)
+- DEMUCS_OUTPUT_FOLDER (default: demucs_outputs)
+- DEMUCS_TWO_STEMS (default: vocals)
+- DEMUCS_DEVICE (cpu|cuda)
+
+Summary:
+- SUMMARY_BACKEND (default: ollama)
+- SUMMARY_MODEL (default: mistral)
+- OLLAMA_URL (default: http://localhost:11434/api/generate)
+- SUMMARY_TIMEOUT_SECONDS (default: 10800)
+
+Translation (NLLB):
+- NLLB_MODEL_PATH
+- NLLB_MODEL_NAME (default: facebook/nllb-200-distilled-600M)
+- NLLB_OFFLINE_ONLY (default: 1)
+- NLLB_AUTO_DOWNLOAD (default: 0)
+- NLLB_SOURCE_LANG (default: eng_Latn)
+- NLLB_MAX_INPUT_TOKENS (default: 512)
+- NLLB_MAX_NEW_TOKENS (default: 512)
+- NLLB_BATCH_SIZE (default: 8)
+- HF_HOME (optional cache root)
+
+
+7. TRANSLATION MODEL RESOLUTION ORDER
+-------------------------------------
+At runtime, NLLB model source is selected in this order:
+1. NLLB_MODEL_PATH (if valid local model folder)
+2. local folder ./nllb_model (legacy fallback)
+3. local folder ./models/nllb-200-distilled-600M
+4. Hugging Face cache snapshot (offline)
+5. explicit download path (when NLLB_AUTO_DOWNLOAD=1)
+6. model name fallback (online)
+
+Validation requires tokenizer/config + model weights files.
+
+
+8. UI FUNCTIONALITY NOTES
+-------------------------
+- Translation dropdown applies translation automatically to:
+  - transcript
+  - summary
+  - document text
+- Selecting default/empty translation option restores source text.
+- Per-block translation and per-summary translation icons are also available.
+- Sidebar supports history list, rename, delete.
+- Export buttons appear when transcript/summary are available.
+
+
+9. ERROR HANDLING STRATEGY
+--------------------------
+- Media conversion errors return HTTP 500 with detail.
+- Invalid file format returns HTTP 400 with supported formats.
+- Missing history session returns HTTP 404.
+- Mapping under-coverage triggers ASR-only timeline fallback.
+- Demucs failure is non-fatal and falls back to original audio.
+- Translation loader catches meta-tensor move errors and reports incomplete model guidance.
+
+
+10. SETUP CHECKLIST
+-------------------
+1. Install Python dependencies:
+   pip install -r requirements.txt
+2. Ensure FFmpeg is installed.
+3. Set HUGGINGFACE_TOKEN for diarization.
+4. Ensure NLLB local model exists (or set NLLB_MODEL_PATH).
+5. (Optional) start Ollama if SUMMARY_BACKEND=ollama.
+6. Run:
+   python main.py
+
+
+11. MAINTENANCE NOTES
+---------------------
+- outputs/ stores history; deleting files removes session history.
+- recordings/ stores temporary live chunks (cleaned after processing).
+- demucs_outputs/ can grow large; safe to clean when not needed.
+- nllb_model/ and models/ can consume several GB.
+

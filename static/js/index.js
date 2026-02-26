@@ -6,9 +6,15 @@ let lastAudioFile = "";
 let currentSessionId = "";
 let currentProcessedAudio = "";
 let currentProcessedVideo = "";
+let currentBeforeAudio = "";
+let currentAfterAudio = "";
 let currentDocumentFilename = "";
 let currentDocumentType = "";
 let currentDocumentText = "";
+let sourceTranscriptData = [];
+let sourceSummary = "";
+let sourceDocumentText = "";
+let translationRequestToken = 0;
 let speakerNameMap = {}; 
 let speakerOrderMap = {}; 
 let isSummaryLoading = false;
@@ -22,6 +28,69 @@ let recordChunkIndex = 0;
 let liveChunkQueue = Promise.resolve();
 let liveTranscriptLinesEl = null;
 let liveTranscriptStatusEl = null;
+
+const TRANSLATION_LANGUAGE_GROUPS = {
+    indian: [
+        { label: "Assamese", code: "asm_Beng" },
+        { label: "Bengali", code: "ben_Beng" },
+        { label: "Bhojpuri", code: "bho_Deva" },
+        { label: "Gujarati", code: "guj_Gujr" },
+        { label: "Hindi", code: "hin_Deva" },
+        { label: "Kannada", code: "kan_Knda" },
+        { label: "Kashmiri (Arabic)", code: "kas_Arab" },
+        { label: "Kashmiri (Devanagari)", code: "kas_Deva" },
+        { label: "Maithili", code: "mai_Deva" },
+        { label: "Malayalam", code: "mal_Mlym" },
+        { label: "Marathi", code: "mar_Deva" },
+        { label: "Meitei (Manipuri)", code: "mni_Beng" },
+        { label: "Nepali", code: "npi_Deva" },
+        { label: "Odia", code: "ory_Orya" },
+        { label: "Punjabi", code: "pan_Guru" },
+        { label: "Sanskrit", code: "san_Deva" },
+        { label: "Sindhi", code: "snd_Arab" },
+        { label: "Tamil", code: "tam_Taml" },
+        { label: "Telugu", code: "tel_Telu" },
+        { label: "Urdu", code: "urd_Arab" }
+    ],
+    global: [
+        { label: "Afrikaans", code: "afr_Latn" },
+        { label: "Arabic", code: "ara_Arab" },
+        { label: "Bulgarian", code: "bul_Cyrl" },
+        { label: "Chinese (Simplified)", code: "zho_Hans" },
+        { label: "Chinese (Traditional)", code: "zho_Hant" },
+        { label: "Croatian", code: "hrv_Latn" },
+        { label: "Czech", code: "ces_Latn" },
+        { label: "Danish", code: "dan_Latn" },
+        { label: "Dutch", code: "nld_Latn" },
+        { label: "English", code: "eng_Latn" },
+        { label: "Filipino", code: "tgl_Latn" },
+        { label: "Finnish", code: "fin_Latn" },
+        { label: "French", code: "fra_Latn" },
+        { label: "German", code: "deu_Latn" },
+        { label: "Greek", code: "ell_Grek" },
+        { label: "Hebrew", code: "heb_Hebr" },
+        { label: "Hungarian", code: "hun_Latn" },
+        { label: "Indonesian", code: "ind_Latn" },
+        { label: "Italian", code: "ita_Latn" },
+        { label: "Japanese", code: "jpn_Jpan" },
+        { label: "Korean", code: "kor_Hang" },
+        { label: "Malay", code: "zsm_Latn" },
+        { label: "Norwegian Bokmal", code: "nob_Latn" },
+        { label: "Persian", code: "pes_Arab" },
+        { label: "Polish", code: "pol_Latn" },
+        { label: "Portuguese", code: "por_Latn" },
+        { label: "Romanian", code: "ron_Latn" },
+        { label: "Russian", code: "rus_Cyrl" },
+        { label: "Serbian", code: "srp_Cyrl" },
+        { label: "Spanish", code: "spa_Latn" },
+        { label: "Swahili", code: "swh_Latn" },
+        { label: "Swedish", code: "swe_Latn" },
+        { label: "Thai", code: "tha_Thai" },
+        { label: "Turkish", code: "tur_Latn" },
+        { label: "Ukrainian", code: "ukr_Cyrl" },
+        { label: "Vietnamese", code: "vie_Latn" }
+    ]
+};
 
 function toggleSidebar() {
     document.getElementById("sidebar").classList.toggle("expanded");
@@ -49,6 +118,7 @@ const stopBtn = document.getElementById("stopBtn");
 const finalizeBtn = document.getElementById("finalizeBtn");
 const exportTranscriptBtn = document.getElementById("exportTranscriptBtn");
 const exportSummaryBtn = document.getElementById("exportSummaryBtn");
+const translationTargetSelect = document.getElementById("translationTarget");
 
 audioFileInput.addEventListener("change", () => {
     if (audioFileInput.files && audioFileInput.files.length > 0 && !isRecording) {
@@ -58,6 +128,74 @@ audioFileInput.addEventListener("change", () => {
 
 function openFilePicker() {
     audioFileInput.click();
+}
+
+function initTranslationLanguageDropdown() {
+    if (!translationTargetSelect) return;
+
+    translationTargetSelect.innerHTML = "";
+
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.textContent = "Select Translation Language";
+    translationTargetSelect.appendChild(defaultOption);
+
+    const appendGroup = (label, items) => {
+        const group = document.createElement("optgroup");
+        group.label = label;
+        items.forEach((item) => {
+            const option = document.createElement("option");
+            option.value = item.code;
+            option.textContent = item.label;
+            group.appendChild(option);
+        });
+        translationTargetSelect.appendChild(group);
+    };
+
+    appendGroup("Indian Languages", TRANSLATION_LANGUAGE_GROUPS.indian);
+    appendGroup("Global Languages", TRANSLATION_LANGUAGE_GROUPS.global);
+    translationTargetSelect.addEventListener("change", () => {
+        applySelectedLanguageToAllTexts();
+    });
+}
+
+function cloneTranscriptSegments(segments) {
+    if (!Array.isArray(segments)) return [];
+    return segments.map((seg) => ({
+        ...seg,
+        text: String((seg && seg.text) || "")
+    }));
+}
+
+function setSourceTranscript(segments) {
+    sourceTranscriptData = cloneTranscriptSegments(segments);
+}
+
+function setSourceSummary(summaryText) {
+    sourceSummary = String(summaryText || "");
+}
+
+function setSourceDocumentText(docText) {
+    sourceDocumentText = String(docText || "");
+}
+
+async function renderCurrentContent() {
+    if (Array.isArray(transcriptData) && transcriptData.length > 0) {
+        rebuildSpeakerState();
+        await renderChatDelayed();
+        if (currentSummary && currentSummary.trim()) {
+            renderSummaryCard(currentSummary);
+        }
+        setupRenameSidebar();
+        document.getElementById("sumBtn").style.display = "flex";
+    } else if (currentDocumentFilename) {
+        renderDocumentResult();
+        document.getElementById("sumBtn").style.display = "none";
+    } else {
+        await renderChatDelayed();
+        document.getElementById("sumBtn").style.display = "none";
+    }
+    updateTranscriptDependentUI();
 }
 
 function setUploadHeroVisible(visible) {
@@ -376,22 +514,20 @@ async function openHistorySession(sessionId) {
         currentSessionId = result.session_id || sessionId;
         transcriptData = result.transcript || [];
         currentSummary = result.summary || "";
-        currentProcessedAudio = result.processed_file || "";
+        currentBeforeAudio = result.before_audio_file || result.processed_file || "";
+        currentAfterAudio = result.after_audio_file || result.processed_file || "";
+        currentProcessedAudio = currentAfterAudio || "";
         currentProcessedVideo = result.source_video || "";
         currentDocumentFilename = "";
         currentDocumentType = "";
         currentDocumentText = "";
-        lastAudioFile = result.processed_file || result.title || sessionId;
+        lastAudioFile = currentAfterAudio || result.processed_file || result.title || sessionId;
+        setSourceTranscript(transcriptData);
+        setSourceSummary(currentSummary);
+        setSourceDocumentText("");
 
-        rebuildSpeakerState();
-        await renderChatDelayed();
-        if (currentSummary && currentSummary.trim()) {
-            renderSummaryCard(currentSummary);
-        }
-        setupRenameSidebar();
-        document.getElementById("sumBtn").style.display = transcriptData.length ? "flex" : "none";
+        await applySelectedLanguageToAllTexts(false);
         renderHistoryList();
-        updateTranscriptDependentUI();
     } catch (e) {
         alert(e.message || "Failed to open history");
     } finally {
@@ -442,6 +578,14 @@ async function deleteHistorySession(sessionId) {
             currentSummary = "";
             currentProcessedAudio = "";
             currentProcessedVideo = "";
+            currentBeforeAudio = "";
+            currentAfterAudio = "";
+            currentDocumentFilename = "";
+            currentDocumentType = "";
+            currentDocumentText = "";
+            setSourceTranscript([]);
+            setSourceSummary("");
+            setSourceDocumentText("");
             groupedTranscriptCache = [];
             uniqueSpeakers.clear();
             speakerNameMap = {};
@@ -465,14 +609,14 @@ function formatTime(seconds) {
 }
 
 function getSpeakerColor(idx) {
-    const palette = [
-        { main: '#7c5cff', glow: 'rgba(124, 92, 255, 0.1)' },   
-        { main: '#10b981', glow: 'rgba(16, 185, 129, 0.1)' },   
-        { main: '#f59e0b', glow: 'rgba(245, 158, 11, 0.1)' },   
-        { main: '#3b82f6', glow: 'rgba(59, 130, 246, 0.1)' },   
-        { main: '#ec4899', glow: 'rgba(236, 72, 153, 0.1)' }    
-    ];
-    return palette[idx % palette.length];
+    // Golden-angle hue stepping gives visually distinct, non-repeating speaker colors.
+    const hue = (idx * 137.508) % 360;
+    const saturation = 68 + ((idx % 3) * 6); // 68, 74, 80
+    const lightness = 42 + (((idx + 1) % 3) * 5); // 47, 52, 42
+    return {
+        main: `hsl(${hue.toFixed(1)} ${saturation}% ${lightness}%)`,
+        glow: `hsl(${hue.toFixed(1)} ${Math.min(88, saturation + 8)}% ${Math.min(62, lightness + 12)}% / 0.14)`
+    };
 }
 
 function isAudioFile(name) {
@@ -533,13 +677,15 @@ async function processAudio() {
             currentSummary = result.summary || "";
             currentProcessedAudio = "";
             currentProcessedVideo = "";
+            currentBeforeAudio = "";
+            currentAfterAudio = "";
             currentDocumentFilename = result.document_filename || "";
             currentDocumentType = (result.document_type || "").toLowerCase();
             currentDocumentText = result.document_text || "";
-            document.getElementById("sumBtn").style.display = "none";
-            updateTranscriptDependentUI();
-
-            renderDocumentResult();
+            setSourceTranscript([]);
+            setSourceSummary(currentSummary);
+            setSourceDocumentText(currentDocumentText);
+            await applySelectedLanguageToAllTexts(false);
             return;
         }
 
@@ -567,18 +713,17 @@ async function processAudio() {
         currentDocumentType = "";
         currentDocumentText = "";
         currentProcessedVideo = result.source_video || "";
-        if (result.processed_file) {
-            lastAudioFile = result.processed_file;
-            currentProcessedAudio = result.processed_file;
+        currentBeforeAudio = result.before_audio_file || result.processed_file || "";
+        currentAfterAudio = result.after_audio_file || result.processed_file || "";
+        if (currentAfterAudio) {
+            lastAudioFile = currentAfterAudio;
+            currentProcessedAudio = currentAfterAudio;
         }
-        
-        rebuildSpeakerState();
-        
-        renderChatDelayed();
-        setupRenameSidebar();
+        setSourceTranscript(transcriptData);
+        setSourceSummary(currentSummary);
+        setSourceDocumentText("");
+        await applySelectedLanguageToAllTexts(false);
         await refreshHistory();
-        document.getElementById("sumBtn").style.display = "flex";
-        updateTranscriptDependentUI();
     } catch (e) { 
         document.getElementById("loadingOverlay").style.display = "none";
         alert(e.message || "Connection failed."); 
@@ -630,18 +775,43 @@ async function renderChatDelayed() {
         }
     }
 
-    if (currentProcessedAudio) {
+    const previewBeforeAudio = currentBeforeAudio || currentProcessedAudio;
+    const previewAfterAudio = currentAfterAudio || currentProcessedAudio;
+
+    if (previewBeforeAudio || previewAfterAudio) {
+        const beforeName = previewBeforeAudio || "Not Available";
+        const afterName = previewAfterAudio || "Not Available";
+        const beforeSrc = previewBeforeAudio ? `/audio/${encodeURIComponent(previewBeforeAudio)}` : "";
+        const afterSrc = previewAfterAudio ? `/audio/${encodeURIComponent(previewAfterAudio)}` : "";
+
         const audioRow = document.createElement("div");
         audioRow.className = "message-row transcription";
         audioRow.innerHTML = `
             <div class="avatar" style="background:#ef4444">♫</div>
             <div class="content audio-preview-content" style="border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.12);">
                 <span style="font-size:10px; font-weight:900; color:#ef4444; text-transform:uppercase;">AUDIO PREVIEW</span><br>
-                <audio controls preload="metadata" style="width:100%; margin-top:8px;">
-                    <source src="/audio/${encodeURIComponent(currentProcessedAudio)}" type="audio/wav">
-                    Your browser does not support audio playback.
-                </audio>
-                <span style="display:block; font-size:10px; color:var(--muted); margin-top:5px; font-weight:600;">${currentProcessedAudio}</span>
+                <div class="audio-compare-grid">
+                    <div class="audio-compare-item">
+                        <span class="audio-compare-label">Before</span>
+                        ${beforeSrc ? `
+                            <audio controls preload="metadata" style="width:100%; margin-top:8px;">
+                                <source src="${beforeSrc}">
+                                Your browser does not support audio playback.
+                            </audio>
+                        ` : `<div class="audio-compare-empty">Not available</div>`}
+                        <span class="audio-compare-name">${escapeHTMLText(beforeName)}</span>
+                    </div>
+                    <div class="audio-compare-item">
+                        <span class="audio-compare-label">After (Demucs)</span>
+                        ${afterSrc ? `
+                            <audio controls preload="metadata" style="width:100%; margin-top:8px;">
+                                <source src="${afterSrc}">
+                                Your browser does not support audio playback.
+                            </audio>
+                        ` : `<div class="audio-compare-empty">Not available</div>`}
+                        <span class="audio-compare-name">${escapeHTMLText(afterName)}</span>
+                    </div>
+                </div>
             </div>
         `;
         chat.appendChild(audioRow);
@@ -650,17 +820,19 @@ async function renderChatDelayed() {
     const groupedTranscript = [];
     let currentGroup = null;
 
-    transcriptData.forEach(seg => {
+    transcriptData.forEach((seg, segIndex) => {
         if (currentGroup && currentGroup.speaker === seg.speaker) {
             currentGroup.texts.push(seg.text);
             currentGroup.end = seg.end;
+            currentGroup.segmentIndices.push(segIndex);
         } else {
             if (currentGroup) groupedTranscript.push(currentGroup);
             currentGroup = {
                 speaker: seg.speaker,
                 texts: [seg.text],
                 start: seg.start,
-                end: seg.end
+                end: seg.end,
+                segmentIndices: [segIndex]
             };
         }
     });
@@ -678,7 +850,7 @@ async function renderChatDelayed() {
             ? group.texts.map(t => `• ${t}`).join('<br>') 
             : group.texts[0];
 
-        row.innerHTML = `<div class="avatar" style="background: ${colorSet.main}">${group.speaker[0]}</div><div class="content" style="border-left: 4px solid ${colorSet.main}; background: ${colorSet.glow}"><div class="copy-transcript-icon" onclick="copyTranscriptByIndex(${i})" title="Copy Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></div><span style="font-size:10px; font-weight:900; color:${colorSet.main}; text-transform:uppercase;">${group.speaker}</span><br>${combinedText}<span style="display:block; font-size:10px; color:var(--muted); margin-top:5px; font-weight:600;">${ts}</span></div>`;
+        row.innerHTML = `<div class="avatar" style="background: ${colorSet.main}">${group.speaker[0]}</div><div class="content" style="border-left: 4px solid ${colorSet.main}; background: ${colorSet.glow}"><div class="translate-transcript-icon" onclick="translateTranscriptByIndex(${i})" title="Translate Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8h14"></path><path d="M5 12h8"></path><path d="M13 19l4-8 4 8"></path><path d="M14.5 16h5"></path></svg></div><div class="copy-transcript-icon" onclick="copyTranscriptByIndex(${i})" title="Copy Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></div><span style="font-size:10px; font-weight:900; color:${colorSet.main}; text-transform:uppercase;">${group.speaker}</span><br>${combinedText}<span style="display:block; font-size:10px; color:var(--muted); margin-top:5px; font-weight:600;">${ts}</span></div>`;
         chat.appendChild(row);
     }
     chat.scrollTop = chat.scrollHeight;
@@ -744,24 +916,26 @@ function setupRenameSidebar() {
     updateTranscriptDependentUI();
 }
 
-function applyNames() {
+async function applyNames() {
     let nameMap = {};
     let newSpeakerColors = {};
     uniqueSpeakers.forEach(s => {
-        const val = document.getElementById("name_" + s).value.trim();
+        const inputEl = document.getElementById("name_" + s);
+        const val = inputEl ? inputEl.value.trim() : "";
         const final = val || s;
         nameMap[s] = final;
         newSpeakerColors[final] = speakerColors[s];
         speakerNameMap[s] = final;
     });
     transcriptData = transcriptData.map(seg => ({ ...seg, speaker: nameMap[seg.speaker] }));
+    sourceTranscriptData = sourceTranscriptData.map(seg => ({ ...seg, speaker: nameMap[seg.speaker] }));
     speakerColors = newSpeakerColors;
     uniqueSpeakers = new Set(Object.values(nameMap));
-    
-    renderChatDelayed();
-    setupRenameSidebar();
+
     currentSummary = "";
-    persistSessionTranscript();
+    setSourceSummary("");
+    await applySelectedLanguageToAllTexts(false);
+    await persistSessionTranscript();
 }
 
 async function persistSessionTranscript() {
@@ -827,6 +1001,143 @@ function copyTranscriptByIndex(index) {
     alert("Transcript copied to clipboard!");
 }
 
+function requestTargetLanguage() {
+    if (!translationTargetSelect) return null;
+    const selected = (translationTargetSelect.value || "").trim();
+    if (!selected) {
+        alert("Select a translation language from the dropdown in the top bar.");
+        return null;
+    }
+    return selected;
+}
+
+async function translateViaAPI(payload) {
+    const response = await fetch("/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || "Translation failed");
+    }
+    return result;
+}
+
+async function applySelectedLanguageToAllTexts(showErrors = true) {
+    const token = ++translationRequestToken;
+    const targetLang = translationTargetSelect ? (translationTargetSelect.value || "").trim() : "";
+
+    if (!targetLang) {
+        transcriptData = cloneTranscriptSegments(sourceTranscriptData);
+        currentSummary = sourceSummary || "";
+        currentDocumentText = sourceDocumentText || "";
+        await renderCurrentContent();
+        return;
+    }
+
+    const hasTranscript = Array.isArray(sourceTranscriptData) && sourceTranscriptData.length > 0;
+    const hasSummary = Boolean((sourceSummary || "").trim());
+    const hasDocument = Boolean((sourceDocumentText || "").trim());
+    if (!hasTranscript && !hasSummary && !hasDocument) {
+        return;
+    }
+
+    document.getElementById("loadingOverlay").style.display = "flex";
+    try {
+        const jobs = [];
+        if (hasTranscript) {
+            jobs.push(
+                translateViaAPI({
+                    texts: sourceTranscriptData.map((seg) => seg.text || ""),
+                    target_lang: targetLang
+                }).then((result) => ({ type: "transcript", result }))
+            );
+        }
+        if (hasSummary) {
+            jobs.push(
+                translateViaAPI({
+                    text: sourceSummary,
+                    target_lang: targetLang
+                }).then((result) => ({ type: "summary", result }))
+            );
+        }
+        if (hasDocument) {
+            jobs.push(
+                translateViaAPI({
+                    text: sourceDocumentText,
+                    target_lang: targetLang
+                }).then((result) => ({ type: "document", result }))
+            );
+        }
+
+        const translated = await Promise.all(jobs);
+        if (token !== translationRequestToken) return;
+
+        transcriptData = cloneTranscriptSegments(sourceTranscriptData);
+        currentSummary = sourceSummary || "";
+        currentDocumentText = sourceDocumentText || "";
+
+        translated.forEach((item) => {
+            if (item.type === "transcript") {
+                const texts = Array.isArray(item.result && item.result.texts) ? item.result.texts : [];
+                transcriptData = transcriptData.map((seg, idx) => ({
+                    ...seg,
+                    text: String(texts[idx] || seg.text || "")
+                }));
+            } else if (item.type === "summary") {
+                currentSummary = String((item.result && item.result.text) || currentSummary || "");
+            } else if (item.type === "document") {
+                currentDocumentText = String((item.result && item.result.text) || currentDocumentText || "");
+            }
+        });
+
+        await renderCurrentContent();
+    } catch (e) {
+        if (token !== translationRequestToken) return;
+        if (showErrors) {
+            alert(e.message || "Automatic translation failed.");
+        }
+    } finally {
+        if (token === translationRequestToken) {
+            document.getElementById("loadingOverlay").style.display = "none";
+        }
+    }
+}
+
+async function translateTranscriptByIndex(index) {
+    const group = groupedTranscriptCache[index];
+    if (!group || !Array.isArray(group.texts) || group.texts.length === 0) return;
+
+    const targetLang = requestTargetLanguage();
+    if (!targetLang) return;
+
+    try {
+        const result = await translateViaAPI({
+            texts: group.texts,
+            target_lang: targetLang
+        });
+        const translated = Array.isArray(result.texts) ? result.texts : [];
+        if (translated.length !== group.texts.length) {
+            throw new Error("Incomplete translation response");
+        }
+
+        group.segmentIndices.forEach((segIdx, i) => {
+            if (typeof segIdx === "number" && transcriptData[segIdx]) {
+                transcriptData[segIdx].text = translated[i] || transcriptData[segIdx].text;
+            }
+            if (typeof segIdx === "number" && sourceTranscriptData[segIdx]) {
+                sourceTranscriptData[segIdx].text = translated[i] || sourceTranscriptData[segIdx].text;
+            }
+        });
+
+        await renderChatDelayed();
+        await persistSessionTranscript();
+    } catch (e) {
+        alert(e.message || "Transcript translation failed.");
+    }
+}
+
 function getResolvedSummaryText(summaryText) {
     let updatedSummary = summaryText || "";
     const sortedEntries = Object.entries(speakerNameMap).sort((a, b) => b[0].length - a[0].length);
@@ -875,6 +1186,14 @@ function renderSummaryCard(summaryText, targetCard = null) {
     const formatted = formattedLines.join("<br>");
 
     const summaryMarkup = `
+        <div class="translate-sum-icon" onclick="translateSummary()" title="Translate Summary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 8h14"></path>
+                <path d="M5 12h8"></path>
+                <path d="M13 19l4-8 4 8"></path>
+                <path d="M14.5 16h5"></path>
+            </svg>
+        </div>
         <div class="copy-sum-icon" onclick="copySummary()" title="Copy Summary"
             style="position:absolute;top:10px;right:10px;cursor:pointer;opacity:0.7">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -974,7 +1293,19 @@ async function showSummary() {
             throw new Error(result.error || "Summary generation failed");
         }
 
-        currentSummary = result.summary || "";
+        const freshSummary = result.summary || "";
+        setSourceSummary(freshSummary);
+
+        const selectedTargetLang = translationTargetSelect ? (translationTargetSelect.value || "").trim() : "";
+        if (selectedTargetLang && freshSummary.trim()) {
+            const translatedSummary = await translateViaAPI({
+                text: freshSummary,
+                target_lang: selectedTargetLang
+            });
+            currentSummary = translatedSummary.text || freshSummary;
+        } else {
+            currentSummary = freshSummary;
+        }
         renderSummaryCard(currentSummary, pendingCard);
         await refreshHistory();
     } catch (e) {
@@ -988,6 +1319,7 @@ async function showSummary() {
 }
 
 refreshHistory();
+initTranslationLanguageDropdown();
 initDropZone();
 updateTranscriptDependentUI();
 setUploadHeroVisible(true);
@@ -996,6 +1328,31 @@ function copySummary() {
     const text = document.getElementById("sumCard").innerText;
     navigator.clipboard.writeText(text);
     alert("Summary copied to clipboard!");
+}
+
+async function translateSummary() {
+    const baseSummary = sourceSummary || currentSummary;
+    if (!baseSummary || !baseSummary.trim()) return;
+
+    const targetLang = requestTargetLanguage();
+    if (!targetLang) return;
+
+    try {
+        const result = await translateViaAPI({
+            text: baseSummary,
+            target_lang: targetLang
+        });
+        currentSummary = result.text || baseSummary;
+        const sumCard = document.getElementById("sumCard");
+        if (sumCard) {
+            renderSummaryCard(currentSummary, sumCard);
+        } else {
+            renderSummaryCard(currentSummary);
+        }
+        await persistSessionTranscript();
+    } catch (e) {
+        alert(e.message || "Summary translation failed.");
+    }
 }
 
 // function exportData(format) {

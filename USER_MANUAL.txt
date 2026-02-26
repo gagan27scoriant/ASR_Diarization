@@ -1,0 +1,137 @@
+ASR STUDIO - USER MANUAL
+========================
+
+1) OPEN THE APP
+---------------
+1. Start backend:
+   python main.py
+2. Open browser:
+   http://127.0.0.1:5000
+
+
+2) START A NEW SESSION
+----------------------
+You can begin in one of two ways:
+- Upload a file from the drop zone / Browse File.
+- Start live meeting transcription using "Start live Meeting".
+
+Supported media:
+- Audio: .wav, .mp3, .aac, .aiff, .wma, .amr, .opus
+- Video: .mp4, .mkv, .avi, .mov, .wmv, .mpeg, .3gp
+- Documents: .pdf, .docx, .txt
+
+
+3) PROCESS AUDIO/VIDEO
+----------------------
+1. Upload audio/video.
+2. Wait for processing (loader shown on screen).
+3. App automatically runs:
+   - conversion to WAV if needed
+   - optional Demucs enhancement
+   - transcription
+   - speaker diarization
+   - speaker mapping
+4. Transcript appears in chat with speaker labels and timestamps.
+5. Audio/video preview cards appear when available.
+
+
+4) LIVE MEETING MODE
+--------------------
+Buttons:
+- Start live Meeting: starts microphone capture
+- Pause: pauses stream
+- Stop: stops stream
+
+What happens:
+- Audio is captured in short chunks.
+- Each chunk is sent to backend and transcribed.
+- Live text appears in the "Live Transcription" card.
+
+
+5) RENAME SPEAKERS
+------------------
+1. Expand sidebar if needed.
+2. Enter speaker names in "Speaker Mapping" input fields.
+3. Click "Finalize Names".
+4. Transcript updates with your custom names.
+
+
+6) SUMMARIZE
+------------
+1. Click "Summarize".
+2. Enter:
+   - Meeting Title
+   - Meeting Date
+   - Meeting Place
+3. Summary appears in a summary card.
+
+Notes:
+- Summary format is structured as meeting minutes.
+- Summary can be copied using the copy icon.
+
+
+7) TRANSLATE CONTENT
+--------------------
+1. Select target language from top dropdown.
+2. App automatically translates:
+   - full transcript
+   - summary
+   - document text preview
+3. Change language again to re-translate from source text.
+4. Clear selection (default option) to restore original source text.
+
+Manual controls:
+- Translate icon on each transcript block: translates only that block.
+- Translate icon on summary card: translates summary only.
+
+
+8) DOCUMENT MODE
+----------------
+1. Upload .pdf / .docx / .txt
+2. Enter meeting details when prompted.
+3. App extracts text and generates summary.
+4. Preview appears:
+   - PDF via iframe preview
+   - DOCX/TXT via text preview
+
+
+9) HISTORY
+----------
+Sidebar "History" provides:
+- open existing session
+- rename session
+- delete session
+
+History stores:
+- transcript
+- summary
+- processed file metadata
+
+
+10) EXPORT
+----------
+- Export Transcript: downloads transcript as .doc
+- Export Summary: downloads summary as .doc
+
+
+11) COMMON ISSUES
+-----------------
+Issue: "NLLB model not found offline"
+Fix:
+- Set NLLB_MODEL_PATH to local model folder
+- Ensure folder includes config/tokenizer/model weights
+
+Issue: Diarization model not loading
+Fix:
+- Set HUGGINGFACE_TOKEN with a valid token
+
+Issue: Summary not generated with Ollama backend
+Fix:
+- Ensure Ollama service is running
+- Verify OLLAMA_URL and SUMMARY_MODEL
+
+Issue: Live transcription not working
+Fix:
+- Allow microphone access in browser
+- Check browser supports MediaRecorder
+

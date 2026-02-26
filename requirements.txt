@@ -1,12 +1,22 @@
-torch>=2.0.0
-torchaudio>=2.0.0
-torchvision>=0.15.0
-openai-whisper>=20231117
-faster-whisper>=1.2.1
-pyannote.audio>=3.0.0
-ffmpeg-python>=0.2.0
-flask>=3.0.0
-requests>=2.31.0
-pypdf>=4.0.0
-python-docx>=1.1.0
-moviepy>=2.0.0
+# Web API
+flask>=3.0.0,<4.0.0
+werkzeug>=3.0.0,<4.0.0
+requests>=2.31.0,<3.0.0
+
+# Audio / video processing
+ffmpeg-python>=0.2.0,<1.0.0
+moviepy>=2.0.0,<3.0.0
+
+# Document extraction
+pypdf>=4.0.0,<6.0.0
+python-docx>=1.1.0,<2.0.0
+
+# ASR / diarization / translation stack
+torch>=2.0.0,<3.0.0
+torchaudio>=2.0.0,<3.0.0
+torchvision>=0.15.0,<1.0.0
+faster-whisper>=1.2.1,<2.0.0
+pyannote.audio>=3.0.0,<4.0.0
+demucs>=4.0.1,<5.0.0
+transformers>=4.41.0,<5.0.0
+sentencepiece>=0.2.0,<1.0.0

@@ -1,0 +1,67 @@
+# Python cache and build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+build/
+dist/
+
+# Test/tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+
+# Virtual environments
+.venv/
+asr_venv/
+env/
+ENV/
+.python-version
+
+# Environment and secret files
+.env
+.env.*
+*.env
+!.env.example
+
+# IDE and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Runtime/generated app outputs
+outputs/
+recordings/
+demucs_outputs/
+
+# Local models and heavy ML artifacts
+nllb_model/
+models/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# Large media files
+*.wav
+*.mp3
+*.aac
+*.aiff
+*.wma
+*.amr
+*.opus
+*.mp4
+*.mkv
+*.avi
+*.mov
+*.wmv
+*.mpeg
+*.3gp

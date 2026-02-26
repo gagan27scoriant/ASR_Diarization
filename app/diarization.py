@@ -1,31 +1,17 @@
 import os
 import torch
+import torchaudio
 from pyannote.audio import Pipeline
+
+PINNED_DIARIZATION_MODEL_ID = "pyannote/speaker-diarization-community-1"
 
 
 def load_diarization():
     token = os.getenv("HUGGINGFACE_TOKEN")
-    preferred_model = os.getenv("DIARIZATION_MODEL_ID", "pyannote/speaker-diarization-community-1").strip()
-    fallback_models = [
-        m.strip()
-        for m in os.getenv("DIARIZATION_FALLBACK_MODELS", "pyannote/speaker-diarization-3.1").split(",")
-        if m.strip()
-    ]
-
-    last_error = None
-    pipeline = None
-    for model_id in [preferred_model] + fallback_models:
-        try:
-            print(f"Loading diarization model: {model_id}")
-            pipeline = Pipeline.from_pretrained(model_id, token=token)
-            print(f"Diarization model loaded: {model_id}")
-            break
-        except Exception as e:
-            last_error = e
-            print(f"Failed loading diarization model '{model_id}': {e}")
-
-    if pipeline is None:
-        raise RuntimeError(f"Unable to load any diarization model: {last_error}")
+    model_id = PINNED_DIARIZATION_MODEL_ID
+    print(f"Loading diarization model: {model_id}")
+    pipeline = Pipeline.from_pretrained(model_id, token=token)
+    print(f"Diarization model loaded: {model_id}")
 
     if torch.cuda.is_available():
         pipeline.to(torch.device("cuda"))
@@ -42,7 +28,6 @@ def diarize(pipeline, audio_path):
     kwargs = {}
     if num_speakers and num_speakers.isdigit():
         kwargs["num_speakers"] = int(num_speakers)
-        return pipeline(audio_path, **kwargs)
 
     if min_speakers and min_speakers.isdigit():
         kwargs["min_speakers"] = int(min_speakers)
@@ -51,4 +36,13 @@ def diarize(pipeline, audio_path):
     if "min_speakers" in kwargs and "max_speakers" in kwargs and kwargs["min_speakers"] > kwargs["max_speakers"]:
         kwargs["min_speakers"], kwargs["max_speakers"] = kwargs["max_speakers"], kwargs["min_speakers"]
 
-    return pipeline(audio_path, **kwargs)
+    preload_audio = os.getenv("DIARIZATION_PRELOAD_AUDIO", "1").strip().lower() in {"1", "true", "yes", "on"}
+    if not preload_audio:
+        return pipeline(audio_path, **kwargs)
+
+    try:
+        waveform, sample_rate = torchaudio.load(audio_path)
+        return pipeline({"waveform": waveform, "sample_rate": sample_rate}, **kwargs)
+    except Exception as e:
+        print(f"⚠️ Preloaded diarization input failed, falling back to file path: {e}")
+        return pipeline(audio_path, **kwargs)
