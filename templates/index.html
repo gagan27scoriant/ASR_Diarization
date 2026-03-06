@@ -33,7 +33,10 @@
         <h1>Export Options</h1>
         <button class="sidebar-btn btn-export hidden" id="exportTranscriptBtn" onclick="exportTranscript()">Export Transcript</button>
         <button class="sidebar-btn btn-export hidden" id="exportSummaryBtn" onclick="exportSummary()">Export Summary</button>
-        <h1>History</h1>
+        <div class="history-header">
+            <h1>History</h1>
+            <button class="history-clear-btn" type="button" onclick="clearAllHistory()">Clear History</button>
+        </div>
         <div id="historyList" class="history-list">
             <div class="history-empty">No history yet</div>
         </div>

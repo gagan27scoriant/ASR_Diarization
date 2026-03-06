@@ -28,6 +28,9 @@ let recordChunkIndex = 0;
 let liveChunkQueue = Promise.resolve();
 let liveTranscriptLinesEl = null;
 let liveTranscriptStatusEl = null;
+let recordedChunks = [];
+let recordingMimeType = "audio/webm";
+let liveListeningCardEl = null;
 
 const TRANSLATION_LANGUAGE_GROUPS = {
     indian: [
@@ -302,6 +305,35 @@ function appendLiveTranscript(text) {
     chat.scrollTop = chat.scrollHeight;
 }
 
+function renderListeningPromptCard() {
+    if (liveListeningCardEl && liveListeningCardEl.isConnected) {
+        return liveListeningCardEl;
+    }
+    const chat = document.getElementById("chat");
+    const row = document.createElement("div");
+    row.className = "message-row transcription";
+    row.innerHTML = `
+        <div class="avatar" style="background:#ef4444">REC</div>
+        <div class="content summary-card" style="position:relative;">
+            <div class="summary-loading">
+                <span class="summary-spinner" aria-hidden="true"></span>
+                <span class="summary-loading-text">Listening...</span>
+            </div>
+        </div>
+    `;
+    chat.appendChild(row);
+    chat.scrollTop = chat.scrollHeight;
+    liveListeningCardEl = row;
+    return row;
+}
+
+function clearListeningPromptCard() {
+    if (liveListeningCardEl && liveListeningCardEl.parentNode) {
+        liveListeningCardEl.parentNode.removeChild(liveListeningCardEl);
+    }
+    liveListeningCardEl = null;
+}
+
 function preferredRecorderMimeType() {
     const types = [
         "audio/webm;codecs=opus",
@@ -317,10 +349,19 @@ function preferredRecorderMimeType() {
     return "";
 }
 
+function extensionForMimeType(mimeType) {
+    const value = String(mimeType || "").toLowerCase();
+    if (value.includes("ogg")) return "ogg";
+    if (value.includes("mp4")) return "mp4";
+    if (value.includes("wav")) return "wav";
+    return "webm";
+}
+
 async function sendLiveChunk(blob, chunkIndex) {
     if (!blob || blob.size === 0) return;
     const formData = new FormData();
-    const filename = `chunk_${chunkIndex}.webm`;
+    const ext = extensionForMimeType(blob.type);
+    const filename = `chunk_${chunkIndex}.${ext}`;
     formData.append("audio_chunk", blob, filename);
     formData.append("chunk_index", String(chunkIndex));
 
@@ -334,6 +375,9 @@ async function sendLiveChunk(blob, chunkIndex) {
             throw new Error(result.error || "Live transcription failed");
         }
         appendLiveTranscript(result.text || "");
+        if (liveTranscriptStatusEl && !isRecordingPaused) {
+            liveTranscriptStatusEl.textContent = "Recording...";
+        }
     } catch (e) {
         if (liveTranscriptStatusEl) {
             liveTranscriptStatusEl.textContent = `Live transcription error: ${e.message || "unknown error"}`;
@@ -355,29 +399,27 @@ async function startRecording() {
         if (mimeType) options.mimeType = mimeType;
 
         mediaRecorder = new MediaRecorder(recordingStream, options);
+        recordingMimeType = mimeType || mediaRecorder.mimeType || "audio/webm";
+        recordedChunks = [];
         isRecording = true;
         isRecordingPaused = false;
         recordChunkIndex = 0;
         liveChunkQueue = Promise.resolve();
-        ensureLiveTranscriptCard();
-        if (liveTranscriptStatusEl) liveTranscriptStatusEl.textContent = "Recording...";
+        renderListeningPromptCard();
         setRecordingButtons(true, false);
 
         mediaRecorder.ondataavailable = (event) => {
             if (!event.data || event.data.size === 0) return;
-            const idx = recordChunkIndex++;
-            liveChunkQueue = liveChunkQueue.then(() => sendLiveChunk(event.data, idx));
+            recordedChunks.push(event.data);
+            recordChunkIndex += 1;
         };
 
         mediaRecorder.onerror = () => {
-            if (liveTranscriptStatusEl) liveTranscriptStatusEl.textContent = "Recorder error";
+            // Keep UI silent during live recording flow.
         };
 
         mediaRecorder.onstop = async () => {
-            await liveChunkQueue;
-            if (liveTranscriptStatusEl) {
-                liveTranscriptStatusEl.textContent = "Stopped";
-            }
+            clearListeningPromptCard();
             if (recordingStream) {
                 recordingStream.getTracks().forEach((t) => t.stop());
             }
@@ -386,13 +428,30 @@ async function startRecording() {
             isRecording = false;
             isRecordingPaused = false;
             setRecordingButtons(false, false);
+
+            const finalBlob = new Blob(recordedChunks, { type: recordingMimeType || "audio/webm" });
+            recordedChunks = [];
+            if (!finalBlob || finalBlob.size === 0) {
+                return;
+            }
+
+            const ext = extensionForMimeType(recordingMimeType);
+            const filename = `live_meeting_${new Date().toISOString().replace(/[:.]/g, "-")}.${ext}`;
+            const liveFile = new File([finalBlob], filename, {
+                type: recordingMimeType || "audio/webm",
+                lastModified: Date.now(),
+            });
+
+            await processSelectedFile(liveFile, true);
         };
 
-        mediaRecorder.start(2500);
+        mediaRecorder.start(1000);
     } catch (e) {
         alert(e.message || "Microphone permission denied.");
         isRecording = false;
         isRecordingPaused = false;
+        recordedChunks = [];
+        clearListeningPromptCard();
         setRecordingButtons(false, false);
     }
 }
@@ -402,12 +461,10 @@ function togglePauseRecording() {
     if (mediaRecorder.state === "recording") {
         mediaRecorder.pause();
         isRecordingPaused = true;
-        if (liveTranscriptStatusEl) liveTranscriptStatusEl.textContent = "Paused";
         setRecordingButtons(true, true);
     } else if (mediaRecorder.state === "paused") {
         mediaRecorder.resume();
         isRecordingPaused = false;
-        if (liveTranscriptStatusEl) liveTranscriptStatusEl.textContent = "Recording...";
         setRecordingButtons(true, false);
     }
 }
@@ -415,6 +472,11 @@ function togglePauseRecording() {
 function stopRecording() {
     if (!mediaRecorder || !isRecording) return;
     if (mediaRecorder.state !== "inactive") {
+        try {
+            mediaRecorder.requestData();
+        } catch (_e) {
+            // Ignore and proceed to stop.
+        }
         mediaRecorder.stop();
     }
 }
@@ -602,6 +664,44 @@ async function deleteHistorySession(sessionId) {
     }
 }
 
+async function clearAllHistory() {
+    if (!historyEntries || historyEntries.length === 0) return;
+    const ok = window.confirm("Clear all history entries?");
+    if (!ok) return;
+
+    const ids = historyEntries.map((x) => x.session_id).filter(Boolean);
+    for (const sessionId of ids) {
+        try {
+            await fetch(`/history/${encodeURIComponent(sessionId)}`, { method: "DELETE" });
+        } catch (_e) {
+            // Continue deleting remaining items.
+        }
+    }
+
+    currentSessionId = "";
+    transcriptData = [];
+    currentSummary = "";
+    currentProcessedAudio = "";
+    currentProcessedVideo = "";
+    currentBeforeAudio = "";
+    currentAfterAudio = "";
+    currentDocumentFilename = "";
+    currentDocumentType = "";
+    currentDocumentText = "";
+    setSourceTranscript([]);
+    setSourceSummary("");
+    setSourceDocumentText("");
+    groupedTranscriptCache = [];
+    uniqueSpeakers.clear();
+    speakerNameMap = {};
+    speakerOrderMap = {};
+    await renderChatDelayed();
+    setupRenameSidebar();
+    document.getElementById("sumBtn").style.display = "none";
+    updateTranscriptDependentUI();
+    await refreshHistory();
+}
+
 function formatTime(seconds) {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -621,7 +721,7 @@ function getSpeakerColor(idx) {
 
 function isAudioFile(name) {
     const ext = (name.split(".").pop() || "").toLowerCase();
-    return ["wav", "mp3", "aac", "aiff", "wma", "amr", "opus"].includes(ext);
+    return ["wav", "mp3", "aac", "aiff", "wma", "amr", "opus", "webm", "ogg", "m4a"].includes(ext);
 }
 
 function isVideoFile(name) {
@@ -634,14 +734,7 @@ function isDocumentFile(name) {
     return ["pdf", "docx", "txt"].includes(ext);
 }
 
-async function processAudio() {
-    if (isRecording) {
-        alert("Stop recording before processing another file.");
-        return;
-    }
-
-    const selectedFile = audioFileInput.files && audioFileInput.files.length > 0 ? audioFileInput.files[0] : null;
-
+async function processSelectedFile(selectedFile, silentMode = false) {
     if (!selectedFile) return;
     lastAudioFile = selectedFile.name;
     
@@ -726,11 +819,21 @@ async function processAudio() {
         await refreshHistory();
     } catch (e) { 
         document.getElementById("loadingOverlay").style.display = "none";
-        alert(e.message || "Connection failed."); 
-    } finally {
-        if (audioFileInput) {
-            audioFileInput.value = "";
+        if (!silentMode) {
+            alert(e.message || "Connection failed.");
         }
+    }
+}
+
+async function processAudio(silentMode = false) {
+    if (isRecording) {
+        alert("Stop recording before processing another file.");
+        return;
+    }
+    const selectedFile = audioFileInput.files && audioFileInput.files.length > 0 ? audioFileInput.files[0] : null;
+    await processSelectedFile(selectedFile, silentMode);
+    if (audioFileInput) {
+        audioFileInput.value = "";
     }
 }
 

@@ -8,7 +8,7 @@ DOCUMENT_FOLDER = "documents"
 RECORDINGS_FOLDER = "recordings"
 
 SUPPORTED_AUDIO_EXTENSIONS = {
-    ".wav", ".mp3", ".aac", ".aiff", ".wma", ".amr", ".opus"
+    ".wav", ".mp3", ".aac", ".aiff", ".wma", ".amr", ".opus", ".webm", ".ogg", ".m4a"
 }
 SUPPORTED_VIDEO_EXTENSIONS = {
     ".mp4", ".mkv", ".avi", ".mov", ".wmv", ".mpeg", ".3gp"
@@ -16,7 +16,7 @@ SUPPORTED_VIDEO_EXTENSIONS = {
 SUPPORTED_DOCUMENT_EXTENSIONS = {".pdf", ".docx", ".txt"}
 
 MEDIA_FORMAT_ERROR = (
-    "Unsupported media format. Audio: .wav, .mp3, .aac, .aiff, .wma, .amr, .opus | "
+    "Unsupported media format. Audio: .wav, .mp3, .aac, .aiff, .wma, .amr, .opus, .webm, .ogg, .m4a | "
     "Video: .mp4, .mkv, .avi, .mov, .wmv, .mpeg, .3gp"
 )
 DOCUMENT_FORMAT_ERROR = "Unsupported document format. Use: .pdf, .docx, .txt"

@@ -32,6 +32,19 @@ from app.media_utils import (
 from app.summarize import summarize_text
 
 
+def _is_skippable_live_chunk_error(details: str) -> bool:
+    msg = (details or "").lower()
+    patterns = (
+        "ebml header parsing failed",
+        "invalid data found when processing input",
+        "format matroska,webm detected only with low score",
+        "moov atom not found",
+        "error reading header",
+        "could not find codec parameters",
+    )
+    return any(p in msg for p in patterns)
+
+
 def resolve_uploaded_or_path_media(uploaded_file, payload) -> tuple[str, str]:
     if uploaded_file and uploaded_file.filename:
         filename = secure_filename(uploaded_file.filename.strip())
@@ -160,20 +173,28 @@ def transcribe_live_audio_chunk(uploaded_chunk, asr_model) -> str:
     wav_path = os.path.join(RECORDINGS_FOLDER, f"chunk_{chunk_id}.wav")
 
     uploaded_chunk.save(raw_path)
+    file_size = os.path.getsize(raw_path) if os.path.isfile(raw_path) else 0
+    if file_size < 512:
+        # Some browsers emit tiny/empty fragments while recorder is warming up.
+        print(f"⚠️ Skipping tiny live chunk ({file_size} bytes): {raw_path}")
+        return ""
 
     try:
-        (
-            ffmpeg
-            .input(raw_path)
-            .output(wav_path, acodec="pcm_s16le", ac=1, ar=16000)
-            .overwrite_output()
-            .run(capture_stdout=True, capture_stderr=True)
-        )
-    except ffmpeg.Error as e:
-        details = e.stderr.decode("utf-8", errors="ignore") if e.stderr else str(e)
-        raise RuntimeError(f"Chunk conversion failed: {details}")
+        try:
+            (
+                ffmpeg
+                .input(raw_path)
+                .output(wav_path, acodec="pcm_s16le", ac=1, ar=16000)
+                .overwrite_output()
+                .run(capture_stdout=True, capture_stderr=True)
+            )
+        except ffmpeg.Error as e:
+            details = e.stderr.decode("utf-8", errors="ignore") if e.stderr else str(e)
+            if _is_skippable_live_chunk_error(details):
+                print(f"⚠️ Skipping undecodable live chunk: {details[:220]}")
+                return ""
+            raise RuntimeError(f"Chunk conversion failed: {details}")
 
-    try:
         return transcribe_live_chunk(asr_model, wav_path)
     finally:
         try:
