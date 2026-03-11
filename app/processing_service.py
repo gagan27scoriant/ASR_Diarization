@@ -67,7 +67,7 @@ def resolve_uploaded_or_path_media(uploaded_file, payload) -> tuple[str, str]:
     return resolve_media_source(incoming_value)
 
 
-def process_media_pipeline(source_path: str, filename: str, asr_model, diarization_pipeline) -> dict:
+def process_media_pipeline(source_path: str, filename: str, asr_model, diarization_pipeline, owner: dict | None = None) -> dict:
     source_video = ""
     if is_supported_video(filename):
         source_path, source_video = ensure_video_in_workspace(source_path, filename)
@@ -150,6 +150,13 @@ def process_media_pipeline(source_path: str, filename: str, asr_model, diarizati
         "transcript": final_output,
         "summary": "",
     }
+    if owner:
+        payload["owner"] = {
+            "id": owner.get("id"),
+            "email": owner.get("email"),
+            "department": owner.get("department"),
+            "role": owner.get("role_name"),
+        }
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=4)
 
@@ -217,7 +224,7 @@ def summarize_and_persist(content: str, meeting_title: str, meeting_date: str, m
     return summary
 
 
-def process_document_upload(uploaded_file, meeting_title: str, meeting_date: str, meeting_place: str) -> dict:
+def process_document_upload(uploaded_file, meeting_title: str, meeting_date: str, meeting_place: str, owner: dict | None = None) -> dict:
     filename = secure_filename(uploaded_file.filename.strip())
     if not filename:
         raise ValueError("Invalid document filename")
@@ -232,9 +239,17 @@ def process_document_upload(uploaded_file, meeting_title: str, meeting_date: str
         raise ValueError("No readable text found in document")
 
     summary = summarize_text(extracted_text, meeting_title, meeting_date, meeting_place)
-    return {
+    result = {
         "summary": summary,
         "document_filename": filename,
         "document_type": os.path.splitext(filename.lower())[1].lstrip("."),
         "document_text": extracted_text,
     }
+    if owner:
+        result["owner"] = {
+            "id": owner.get("id"),
+            "email": owner.get("email"),
+            "department": owner.get("department"),
+            "role": owner.get("role_name"),
+        }
+    return result

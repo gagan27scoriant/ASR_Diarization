@@ -35,7 +35,7 @@
         <button class="sidebar-btn btn-export hidden" id="exportSummaryBtn" onclick="exportSummary()">Export Summary</button>
         <div class="history-header">
             <h1>History</h1>
-            <button class="history-clear-btn" type="button" onclick="clearAllHistory()">Clear History</button>
+            <button class="history-clear-btn" id="clearHistoryBtn" type="button" onclick="clearAllHistory()">Clear History</button>
         </div>
         <div id="historyList" class="history-list">
             <div class="history-empty">No history yet</div>
@@ -53,6 +53,10 @@
             <button class="nav-btn hidden" id="stopBtn" onclick="stopRecording()">Stop</button>
             <button class="nav-btn sum-nav-btn" id="sumBtn" onclick="showSummary()">✨ Summarize</button>
             <button class="nav-btn new-chat-btn" onclick="location.reload()">New Session</button>
+            <button class="nav-btn admin-btn" id="adminBtn" onclick="showAdminPanel()">Admin</button>
+            <form method="post" action="/logout" style="margin:0;">
+                <button class="nav-btn" type="submit">Logout</button>
+            </form>
         </div>
     </div>
     <div id="chat">
@@ -71,7 +75,7 @@
         <div class="content">Upload a recording or start a meeting to generate transcripts and summaries.</div>
       </div>
     </div>
-    <input type="file" id="audioFile" accept=".wav,.mp3,.aac,.aiff,.wma,.amr,.opus,.mp4,.mkv,.avi,.mov,.wmv,.mpeg,.3gp,.pdf,.docx,.txt" hidden>
+    <input type="file" id="audioFile" accept=".wav,.mp3,.aac,.aiff,.wma,.amr,.opus,.webm,.ogg,.m4a,.mp4,.mkv,.avi,.mov,.wmv,.mpeg,.3gp,.pdf,.docx,.txt" hidden>
 </div>
 
 <script src="{{ url_for('static', filename='js/index.js') }}"></script>

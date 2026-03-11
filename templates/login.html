@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASR Studio | Login</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+</head>
+<body class="login-body">
+<div class="login-shell">
+    <div class="login-card">
+        <div class="login-left">
+            <div class="login-brand">
+                <div class="login-logo">ASR</div>
+                <div>
+                    <div class="login-title">WELCOME</div>
+                    <div class="login-subtitle">ASR Studio</div>
+                </div>
+            </div>
+            <div class="login-copy">
+                Secure access to transcription, diarization, and summaries.
+                Sign in to continue.
+            </div>
+            <div class="login-bubbles">
+                <span class="bubble b1"></span>
+                <span class="bubble b2"></span>
+                <span class="bubble b3"></span>
+            </div>
+        </div>
+        <div class="login-right">
+            <div class="login-heading">Sign in</div>
+            <div class="login-caption">Use your organization credentials</div>
+            <form method="post" action="/login" class="login-form">
+                <label class="login-label">Email</label>
+                <input name="email" class="login-input" placeholder="name@company.com" required>
+                <label class="login-label">Password</label>
+                <input name="password" type="password" class="login-input" placeholder="********" required>
+                <button type="submit" class="login-submit">Sign in</button>
+                {% if error %}
+                <div class="login-error">{{ error }}</div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

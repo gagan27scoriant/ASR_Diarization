@@ -1,12 +1,20 @@
 import os
+import warnings
+
 import torch
 import torchaudio
-from pyannote.audio import Pipeline
 
 PINNED_DIARIZATION_MODEL_ID = "pyannote/speaker-diarization-community-1"
 
 
 def load_diarization():
+    warnings.filterwarnings(
+        "ignore",
+        message=r"(?s).*torchcodec is not installed correctly.*",
+        category=UserWarning,
+    )
+    from pyannote.audio import Pipeline
+
     token = os.getenv("HUGGINGFACE_TOKEN")
     model_id = PINNED_DIARIZATION_MODEL_ID
     print(f"Loading diarization model: {model_id}")

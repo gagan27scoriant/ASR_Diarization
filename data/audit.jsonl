@@ -1,0 +1,29 @@
+{"ts": "2026-03-11T07:06:50.387415+00:00", "username": "superuser", "role": "superuser", "department": "", "action": "history:read", "metadata": {}}
+{"ts": "2026-03-11T07:06:57.492797+00:00", "username": "superuser", "role": "superuser", "department": "", "action": "auth:logout", "metadata": {}}
+{"ts": "2026-03-11T07:07:09.814532+00:00", "username": "user", "role": "user", "department": "general", "action": "auth:login", "metadata": {}}
+{"ts": "2026-03-11T07:07:09.835716+00:00", "username": "user", "role": "user", "department": "general", "action": "history:read", "metadata": {}}
+{"ts": "2026-03-11T07:07:11.685062+00:00", "username": "user", "role": "user", "department": "general", "action": "auth:logout", "metadata": {}}
+{"ts": "2026-03-11T07:07:19.915757+00:00", "username": "admin", "role": "admin", "department": "general", "action": "auth:login", "metadata": {}}
+{"ts": "2026-03-11T07:07:19.936431+00:00", "username": "admin", "role": "admin", "department": "general", "action": "history:read", "metadata": {}}
+{"ts": "2026-03-11T07:12:49.332630+00:00", "username": "admin", "role": "admin", "department": "general", "action": "history:read", "metadata": {}}
+{"ts": "2026-03-11T07:13:07.217217+00:00", "username": "admin", "role": "admin", "department": "general", "action": "auth:logout", "metadata": {}}
+{"ts": "2026-03-11T07:13:26.548363+00:00", "username": "user", "role": "user", "department": "general", "action": "auth:login", "metadata": {}}
+{"ts": "2026-03-11T07:13:26.572047+00:00", "username": "user", "role": "user", "department": "general", "action": "history:read", "metadata": {}}
+{"ts": "2026-03-11T07:13:32.278419+00:00", "username": "user", "role": "user", "department": "general", "action": "auth:logout", "metadata": {}}
+{"ts": "2026-03-11T07:14:04.117966+00:00", "username": "admin", "role": "admin", "department": "general", "action": "auth:login", "metadata": {}}
+{"ts": "2026-03-11T07:14:04.139481+00:00", "username": "admin", "role": "admin", "department": "general", "action": "history:read", "metadata": {}}
+{"ts": "2026-03-11T07:29:02.993761+00:00", "username": "admin", "role": "admin", "department": "general", "action": "auth:logout", "metadata": {}}
+{"ts": "2026-03-11T07:31:32.538721+00:00", "username": "admin", "role": "admin", "department": "general", "action": "auth:login", "metadata": {}}
+{"ts": "2026-03-11T07:31:32.562782+00:00", "username": "admin", "role": "admin", "department": "general", "action": "history:read", "metadata": {}}
+{"ts": "2026-03-11T07:35:36.824564+00:00", "username": "admin", "role": "admin", "department": "general", "action": "auth:logout", "metadata": {}}
+{"ts": "2026-03-11T07:35:55.318929+00:00", "username": "admin", "role": "admin", "department": "general", "action": "auth:login", "metadata": {}}
+{"ts": "2026-03-11T07:35:55.339672+00:00", "username": "admin", "role": "admin", "department": "general", "action": "history:read", "metadata": {}}
+{"ts": "2026-03-11T07:36:49.361743+00:00", "username": "admin", "role": "admin", "department": "general", "action": "user:create", "metadata": {"target": "gagan", "role": "user", "department": "general"}}
+{"ts": "2026-03-11T07:36:52.028580+00:00", "username": "admin", "role": "admin", "department": "general", "action": "auth:logout", "metadata": {}}
+{"ts": "2026-03-11T07:36:59.823939+00:00", "username": "gagan", "role": "user", "department": "general", "action": "auth:login", "metadata": {}}
+{"ts": "2026-03-11T07:36:59.848718+00:00", "username": "gagan", "role": "user", "department": "general", "action": "history:read", "metadata": {}}
+{"ts": "2026-03-11T07:37:12.472854+00:00", "username": "gagan", "role": "user", "department": "general", "action": "auth:logout", "metadata": {}}
+{"ts": "2026-03-11T07:37:19.076448+00:00", "username": "admin", "role": "admin", "department": "general", "action": "auth:login", "metadata": {}}
+{"ts": "2026-03-11T07:37:19.096503+00:00", "username": "admin", "role": "admin", "department": "general", "action": "history:read", "metadata": {}}
+{"ts": "2026-03-11T07:37:31.628755+00:00", "username": "admin", "role": "admin", "department": "general", "action": "process:media", "metadata": {"filename": "live_meeting_2026-03-11T07-37-28-811Z.webm", "session_id": "live_meeting_2026-03-11T07-37-28-811Z_demucs_20260311_130731"}}
+{"ts": "2026-03-11T07:37:31.636663+00:00", "username": "admin", "role": "admin", "department": "general", "action": "history:read", "metadata": {}}

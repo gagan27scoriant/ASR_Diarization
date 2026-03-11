@@ -38,15 +38,20 @@ def history_entry_from_file(json_path: str) -> dict | None:
         "segments": len(transcript),
         "has_summary": bool(str(summary).strip()),
         "updated_at": updated_at,
+        "owner": data.get("owner") or {},
     }
 
 
-def list_history_entries() -> list[dict]:
+def list_history_entries(owner: dict | None = None) -> list[dict]:
     entries = []
     for path in sorted(glob(os.path.join(OUTPUT_FOLDER, "*.json")), key=os.path.getmtime, reverse=True):
         entry = history_entry_from_file(path)
-        if entry:
-            entries.append(entry)
+        if not entry:
+            continue
+        if owner:
+            if entry.get("owner", {}).get("email") != owner.get("email"):
+                continue
+        entries.append(entry)
     return entries
 
 

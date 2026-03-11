@@ -1,0 +1,34 @@
+{
+  "superuser": {
+    "password_hash": "scrypt:32768:8:1$TRViJ10iKOLT0apg$c17626b4a0480e29a76f7a94b9949a4536eb8af5d88923f6262162ced3ae61aba89dd1f8d6f079d4b245cfb539699c5d1abb921b8f460b070d86512f8fbb35e8",
+    "role": "superuser",
+    "department": "general",
+    "created_by": "system",
+    "created_at": "",
+    "updated_at": null
+  },
+  "admin": {
+    "password_hash": "scrypt:32768:8:1$z7Cud3pkKdLkh3cN$c62bedeca107507248516b34cfc57dc73a08bdf8096ed2ee025d49d768aa69332d3f6eead9b317ae91a9fd3c708532caa6f7fe36f609ae10081a7c84314727b7",
+    "role": "admin",
+    "department": "general",
+    "created_by": "system",
+    "created_at": "",
+    "updated_at": null
+  },
+  "user": {
+    "password_hash": "scrypt:32768:8:1$L8sIcPR7meGZfyOI$5763b1de85149d4b0ceaf4fb574b0fd340482ac3b47d85ea2abd551a163b7c465ab4262c798072c9a7799f025faf9f87d3650fd47ce6ff4ba89f6f80b0c0e3e0",
+    "role": "user",
+    "department": "general",
+    "created_by": "system",
+    "created_at": "",
+    "updated_at": null
+  },
+  "gagan": {
+    "password_hash": "scrypt:32768:8:1$7hxnS4NHTY6BkkSg$cd6665a1cda231a5e21e1cbd8be1a07a5cbdcacd54e7f7e78fff37fe63eeac3a57d480f70678c7ccf1bd74d1f720c91a950632092e4a3e36de3d6c6b0a179658",
+    "role": "user",
+    "department": "general",
+    "created_by": "admin",
+    "created_at": "2026-03-11T07:36:49.361549+00:00",
+    "updated_at": null
+  }
+}

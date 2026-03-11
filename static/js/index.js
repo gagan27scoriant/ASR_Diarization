@@ -20,6 +20,8 @@ let speakerOrderMap = {};
 let isSummaryLoading = false;
 let groupedTranscriptCache = [];
 let historyEntries = [];
+let currentPolicy = null;
+let currentUser = null;
 let mediaRecorder = null;
 let recordingStream = null;
 let isRecording = false;
@@ -205,6 +207,13 @@ function setUploadHeroVisible(visible) {
     const hero = document.querySelector("#chat .upload-hero");
     if (!hero) return;
     hero.classList.toggle("hidden", !visible);
+}
+
+function clearChatRows() {
+    const chat = document.getElementById("chat");
+    if (!chat) return;
+    const old = chat.querySelectorAll(".transcription");
+    old.forEach(r => r.remove());
 }
 
 function updateTranscriptDependentUI() {
@@ -503,6 +512,9 @@ function renderHistoryList() {
         return;
     }
 
+    const canRename = currentPolicy ? (currentPolicy.permissions || []).includes("history:rename") : true;
+    const canDelete = currentPolicy ? (currentPolicy.permissions || []).includes("history:delete") : true;
+
     list.innerHTML = historyEntries.map((entry) => {
         const activeClass = entry.session_id === currentSessionId ? "active" : "";
         const title = truncateText(entry.title || entry.processed_file || entry.session_id);
@@ -514,8 +526,8 @@ function renderHistoryList() {
                     <span class="history-meta">${escapeHTMLText(meta)}</span>
                 </button>
                 <div class="history-actions">
-                    <button class="history-action-btn" onclick="renameHistorySession('${entry.session_id}')" title="Rename">✎</button>
-                    <button class="history-action-btn delete" onclick="deleteHistorySession('${entry.session_id}')" title="Delete">🗑</button>
+                    ${canRename ? `<button class="history-action-btn" onclick="renameHistorySession('${entry.session_id}')" title="Rename">✎</button>` : ""}
+                    ${canDelete ? `<button class="history-action-btn delete" onclick="deleteHistorySession('${entry.session_id}')" title="Delete">🗑</button>` : ""}
                 </div>
             </div>
         `;
@@ -536,6 +548,57 @@ async function refreshHistory() {
         if (list) {
             list.innerHTML = `<div class="history-empty">History unavailable</div>`;
         }
+    }
+}
+
+async function loadPolicy() {
+    try {
+        const response = await fetch("/me");
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || "Failed to load policy");
+        }
+        currentPolicy = result.policy || null;
+        currentUser = result.user || null;
+    } catch (_e) {
+        currentPolicy = null;
+        currentUser = null;
+    }
+
+    const perms = currentPolicy ? currentPolicy.permissions || [] : [];
+    const has = (p) => perms.includes(p);
+    const clearBtn = document.getElementById("clearHistoryBtn");
+    if (clearBtn) {
+        clearBtn.style.display = has("history:delete") ? "inline-flex" : "none";
+    }
+    const sumBtn = document.getElementById("sumBtn");
+    if (sumBtn) {
+        sumBtn.style.display = has("summary:generate") ? "flex" : "none";
+    }
+    const exportTranscriptBtn = document.getElementById("exportTranscriptBtn");
+    if (exportTranscriptBtn) {
+        exportTranscriptBtn.style.display = has("export:transcript") ? "flex" : "none";
+    }
+    const exportSummaryBtn = document.getElementById("exportSummaryBtn");
+    if (exportSummaryBtn) {
+        exportSummaryBtn.style.display = has("export:summary") ? "flex" : "none";
+    }
+    const adminBtn = document.getElementById("adminBtn");
+    if (adminBtn) {
+        const isSuper = currentUser && currentUser.role_name === "super_admin";
+        const isAdmin = currentUser && currentUser.role_name === "admin";
+        if (isSuper) {
+            adminBtn.textContent = "Create Admin/User";
+            adminBtn.style.display = "flex";
+        } else if (isAdmin) {
+            adminBtn.textContent = "Create Users";
+            adminBtn.style.display = "flex";
+        } else {
+            adminBtn.style.display = "none";
+        }
+    }
+    if (currentUser && currentUser.name) {
+        renderGreetingCard(currentUser.name);
     }
 }
 
@@ -1327,6 +1390,276 @@ function renderSummaryCard(summaryText, targetCard = null) {
     chat.scrollTop = chat.scrollHeight;
 }
 
+function renderGreetingCard(name) {
+    const chat = document.getElementById("chat");
+    if (!chat) return;
+    const row = document.createElement("div");
+    row.className = "message-row transcription";
+    row.innerHTML = `
+        <div class="avatar" style="background: #f59e0b">AI</div>
+        <div class="content">Hello ${escapeHTMLText(name || "there")}, welcome to the ASR Studio.</div>
+    `;
+    chat.insertBefore(row, chat.querySelector(".message-row"));
+}
+
+async function fetchAdminUsers() {
+    const response = await fetch("/api/users");
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || "Failed to load users");
+    }
+    return result.users || [];
+}
+
+async function fetchDepartments() {
+    const response = await fetch("/api/departments");
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || "Failed to load departments");
+    }
+    return result.departments || [];
+}
+
+async function createDepartment(name) {
+    const response = await fetch("/api/departments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || "Failed to create department");
+    }
+    return result;
+}
+async function fetchAuditEvents() {
+    const response = await fetch("/api/audit");
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || "Failed to load audit log");
+    }
+    return result.events || [];
+}
+
+async function createAdminUser(payload) {
+    const response = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || "Failed to create user");
+    }
+    return result;
+}
+
+async function updateAdminUser(username, payload) {
+    const response = await fetch(`/api/users/${encodeURIComponent(username)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || "Failed to update user");
+    }
+    return result;
+}
+
+async function deleteAdminUser(username) {
+    const response = await fetch(`/api/users/${encodeURIComponent(username)}`, {
+        method: "DELETE",
+    });
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || "Failed to delete user");
+    }
+}
+
+function formatAuditEvent(ev) {
+    const ts = new Date(ev.ts || "").toLocaleString();
+    const actor = ev.username || "unknown";
+    const action = ev.action || "event";
+    const dept = ev.department || "";
+    return `${ts} • ${actor} • ${action} ${dept ? "(" + dept + ")" : ""}`;
+}
+
+async function showAdminPanel() {
+    const chat = document.getElementById("chat");
+    if (!chat) return;
+    clearChatRows();
+    setUploadHeroVisible(false);
+    const row = document.createElement("div");
+    row.className = "message-row transcription";
+    const roleOptions = [];
+    if (currentUser && currentUser.role_name === "super_admin") {
+        roleOptions.push("<option value='admin'>admin</option>");
+    }
+    roleOptions.push("<option value='user'>user</option>");
+    const deptDefault = currentUser && currentUser.department ? currentUser.department : "general";
+    row.innerHTML = `
+        <div class="avatar" style="background:#111827">ADM</div>
+        <div class="content admin-panel" id="adminPanel">
+            <div class="admin-card">
+                <h3>User Management</h3>
+                <div class="admin-grid">
+                    <input class="admin-input" id="adminCreateName" placeholder="Full Name">
+                    <input class="admin-input" id="adminCreateEmail" placeholder="Email">
+                    <input class="admin-input" id="adminCreatePassword" placeholder="Password">
+                    <select class="admin-input" id="adminCreateRole">${roleOptions.join("")}</select>
+                    <select class="admin-input" id="adminCreateDept">
+                        <option value="${deptDefault}">${deptDefault}</option>
+                    </select>
+                </div>
+                <div class="admin-actions">
+                    <button class="admin-btn" onclick="handleCreateUser()">Create User</button>
+                </div>
+                <div class="admin-note">Admins can create users in their department. Superusers can create admins and users for any department.</div>
+            </div>
+            <div class="admin-card" id="departmentPanel" style="display:none;">
+                <h3>Departments</h3>
+                <div class="admin-grid">
+                    <input class="admin-input" id="adminCreateDepartment" placeholder="New Department">
+                </div>
+                <div class="admin-actions">
+                    <button class="admin-btn" onclick="handleCreateDepartment()">Add Department</button>
+                </div>
+            </div>
+            <div class="admin-card">
+                <h3>Users</h3>
+                <div class="admin-table" id="adminUsersTable"></div>
+            </div>
+            <div class="admin-card">
+                <h3>Audit Log</h3>
+                <div class="admin-table" id="adminAuditTable"></div>
+            </div>
+        </div>
+    `;
+    chat.appendChild(row);
+    chat.scrollTop = chat.scrollHeight;
+    await refreshAdminPanel();
+}
+
+async function refreshAdminPanel() {
+    const usersTable = document.getElementById("adminUsersTable");
+    const auditTable = document.getElementById("adminAuditTable");
+    if (!usersTable || !auditTable) return;
+
+    usersTable.innerHTML = "Loading...";
+    auditTable.innerHTML = "Loading...";
+    try {
+        const [users, events, departments] = await Promise.all([fetchAdminUsers(), fetchAuditEvents(), fetchDepartments()]);
+        usersTable.innerHTML = users.length ? "" : "<div class='admin-note'>No users found.</div>";
+        const deptSelect = document.getElementById("adminCreateDept");
+        if (deptSelect) {
+            const depOptions = (departments && departments.length ? departments : ["general"])
+                .map((d) => `<option value="${escapeHTMLText(d)}">${escapeHTMLText(d)}</option>`)
+                .join("");
+            deptSelect.innerHTML = depOptions;
+            if (currentUser && currentUser.role_name !== "super_admin") {
+                deptSelect.value = currentUser.department || "general";
+                deptSelect.disabled = true;
+            } else {
+                deptSelect.disabled = false;
+            }
+        }
+        const departmentPanel = document.getElementById("departmentPanel");
+        if (departmentPanel) {
+            departmentPanel.style.display = currentUser && currentUser.role_name === "super_admin" ? "block" : "none";
+        }
+        users.forEach((u) => {
+            const row = document.createElement("div");
+            row.className = "admin-row";
+            const roleSelect = currentUser && currentUser.role_name === "super_admin"
+                ? `<select class="admin-input" onchange="handleChangeRole('${u.id}', this.value)">
+                        <option value="admin" ${u.role_name === "admin" ? "selected" : ""}>admin</option>
+                        <option value="user" ${u.role_name === "user" ? "selected" : ""}>user</option>
+                   </select>`
+                : `<span class="meta">${escapeHTMLText(u.role_name)}</span>`;
+            const deptSelect = currentUser && currentUser.role_name === "super_admin"
+                ? `<select class="admin-input" onchange="handleChangeDept('${u.id}', this.value)">
+                        ${departments.map((d) => `<option value="${escapeHTMLText(d)}" ${u.department === d ? "selected" : ""}>${escapeHTMLText(d)}</option>`).join("")}
+                   </select>`
+                : `<span class="meta">${escapeHTMLText(u.department || "general")}</span>`;
+            row.innerHTML = `
+                <div>
+                    <div class="title">${escapeHTMLText(u.name || "")} • ${escapeHTMLText(u.role_name)}</div>
+                    <div class="meta">${escapeHTMLText(u.email)} • Dept: ${escapeHTMLText(u.department || "general")}</div>
+                </div>
+                <div class="admin-actions">
+                    <button class="admin-btn" onclick="handleResetPassword('${u.id}')">Reset Password</button>
+                    ${roleSelect}
+                    ${deptSelect}
+                    <button class="admin-btn" onclick="handleDeleteUser('${u.id}')">Delete</button>
+                </div>
+            `;
+            usersTable.appendChild(row);
+        });
+
+        auditTable.innerHTML = events.length ? "" : "<div class='admin-note'>No events yet.</div>";
+        events.forEach((ev) => {
+            const row = document.createElement("div");
+            row.className = "admin-row";
+            row.innerHTML = `
+                <div class="title">${escapeHTMLText(formatAuditEvent(ev))}</div>
+                <div class="meta">${escapeHTMLText(JSON.stringify(ev.metadata || {}))}</div>
+            `;
+            auditTable.appendChild(row);
+        });
+    } catch (e) {
+        usersTable.innerHTML = `<div class='admin-note'>${escapeHTMLText(e.message || "Failed to load users.")}</div>`;
+        auditTable.innerHTML = `<div class='admin-note'>${escapeHTMLText(e.message || "Failed to load audit.")}</div>`;
+    }
+}
+
+async function handleCreateUser() {
+    const name = (document.getElementById("adminCreateName").value || "").trim();
+    const email = (document.getElementById("adminCreateEmail").value || "").trim();
+    const password = (document.getElementById("adminCreatePassword").value || "").trim();
+    const role = (document.getElementById("adminCreateRole").value || "").trim() || "user";
+    const department = (document.getElementById("adminCreateDept").value || "").trim() || "general";
+    if (!name || !email || !password) return;
+    await createAdminUser({ name, email, password, role, department });
+    await refreshAdminPanel();
+}
+
+async function handleResetPassword(userId) {
+    const password = window.prompt("Enter new password:");
+    if (!password) return;
+    await updateAdminUser(userId, { password });
+    await refreshAdminPanel();
+}
+
+async function handleChangeRole(userId, role) {
+    const value = (role || "").trim();
+    if (!value) return;
+    await updateAdminUser(userId, { role: value });
+    await refreshAdminPanel();
+}
+
+async function handleChangeDept(userId, department) {
+    const value = (department || "").trim();
+    if (!value) return;
+    await updateAdminUser(userId, { department: value });
+    await refreshAdminPanel();
+}
+
+async function handleDeleteUser(userId) {
+    const ok = window.confirm(`Delete user?`);
+    if (!ok) return;
+    await deleteAdminUser(userId);
+    await refreshAdminPanel();
+}
+
+async function handleCreateDepartment() {
+    const name = (document.getElementById("adminCreateDepartment").value || "").trim();
+    if (!name) return;
+    await createDepartment(name);
+    document.getElementById("adminCreateDepartment").value = "";
+    await refreshAdminPanel();
+}
+
 function renderSummaryLoadingCard() {
     const chat = document.getElementById("chat");
     const row = document.createElement("div");
@@ -1421,7 +1754,7 @@ async function showSummary() {
     }
 }
 
-refreshHistory();
+loadPolicy().then(() => refreshHistory());
 initTranslationLanguageDropdown();
 initDropZone();
 updateTranscriptDependentUI();
