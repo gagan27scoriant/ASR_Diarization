@@ -56,6 +56,7 @@ from app.processing_service import (
     summarize_and_persist,
     transcribe_live_audio_chunk,
 )
+from app.semantic_search import search_history_segments
 from app.translation import get_translator
 
 
@@ -493,6 +494,28 @@ def api_department_update(department_id: str):
     update_department(department_id, name)
     log_activity(actor["id"], "department:update", {"id": department_id, "name": name})
     return jsonify({"ok": True})
+
+
+@app.route("/api/search", methods=["POST"])
+def api_search():
+    forbidden = _require_permission("history:read")
+    if forbidden:
+        return forbidden
+    payload = request.get_json(silent=True) or {}
+    session_id = (payload.get("session_id") or "").strip()
+    query = (payload.get("query") or "").strip()
+    top_k = int(payload.get("top_k") or 5)
+    if not session_id or not query:
+        return jsonify({"error": "session_id and query are required"}), 400
+    item = read_history_item(session_id) or {}
+    if not item:
+        return jsonify({"error": "History not found"}), 404
+    user = _current_user()
+    if not _history_visible(item, user):
+        return jsonify({"error": "Forbidden"}), 403
+    results = search_history_segments(session_id, query, top_k=top_k)
+    log_activity(user["id"], "history:search", {"session_id": session_id})
+    return jsonify({"results": results})
 
 
 @app.route("/audio/<path:filename>")

@@ -70,6 +70,18 @@ def update_history_transcript(session_id: str, transcript=None, summary=None) ->
     return res.matched_count > 0
 
 
+def update_history_embeddings(session_id: str, embeddings: list[list[float]], model_name: str) -> bool:
+    if not session_id:
+        return False
+    update = {
+        "embeddings": embeddings,
+        "embedding_model": model_name,
+        "updated_at": _now_iso(),
+    }
+    res = _history_col().update_one({"session_id": session_id}, {"$set": update})
+    return res.matched_count > 0
+
+
 def rename_history_item(session_id: str, new_title: str) -> bool:
     if not session_id:
         return False

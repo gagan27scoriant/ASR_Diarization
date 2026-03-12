@@ -34,6 +34,8 @@ let liveTranscriptStatusEl = null;
 let recordedChunks = [];
 let recordingMimeType = "audio/webm";
 let liveListeningCardEl = null;
+let segmentGroupMap = [];
+let transcriptRowEls = [];
 
 const TRANSLATION_LANGUAGE_GROUPS = {
     indian: [
@@ -189,9 +191,6 @@ async function renderCurrentContent() {
     if (Array.isArray(transcriptData) && transcriptData.length > 0) {
         rebuildSpeakerState();
         await renderChatDelayed();
-        if (currentSummary && currentSummary.trim()) {
-            renderSummaryCard(currentSummary);
-        }
         setupRenameSidebar();
         document.getElementById("sumBtn").style.display = "flex";
     } else if (currentDocumentFilename) {
@@ -222,11 +221,13 @@ function updateTranscriptDependentUI() {
     const isExpanded = sidebar.classList.contains("expanded");
     const sideHeading = document.getElementById("sideHeading");
     const renameBox = document.getElementById("renameBox");
+    const keywordBtn = document.getElementById("keywordBtn");
 
     [finalizeBtn, exportTranscriptBtn, exportSummaryBtn].forEach((btn) => {
         if (!btn) return;
         btn.classList.toggle("hidden", !hasTranscript);
     });
+    if (keywordBtn) keywordBtn.classList.toggle("hidden", !hasTranscript);
 
     if (sideHeading) {
         sideHeading.style.display = hasTranscript && isExpanded ? "block" : "none";
@@ -234,6 +235,16 @@ function updateTranscriptDependentUI() {
     if (!hasTranscript && renameBox) {
         renameBox.innerHTML = "";
     }
+}
+
+function showKeywordSearch() {
+    const card = document.getElementById("semanticSearchCard");
+    if (!card) renderKeywordSearchBar();
+    const target = document.getElementById("semanticSearchCard");
+    if (!target) return;
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    const input = document.getElementById("semanticSearchInput");
+    if (input) setTimeout(() => input.focus(), 200);
 }
 
 function initDropZone() {
@@ -299,6 +310,9 @@ function ensureLiveTranscriptCard() {
     chat.appendChild(row);
     liveTranscriptStatusEl = row.querySelector("#liveTranscriptStatus");
     liveTranscriptLinesEl = row.querySelector("#liveTranscriptLines");
+    if (currentSummary) {
+        renderSummaryCard(currentSummary);
+    }
     chat.scrollTop = chat.scrollHeight;
 }
 
@@ -1045,11 +1059,19 @@ async function renderChatDelayed() {
     });
     if (currentGroup) groupedTranscript.push(currentGroup);
     groupedTranscriptCache = groupedTranscript;
+    segmentGroupMap = new Array(transcriptData.length);
+    transcriptRowEls = [];
+    groupedTranscriptCache.forEach((group, idx) => {
+        (group.segmentIndices || []).forEach((segIdx) => {
+            segmentGroupMap[segIdx] = idx;
+        });
+    });
 
     for (let i = 0; i < groupedTranscript.length; i++) {
         const group = groupedTranscript[i];
         const row = document.createElement("div");
         row.className = "message-row transcription";
+        row.dataset.groupIndex = String(i);
         const colorSet = speakerColors[group.speaker];
         const ts = `[${formatTime(group.start || 0)} - ${formatTime(group.end || 0)}]`;
         
@@ -1059,8 +1081,145 @@ async function renderChatDelayed() {
 
         row.innerHTML = `<div class="avatar" style="background: ${colorSet.main}">${group.speaker[0]}</div><div class="content" style="border-left: 4px solid ${colorSet.main}; background: ${colorSet.glow}"><div class="translate-transcript-icon" onclick="translateTranscriptByIndex(${i})" title="Translate Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8h14"></path><path d="M5 12h8"></path><path d="M13 19l4-8 4 8"></path><path d="M14.5 16h5"></path></svg></div><div class="copy-transcript-icon" onclick="copyTranscriptByIndex(${i})" title="Copy Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></div><span style="font-size:10px; font-weight:900; color:${colorSet.main}; text-transform:uppercase;">${group.speaker}</span><br>${combinedText}<span style="display:block; font-size:10px; color:var(--muted); margin-top:5px; font-weight:600;">${ts}</span></div>`;
         chat.appendChild(row);
+        transcriptRowEls[i] = row;
     }
     chat.scrollTop = chat.scrollHeight;
+}
+
+function renderKeywordSearchBar() {
+    const chat = document.getElementById("chat");
+    if (!chat) return;
+    const existing = document.getElementById("semanticSearchCard");
+    if (existing) existing.remove();
+    const row = document.createElement("div");
+    row.className = "message-row transcription";
+    row.id = "semanticSearchCard";
+    row.innerHTML = `
+        <div class="avatar" style="background:#0f172a">🔎</div>
+        <div class="content search-card">
+            <div class="search-title">Keyword spotting</div>
+            <div class="search-subtitle">Exact match first. If none, semantic meaning search kicks in.</div>
+            <div class="search-controls">
+                <input class="search-input" id="semanticSearchInput" placeholder="Search exact word or meaning...">
+                <button class="search-btn" onclick="runSemanticSearch()">Search</button>
+                <button class="search-btn ghost" onclick="clearSemanticSearch()">Clear</button>
+            </div>
+            <div class="search-count" id="semanticSearchCount"></div>
+            <div class="search-results" id="semanticSearchResults"></div>
+        </div>
+    `;
+    chat.appendChild(row);
+}
+
+function moveKeywordSearchToEnd() {
+    const chat = document.getElementById("chat");
+    const card = document.getElementById("semanticSearchCard");
+    if (!chat || !card) return;
+    chat.appendChild(card);
+}
+
+async function runSemanticSearch() {
+    const input = document.getElementById("semanticSearchInput");
+    const resultsEl = document.getElementById("semanticSearchResults");
+    const countEl = document.getElementById("semanticSearchCount");
+    if (!input || !resultsEl) return;
+    const query = (input.value || "").trim();
+    if (!query) return;
+    if (!currentSessionId) {
+        resultsEl.innerHTML = "<div class='search-empty'>No transcript session loaded.</div>";
+        if (countEl) countEl.textContent = "";
+        return;
+    }
+    resultsEl.innerHTML = "Searching...";
+    if (countEl) countEl.textContent = "";
+    transcriptRowEls.forEach((row) => row && row.classList.remove("search-hit"));
+    transcriptRowEls.forEach((row) => row && row.classList.remove("search-dim"));
+    const exactMatches = [];
+    if (Array.isArray(transcriptData) && transcriptData.length) {
+        const needle = query.toLowerCase();
+        transcriptData.forEach((seg, idx) => {
+            const text = String(seg.text || "");
+            if (text.toLowerCase().includes(needle)) {
+                exactMatches.push({
+                    segment_index: idx,
+                    text: text,
+                    speaker: seg.speaker || "",
+                    start: seg.start || 0,
+                    end: seg.end || 0,
+                    score: 1.0,
+                });
+            }
+        });
+    }
+    if (exactMatches.length) {
+        const matchedGroups = new Set();
+        if (countEl) countEl.textContent = `${exactMatches.length} exact matches`;
+        resultsEl.innerHTML = exactMatches.map((hit) => {
+            const groupIndex = segmentGroupMap[hit.segment_index];
+            if (typeof groupIndex === "number" && transcriptRowEls[groupIndex]) {
+                transcriptRowEls[groupIndex].classList.add("search-hit");
+                matchedGroups.add(groupIndex);
+            }
+            const ts = `[${formatTime(hit.start || 0)} - ${formatTime(hit.end || 0)}]`;
+            return `
+                <div class="search-row">
+                    <div class="search-meta">Exact • ${escapeHTMLText(hit.speaker || "Speaker")} • ${ts}</div>
+                    <div class="search-text">${escapeHTMLText(hit.text || "")}</div>
+                </div>
+            `;
+        }).join("");
+        transcriptRowEls.forEach((row, idx) => {
+            if (!matchedGroups.has(idx)) {
+                row.classList.add("search-dim");
+            }
+        });
+        return;
+    }
+    try {
+        const response = await fetch("/api/search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ session_id: currentSessionId, query, top_k: 6 }),
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || "Search failed");
+        }
+        const results = result.results || [];
+        if (!results.length) {
+            resultsEl.innerHTML = "<div class='search-empty'>No matches found.</div>";
+            if (countEl) countEl.textContent = "0 matches";
+            return;
+        }
+        if (countEl) countEl.textContent = `${results.length} semantic matches`;
+        resultsEl.innerHTML = results.map((hit) => {
+            const groupIndex = segmentGroupMap[hit.segment_index];
+            if (typeof groupIndex === "number" && transcriptRowEls[groupIndex]) {
+                transcriptRowEls[groupIndex].classList.add("search-hit");
+            }
+            const ts = `[${formatTime(hit.start || 0)} - ${formatTime(hit.end || 0)}]`;
+            return `
+                <div class="search-row">
+                    <div class="search-meta">Semantic • ${escapeHTMLText(hit.speaker || "Speaker")} • ${ts}</div>
+                    <div class="search-text">${escapeHTMLText(hit.text || "")}</div>
+                </div>
+            `;
+        }).join("");
+    } catch (e) {
+        resultsEl.innerHTML = `<div class='search-empty'>${escapeHTMLText(e.message || "Search failed.")}</div>`;
+        if (countEl) countEl.textContent = "";
+    }
+}
+
+function clearSemanticSearch() {
+    const input = document.getElementById("semanticSearchInput");
+    const resultsEl = document.getElementById("semanticSearchResults");
+    const countEl = document.getElementById("semanticSearchCount");
+    if (input) input.value = "";
+    if (resultsEl) resultsEl.innerHTML = "";
+    if (countEl) countEl.textContent = "";
+    transcriptRowEls.forEach((row) => row && row.classList.remove("search-hit"));
+    transcriptRowEls.forEach((row) => row && row.classList.remove("search-dim"));
 }
 
 function renderDocumentResult() {
@@ -1415,6 +1574,7 @@ function renderSummaryCard(summaryText, targetCard = null) {
     if (targetCard) {
         targetCard.id = "sumCard";
         targetCard.innerHTML = summaryMarkup;
+        moveKeywordSearchToEnd();
         chat.scrollTop = chat.scrollHeight;
         return;
     }
@@ -1428,6 +1588,7 @@ function renderSummaryCard(summaryText, targetCard = null) {
         </div>
     `;
     chat.appendChild(row);
+    moveKeywordSearchToEnd();
     chat.scrollTop = chat.scrollHeight;
 }
 
