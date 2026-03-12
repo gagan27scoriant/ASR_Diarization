@@ -1,111 +1,87 @@
-import json
-import os
-from datetime import datetime
-from glob import glob
+from datetime import datetime, timezone
+from typing import Any
 
-from werkzeug.utils import secure_filename
+from app.db import get_db
 
-from app.config import OUTPUT_FOLDER
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _history_col():
+    return get_db()["history"]
 
 
 def history_json_path(session_id: str) -> str:
-    safe_id = secure_filename(session_id or "").strip()
-    if not safe_id:
-        return ""
-    return os.path.join(OUTPUT_FOLDER, f"{safe_id}.json")
+    return session_id or ""
 
 
-def history_entry_from_file(json_path: str) -> dict | None:
-    try:
-        with open(json_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except Exception:
-        return None
-
-    transcript = data.get("transcript") or []
-    summary = data.get("summary") or ""
-    session_id = os.path.splitext(os.path.basename(json_path))[0]
-    ts = os.path.getmtime(json_path)
-    updated_at = datetime.fromtimestamp(ts).isoformat(timespec="seconds")
-
+def _history_doc_to_entry(doc: dict[str, Any]) -> dict[str, Any]:
+    transcript = doc.get("transcript") or []
+    summary = doc.get("summary") or ""
     return {
-        "session_id": session_id,
-        "title": data.get("title") or session_id,
-        "processed_file": data.get("processed_file") or "",
-        "before_audio_file": data.get("before_audio_file") or data.get("processed_file") or "",
-        "after_audio_file": data.get("after_audio_file") or data.get("processed_file") or "",
-        "source_video": data.get("source_video") or "",
+        "session_id": doc.get("session_id"),
+        "title": doc.get("title") or doc.get("session_id"),
+        "processed_file": doc.get("processed_file") or "",
+        "before_audio_file": doc.get("before_audio_file") or doc.get("processed_file") or "",
+        "after_audio_file": doc.get("after_audio_file") or doc.get("processed_file") or "",
+        "source_video": doc.get("source_video") or "",
         "segments": len(transcript),
         "has_summary": bool(str(summary).strip()),
-        "updated_at": updated_at,
-        "owner": data.get("owner") or {},
+        "updated_at": doc.get("updated_at") or doc.get("created_at") or "",
+        "owner": doc.get("owner") or {},
     }
 
 
 def list_history_entries(owner: dict | None = None) -> list[dict]:
-    entries = []
-    for path in sorted(glob(os.path.join(OUTPUT_FOLDER, "*.json")), key=os.path.getmtime, reverse=True):
-        entry = history_entry_from_file(path)
-        if not entry:
-            continue
-        if owner:
-            if entry.get("owner", {}).get("email") != owner.get("email"):
-                continue
-        entries.append(entry)
-    return entries
+    query: dict[str, Any] = {}
+    if owner:
+        query["owner.email"] = owner.get("email")
+    docs = list(_history_col().find(query).sort("updated_at", -1))
+    return [_history_doc_to_entry(doc) for doc in docs]
 
 
 def read_history_item(session_id: str) -> dict | None:
-    path = history_json_path(session_id)
-    if not path or not os.path.isfile(path):
+    if not session_id:
         return None
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    return _history_col().find_one({"session_id": session_id})
 
 
 def write_history_item(session_id: str, data: dict) -> bool:
-    path = history_json_path(session_id)
-    if not path:
+    if not session_id:
         return False
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4)
+    payload = dict(data or {})
+    payload["session_id"] = session_id
+    payload.setdefault("created_at", _now_iso())
+    payload["updated_at"] = _now_iso()
+    _history_col().update_one({"session_id": session_id}, {"$set": payload}, upsert=True)
     return True
 
 
 def update_history_transcript(session_id: str, transcript=None, summary=None) -> bool:
-    path = history_json_path(session_id)
-    if not path or not os.path.isfile(path):
+    if not session_id:
         return False
-
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
+    update: dict[str, Any] = {"updated_at": _now_iso()}
     if transcript is not None:
-        data["transcript"] = transcript
+        update["transcript"] = transcript
     if summary is not None:
-        data["summary"] = summary
-
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4)
-    return True
+        update["summary"] = summary
+    res = _history_col().update_one({"session_id": session_id}, {"$set": update})
+    return res.matched_count > 0
 
 
 def rename_history_item(session_id: str, new_title: str) -> bool:
-    path = history_json_path(session_id)
-    if not path or not os.path.isfile(path):
+    if not session_id:
         return False
-
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    data["title"] = new_title
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4)
-    return True
+    res = _history_col().update_one(
+        {"session_id": session_id},
+        {"$set": {"title": new_title, "updated_at": _now_iso()}},
+    )
+    return res.matched_count > 0
 
 
 def delete_history_item(session_id: str) -> bool:
-    path = history_json_path(session_id)
-    if not path or not os.path.isfile(path):
+    if not session_id:
         return False
-    os.remove(path)
-    return True
+    res = _history_col().delete_one({"session_id": session_id})
+    return res.deleted_count > 0

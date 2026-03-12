@@ -1,4 +1,3 @@
-import json
 import os
 from datetime import datetime
 
@@ -18,7 +17,7 @@ from app.config import (
     is_supported_video,
 )
 from app.diarization import diarize
-from app.history_store import history_json_path, read_history_item, write_history_item
+from app.history_store import read_history_item, write_history_item
 from app.mapper import map_speakers
 from app.media_utils import (
     ensure_audio_in_workspace,
@@ -138,8 +137,6 @@ def process_media_pipeline(source_path: str, filename: str, asr_model, diarizati
 
     output_stem = secure_filename(os.path.splitext(processed_filename)[0]) or "output"
     session_id = f"{output_stem}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-    output_file = history_json_path(session_id)
-
     payload = {
         "session_id": session_id,
         "title": filename,
@@ -157,8 +154,7 @@ def process_media_pipeline(source_path: str, filename: str, asr_model, diarizati
             "department": owner.get("department"),
             "role": owner.get("role_name"),
         }
-    with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=4)
+    write_history_item(session_id, payload)
 
     print("✅ Completed:", processed_filename)
     return {

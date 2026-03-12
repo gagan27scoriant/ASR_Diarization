@@ -8,7 +8,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.db import init_db
-from app.auth import create_user, ROLE_SUPER_ADMIN
+from app.auth import create_department, create_user, ROLE_SUPER_ADMIN
 
 
 def main() -> int:
@@ -20,6 +20,10 @@ def main() -> int:
     args = parser.parse_args()
 
     init_db()
+    try:
+        create_department(args.department)
+    except Exception:
+        pass
     create_user(args.name, args.email, args.password, ROLE_SUPER_ADMIN, args.department)
     print("Super Admin created.")
     return 0

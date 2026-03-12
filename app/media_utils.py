@@ -186,7 +186,12 @@ def extract_text_from_document(file_path: str, filename: str) -> str:
         text_parts = []
         for page in reader.pages:
             text_parts.append(page.extract_text() or "")
-        return "\n".join(text_parts).strip()
+        extracted = "\n".join(text_parts).strip()
+        if extracted:
+            return extracted
+        if (os.getenv("DOCUMENT_OCR", "") or "").strip().lower() in {"1", "true", "yes", "on"}:
+            return _ocr_pdf(file_path)
+        return ""
 
     if ext == ".docx":
         doc = DocxDocument(file_path)
@@ -200,3 +205,18 @@ def extract_text_from_document(file_path: str, filename: str) -> str:
     if ext not in SUPPORTED_DOCUMENT_EXTENSIONS:
         raise ValueError(DOCUMENT_FORMAT_ERROR)
     raise ValueError(DOCUMENT_FORMAT_ERROR)
+
+
+def _ocr_pdf(file_path: str) -> str:
+    try:
+        from pdf2image import convert_from_path
+        import pytesseract
+    except Exception as e:
+        raise RuntimeError("OCR dependencies missing. Install pdf2image and pytesseract, and system tesseract.") from e
+
+    langs = (os.getenv("DOCUMENT_OCR_LANGS", "eng") or "eng").strip()
+    pages = convert_from_path(file_path, dpi=300)
+    parts = []
+    for page in pages:
+        parts.append(pytesseract.image_to_string(page, lang=langs))
+    return "\n".join([p.strip() for p in parts if p and p.strip()]).strip()

@@ -1,70 +1,43 @@
 import os
-import sqlite3
-from pathlib import Path
+from datetime import datetime, timezone
+
+from pymongo import ASCENDING, MongoClient
 
 
-def _db_path() -> str:
-    base_dir = Path(__file__).resolve().parents[1]
-    data_dir = base_dir / "data"
-    data_dir.mkdir(parents=True, exist_ok=True)
-    return str(data_dir / "app.db")
+_client: MongoClient | None = None
 
 
-def get_conn() -> sqlite3.Connection:
-    conn = sqlite3.connect(_db_path())
-    conn.row_factory = sqlite3.Row
-    return conn
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def get_db():
+    global _client
+    if _client is None:
+        uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+        _client = MongoClient(uri)
+    db_name = os.getenv("MONGODB_DB", "asr_studio")
+    return _client[db_name]
 
 
 def init_db() -> None:
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS roles (
-            id INTEGER PRIMARY KEY,
-            role_name TEXT NOT NULL UNIQUE
+    db = get_db()
+    db.roles.create_index("role_name", unique=True)
+    db.roles.create_index("role_id", unique=True)
+    db.users.create_index("email", unique=True)
+    db.departments.create_index("name", unique=True)
+    db.activity_log.create_index([("created_at", ASCENDING)])
+    db.history.create_index("session_id", unique=True)
+
+    for role_id, role_name in ((1, "user"), (2, "admin"), (3, "super_admin")):
+        db.roles.update_one(
+            {"role_name": role_name},
+            {"$setOnInsert": {"role_id": role_id, "role_name": role_name}},
+            upsert=True,
         )
-        """
+
+    db.departments.update_one(
+        {"name": "general"},
+        {"$setOnInsert": {"name": "general", "created_at": _now_iso()}},
+        upsert=True,
     )
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS departments (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE,
-            created_at TEXT NOT NULL
-        )
-        """
-    )
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            email TEXT NOT NULL UNIQUE,
-            password_hash TEXT NOT NULL,
-            role_id INTEGER NOT NULL,
-            department TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            FOREIGN KEY (role_id) REFERENCES roles(id)
-        )
-        """
-    )
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS activity_log (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            action TEXT NOT NULL,
-            meta TEXT,
-            created_at TEXT NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-        """
-    )
-    # Seed roles
-    cur.execute("INSERT OR IGNORE INTO roles (id, role_name) VALUES (1, 'user')")
-    cur.execute("INSERT OR IGNORE INTO roles (id, role_name) VALUES (2, 'admin')")
-    cur.execute("INSERT OR IGNORE INTO roles (id, role_name) VALUES (3, 'super_admin')")
-    conn.commit()
-    conn.close()

@@ -1,5 +1,6 @@
 import os
 import time
+import uuid
 import warnings
 
 from flask import Flask, jsonify, redirect, render_template, request, send_from_directory, url_for, g, make_response
@@ -17,6 +18,7 @@ from app.auth import (
     issue_token,
     decode_token,
     get_user_by_id,
+    get_user_by_email,
     list_users,
     update_user_admin,
     update_user_profile,
@@ -24,6 +26,10 @@ from app.auth import (
     list_activity,
     list_departments,
     create_department,
+    delete_activity,
+    clear_activity,
+    delete_department,
+    update_department,
 )
 from app.asr import load_asr
 from app.config import (
@@ -38,7 +44,6 @@ from app.db import init_db
 from app.diarization import load_diarization
 from app.history_store import (
     delete_history_item as remove_history_item,
-    history_json_path,
     list_history_entries,
     read_history_item,
     rename_history_item as rename_history_record,
@@ -85,6 +90,7 @@ app = Flask(__name__, template_folder="templates", static_folder="static")
 ensure_workspace_folders()
 init_db()
 APP_START_EPOCH = time.time()
+APP_SESSION_ID = uuid.uuid4().hex
 
 
 print("🚀 Loading ASR model...")
@@ -127,10 +133,13 @@ def enforce_login():
             issued_at = float(payload.get("iat") or 0)
             if issued_at < APP_START_EPOCH:
                 raise ValueError("Stale token")
-            user_id = int(payload.get("sub"))
+            if payload.get("sid") != APP_SESSION_ID:
+                raise ValueError("Stale session")
+            user_id = payload.get("sub")
             user = get_user_by_id(user_id)
             if user:
                 g.user = user
+                g.auth_payload = payload
                 return None
         except Exception:
             pass
@@ -195,9 +204,10 @@ def login():
     record = authenticate_user(email, password)
     if not record:
         return render_template("login.html", error="Invalid credentials"), 401
-    token = issue_token(record)
+    token = issue_token(record, session_id=APP_SESSION_ID)
     resp = make_response(redirect(url_for("home")))
     resp.set_cookie("access_token", token, httponly=True, samesite="Lax")
+    resp.set_cookie("impersonator_token", "", expires=0)
     log_activity(record["id"], "auth:login", {"email": record["email"]})
     return resp
 
@@ -210,9 +220,68 @@ def api_login():
     record = authenticate_user(email, password)
     if not record:
         return jsonify({"error": "Invalid credentials"}), 401
-    token = issue_token(record)
+    token = issue_token(record, session_id=APP_SESSION_ID)
     log_activity(record["id"], "auth:login", {"email": record["email"]})
     return jsonify({"token": token})
+
+
+@app.route("/api/impersonate", methods=["POST"])
+def api_impersonate():
+    actor = _current_user()
+    if not actor or actor.get("role_name") not in {ROLE_ADMIN, ROLE_SUPER_ADMIN}:
+        return jsonify({"error": "Forbidden"}), 403
+    payload = getattr(g, "auth_payload", {}) or {}
+    if payload.get("impersonated_by"):
+        return jsonify({"error": "Already impersonating"}), 400
+    body = request.get_json(silent=True) or {}
+    email = (body.get("email") or "").strip()
+    if not email:
+        return jsonify({"error": "Email required"}), 400
+    target = get_user_by_email(email)
+    if not target:
+        return jsonify({"error": "User not found"}), 404
+    if target.get("role_name") == ROLE_SUPER_ADMIN:
+        return jsonify({"error": "Forbidden"}), 403
+    if _is_admin(actor):
+        if target.get("role_name") != ROLE_USER:
+            return jsonify({"error": "Forbidden"}), 403
+        if target.get("department") != actor.get("department"):
+            return jsonify({"error": "Forbidden"}), 403
+    token = issue_token(target, impersonator=actor, session_id=APP_SESSION_ID)
+    actor_token = _get_token()
+    if not actor_token:
+        return jsonify({"error": "Missing session token"}), 400
+    resp = make_response(jsonify({"ok": True, "user": target}))
+    resp.set_cookie("impersonator_token", actor_token, httponly=True, samesite="Lax")
+    resp.set_cookie("access_token", token, httponly=True, samesite="Lax")
+    log_activity(actor["id"], "auth:impersonate", {"target": target["email"]})
+    return resp
+
+
+@app.route("/api/impersonate/stop", methods=["POST"])
+def api_impersonate_stop():
+    token = request.cookies.get("impersonator_token")
+    if not token:
+        return jsonify({"error": "No impersonation active"}), 400
+    try:
+        payload = decode_token(token)
+        issued_at = float(payload.get("iat") or 0)
+        if issued_at < APP_START_EPOCH:
+            raise ValueError("Stale token")
+        if payload.get("sid") != APP_SESSION_ID:
+            raise ValueError("Stale session")
+        user_id = payload.get("sub")
+        user = get_user_by_id(user_id)
+    except Exception:
+        return jsonify({"error": "Invalid impersonation token"}), 400
+    if not user or user.get("role_name") not in {ROLE_ADMIN, ROLE_SUPER_ADMIN}:
+        return jsonify({"error": "Forbidden"}), 403
+    new_token = issue_token(user, session_id=APP_SESSION_ID)
+    resp = make_response(jsonify({"ok": True}))
+    resp.set_cookie("access_token", new_token, httponly=True, samesite="Lax")
+    resp.set_cookie("impersonator_token", "", expires=0)
+    log_activity(user["id"], "auth:impersonate_end", {})
+    return resp
 
 
 @app.route("/logout", methods=["POST", "GET"])
@@ -222,6 +291,7 @@ def logout():
         log_activity(user["id"], "auth:logout", {"email": user["email"]})
     resp = make_response(redirect(url_for("login")))
     resp.set_cookie("access_token", "", expires=0)
+    resp.set_cookie("impersonator_token", "", expires=0)
     return resp
 
 
@@ -231,7 +301,8 @@ def me():
         return jsonify({"error": "Unauthorized"}), 401
     user = _current_user()
     policy = get_policy(user.get("role_name", ROLE_USER))
-    return jsonify({"user": user, "policy": policy})
+    payload = getattr(g, "auth_payload", {}) or {}
+    return jsonify({"user": user, "policy": policy, "impersonator": payload.get("impersonated_by")})
 
 
 @app.route("/api/users", methods=["GET", "POST"])
@@ -283,8 +354,8 @@ def api_admins():
     return jsonify(record), 201
 
 
-@app.route("/api/users/<int:user_id>", methods=["DELETE", "PATCH"])
-def api_user_detail(user_id: int):
+@app.route("/api/users/<user_id>", methods=["DELETE", "PATCH"])
+def api_user_detail(user_id: str):
     forbidden = _require_permission("user:manage")
     if forbidden:
         return forbidden
@@ -345,6 +416,40 @@ def api_audit():
     return jsonify({"events": filtered})
 
 
+@app.route("/api/audit/<activity_id>", methods=["DELETE"])
+def api_audit_delete(activity_id: str):
+    forbidden = _require_permission("audit:read")
+    if forbidden:
+        return forbidden
+    actor = _current_user()
+    if _is_super_admin(actor):
+        delete_activity(activity_id)
+        return jsonify({"ok": True})
+    # Admin can delete only within their department
+    events = list_activity(limit=500)
+    for ev in events:
+        if ev.get("id") == activity_id:
+            if ev.get("department") != actor.get("department"):
+                return jsonify({"error": "Forbidden"}), 403
+            if ev.get("role") == ROLE_SUPER_ADMIN:
+                return jsonify({"error": "Forbidden"}), 403
+            delete_activity(activity_id)
+            return jsonify({"ok": True})
+    return jsonify({"error": "Not found"}), 404
+
+
+@app.route("/api/audit", methods=["DELETE"])
+def api_audit_clear():
+    forbidden = _require_permission("audit:read")
+    if forbidden:
+        return forbidden
+    actor = _current_user()
+    if not _is_super_admin(actor):
+        return jsonify({"error": "Forbidden"}), 403
+    clear_activity()
+    return jsonify({"ok": True})
+
+
 @app.route("/api/departments", methods=["GET", "POST"])
 def api_departments():
     if request.method == "GET":
@@ -360,6 +465,34 @@ def api_departments():
     create_department(name)
     log_activity(actor["id"], "department:create", {"name": name})
     return jsonify({"ok": True}), 201
+
+
+@app.route("/api/departments/<department_id>", methods=["DELETE"])
+def api_department_delete(department_id: str):
+    forbidden = _require_permission("settings:manage")
+    if forbidden:
+        return forbidden
+    actor = _current_user()
+    if not _is_super_admin(actor):
+        return jsonify({"error": "Forbidden"}), 403
+    delete_department(department_id)
+    log_activity(actor["id"], "department:delete", {"id": department_id})
+    return jsonify({"ok": True})
+
+
+@app.route("/api/departments/<department_id>", methods=["PATCH"])
+def api_department_update(department_id: str):
+    forbidden = _require_permission("settings:manage")
+    if forbidden:
+        return forbidden
+    actor = _current_user()
+    if not _is_super_admin(actor):
+        return jsonify({"error": "Forbidden"}), 403
+    payload = request.get_json(silent=True) or {}
+    name = (payload.get("name") or "").strip()
+    update_department(department_id, name)
+    log_activity(actor["id"], "department:update", {"id": department_id, "name": name})
+    return jsonify({"ok": True})
 
 
 @app.route("/audio/<path:filename>")
@@ -468,19 +601,13 @@ def process_document():
         if not is_supported_document(uploaded_file.filename):
             return jsonify({"error": DOCUMENT_FORMAT_ERROR}), 400
 
-        meeting_title = (request.form.get("meeting_title") or "").strip()
-        meeting_date = (request.form.get("meeting_date") or "").strip()
-        meeting_place = (request.form.get("meeting_place") or "").strip()
-        if not meeting_title or not meeting_date or not meeting_place:
-            return jsonify({"error": "Meeting title, date, and place are required"}), 400
-
         print("→ Generating summary from uploaded document...")
         user = _current_user()
         result = process_document_upload(
             uploaded_file,
-            meeting_title=meeting_title,
-            meeting_date=meeting_date,
-            meeting_place=meeting_place,
+            meeting_title="Document Summary",
+            meeting_date="",
+            meeting_place="",
             owner=user,
         )
         log_activity(user["id"], "process:document", {"filename": uploaded_file.filename})
@@ -601,7 +728,7 @@ def save_history_transcript(session_id):
         forbidden = _require_permission("history:read")
         if forbidden:
             return forbidden
-        if not history_json_path(session_id) or read_history_item(session_id) is None:
+        if read_history_item(session_id) is None:
             return jsonify({"error": "History not found"}), 404
 
         payload = request.get_json(silent=True) or {}
@@ -630,7 +757,7 @@ def rename_history_item(session_id):
         forbidden = _require_permission("history:rename")
         if forbidden:
             return forbidden
-        if not history_json_path(session_id) or read_history_item(session_id) is None:
+        if read_history_item(session_id) is None:
             return jsonify({"error": "History not found"}), 404
 
         payload = request.get_json(silent=True) or {}

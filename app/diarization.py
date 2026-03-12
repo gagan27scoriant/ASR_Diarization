@@ -18,7 +18,10 @@ def load_diarization():
     token = os.getenv("HUGGINGFACE_TOKEN")
     model_id = PINNED_DIARIZATION_MODEL_ID
     print(f"Loading diarization model: {model_id}")
-    pipeline = Pipeline.from_pretrained(model_id, token=token)
+    try:
+        pipeline = Pipeline.from_pretrained(model_id, token=token)
+    except TypeError:
+        pipeline = Pipeline.from_pretrained(model_id, use_auth_token=token)
     print(f"Diarization model loaded: {model_id}")
 
     if torch.cuda.is_available():

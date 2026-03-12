@@ -22,6 +22,7 @@ let groupedTranscriptCache = [];
 let historyEntries = [];
 let currentPolicy = null;
 let currentUser = null;
+let currentImpersonator = null;
 let mediaRecorder = null;
 let recordingStream = null;
 let isRecording = false;
@@ -560,9 +561,11 @@ async function loadPolicy() {
         }
         currentPolicy = result.policy || null;
         currentUser = result.user || null;
+        currentImpersonator = result.impersonator || null;
     } catch (_e) {
         currentPolicy = null;
         currentUser = null;
+        currentImpersonator = null;
     }
 
     const perms = currentPolicy ? currentPolicy.permissions || [] : [];
@@ -597,8 +600,54 @@ async function loadPolicy() {
             adminBtn.style.display = "none";
         }
     }
+    const impersonateBtn = document.getElementById("impersonateBtn");
+    if (impersonateBtn) {
+        const isSuper = currentUser && currentUser.role_name === "super_admin";
+        const isAdmin = currentUser && currentUser.role_name === "admin";
+        if (currentImpersonator) {
+            impersonateBtn.textContent = "Return to Admin";
+            impersonateBtn.classList.remove("hidden");
+        } else if (isSuper || isAdmin) {
+            impersonateBtn.textContent = "Switch User";
+            impersonateBtn.classList.remove("hidden");
+        } else {
+            impersonateBtn.classList.add("hidden");
+        }
+    }
     if (currentUser && currentUser.name) {
         renderGreetingCard(currentUser.name);
+    }
+}
+
+async function handleImpersonate() {
+    if (currentImpersonator) {
+        try {
+            const response = await fetch("/api/impersonate/stop", { method: "POST" });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || "Failed to return");
+            }
+            location.reload();
+        } catch (e) {
+            window.alert(e.message || "Failed to return to admin.");
+        }
+        return;
+    }
+    const email = window.prompt("Enter the user email to switch into:");
+    if (!email) return;
+    try {
+        const response = await fetch("/api/impersonate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email.trim() }),
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || "Failed to switch user");
+        }
+        location.reload();
+    } catch (e) {
+        window.alert(e.message || "Failed to switch user.");
     }
 }
 
@@ -806,17 +855,8 @@ async function processSelectedFile(selectedFile, silentMode = false) {
 
     try {
         if (selectedFile && isDocumentFile(selectedFile.name)) {
-            const meetingDetails = requestMeetingDetails();
-            if (!meetingDetails) {
-                document.getElementById("loadingOverlay").style.display = "none";
-                return;
-            }
-
             const formData = new FormData();
             formData.append("document_file", selectedFile);
-            formData.append("meeting_title", meetingDetails.meeting_title);
-            formData.append("meeting_date", meetingDetails.meeting_date);
-            formData.append("meeting_place", meetingDetails.meeting_place);
 
             const response = await fetch("/process_document", {
                 method: "POST",
@@ -837,7 +877,8 @@ async function processSelectedFile(selectedFile, silentMode = false) {
             currentAfterAudio = "";
             currentDocumentFilename = result.document_filename || "";
             currentDocumentType = (result.document_type || "").toLowerCase();
-            currentDocumentText = result.document_text || "";
+            const wantsExtract = window.confirm("Shall I show the extracted content?");
+            currentDocumentText = wantsExtract ? (result.document_text || "") : "";
             setSourceTranscript([]);
             setSourceSummary(currentSummary);
             setSourceDocumentText(currentDocumentText);
@@ -1432,6 +1473,28 @@ async function createDepartment(name) {
     }
     return result;
 }
+
+async function deleteDepartment(departmentId) {
+    const response = await fetch(`/api/departments/${encodeURIComponent(departmentId)}`, {
+        method: "DELETE",
+    });
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || "Failed to delete department");
+    }
+}
+
+async function updateDepartment(departmentId, name) {
+    const response = await fetch(`/api/departments/${encodeURIComponent(departmentId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || "Failed to update department");
+    }
+}
 async function fetchAuditEvents() {
     const response = await fetch("/api/audit");
     const result = await response.json();
@@ -1439,6 +1502,26 @@ async function fetchAuditEvents() {
         throw new Error(result.error || "Failed to load audit log");
     }
     return result.events || [];
+}
+
+async function deleteAuditEvent(eventId) {
+    const response = await fetch(`/api/audit/${encodeURIComponent(eventId)}`, {
+        method: "DELETE",
+    });
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || "Failed to delete audit");
+    }
+}
+
+async function clearAllAudits() {
+    const response = await fetch("/api/audit", {
+        method: "DELETE",
+    });
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || "Failed to clear audits");
+    }
 }
 
 async function createAdminUser(payload) {
@@ -1478,16 +1561,18 @@ async function deleteAdminUser(username) {
 }
 
 function formatAuditEvent(ev) {
-    const ts = new Date(ev.ts || "").toLocaleString();
-    const actor = ev.username || "unknown";
+    const ts = new Date(ev.created_at || ev.ts || "").toLocaleString("en-GB");
+    const actor = ev.email || ev.username || "";
     const action = ev.action || "event";
-    const dept = ev.department || "";
-    return `${ts} • ${actor} • ${action} ${dept ? "(" + dept + ")" : ""}`;
+    return { ts, actor, action };
 }
 
 async function showAdminPanel() {
     const chat = document.getElementById("chat");
     if (!chat) return;
+    if (!currentUser) {
+        await loadPolicy();
+    }
     clearChatRows();
     setUploadHeroVisible(false);
     const row = document.createElement("div");
@@ -1525,6 +1610,7 @@ async function showAdminPanel() {
                 <div class="admin-actions">
                     <button class="admin-btn" onclick="handleCreateDepartment()">Add Department</button>
                 </div>
+                <div class="admin-table" id="adminDepartmentsTable"></div>
             </div>
             <div class="admin-card">
                 <h3>Users</h3>
@@ -1532,6 +1618,16 @@ async function showAdminPanel() {
             </div>
             <div class="admin-card">
                 <h3>Audit Log</h3>
+                <div class="admin-actions" id="auditActions" style="margin-bottom:8px;"></div>
+                <div class="admin-grid" style="margin-bottom:10px;">
+                    <input class="admin-input" id="auditFilterDate" type="date">
+                    <select class="admin-input" id="auditFilterDept">
+                        <option value="">All Departments</option>
+                    </select>
+                    <input class="admin-input" id="auditFilterEmail" placeholder="Filter by Email">
+                    <button class="admin-btn" onclick="refreshAdminPanel()">Apply Filters</button>
+                    <button class="admin-btn" onclick="clearAuditFilters()">Clear Filters</button>
+                </div>
                 <div class="admin-table" id="adminAuditTable"></div>
             </div>
         </div>
@@ -1544,17 +1640,21 @@ async function showAdminPanel() {
 async function refreshAdminPanel() {
     const usersTable = document.getElementById("adminUsersTable");
     const auditTable = document.getElementById("adminAuditTable");
+    const departmentsTable = document.getElementById("adminDepartmentsTable");
     if (!usersTable || !auditTable) return;
 
     usersTable.innerHTML = "Loading...";
     auditTable.innerHTML = "Loading...";
+    let departments = [];
     try {
-        const [users, events, departments] = await Promise.all([fetchAdminUsers(), fetchAuditEvents(), fetchDepartments()]);
+        let events = await fetchAuditEvents();
+        const [users, fetchedDepartments] = await Promise.all([fetchAdminUsers(), fetchDepartments()]);
+        departments = fetchedDepartments || [];
         usersTable.innerHTML = users.length ? "" : "<div class='admin-note'>No users found.</div>";
         const deptSelect = document.getElementById("adminCreateDept");
         if (deptSelect) {
-            const depOptions = (departments && departments.length ? departments : ["general"])
-                .map((d) => `<option value="${escapeHTMLText(d)}">${escapeHTMLText(d)}</option>`)
+            const depOptions = (departments && departments.length ? departments : [{ name: "general" }])
+                .map((d) => `<option value="${escapeHTMLText(d.name)}">${escapeHTMLText(d.name)}</option>`)
                 .join("");
             deptSelect.innerHTML = depOptions;
             if (currentUser && currentUser.role_name !== "super_admin") {
@@ -1564,9 +1664,47 @@ async function refreshAdminPanel() {
                 deptSelect.disabled = false;
             }
         }
+        const auditDeptSelect = document.getElementById("auditFilterDept");
+        const isSuper = currentUser && currentUser.role_name === "super_admin";
+        if (auditDeptSelect) {
+            const depOptions = [`<option value="">All Departments</option>`]
+                .concat((departments && departments.length ? departments : [{ name: "general" }])
+                    .map((d) => `<option value="${escapeHTMLText(d.name)}">${escapeHTMLText(d.name)}</option>`))
+                .join("");
+            auditDeptSelect.innerHTML = depOptions;
+            if (!isSuper) {
+                auditDeptSelect.value = currentUser && currentUser.department ? currentUser.department : "";
+                auditDeptSelect.disabled = true;
+                auditDeptSelect.style.display = "none";
+            } else {
+                auditDeptSelect.disabled = false;
+                auditDeptSelect.style.display = "";
+            }
+        }
         const departmentPanel = document.getElementById("departmentPanel");
         if (departmentPanel) {
-            departmentPanel.style.display = currentUser && currentUser.role_name === "super_admin" ? "block" : "none";
+            departmentPanel.style.display = "block";
+            const deptInput = document.getElementById("adminCreateDepartment");
+            const deptBtn = departmentPanel.querySelector(".admin-actions .admin-btn");
+            if (!isSuper) {
+                departmentPanel.style.display = "none";
+                if (deptInput) deptInput.disabled = true;
+                if (deptBtn) deptBtn.disabled = true;
+            } else if (departmentsTable) {
+                departmentsTable.innerHTML = departments.length ? "" : "<div class='admin-note'>No departments yet.</div>";
+                departments.forEach((d) => {
+                    const row = document.createElement("div");
+                    row.className = "admin-row";
+                    row.innerHTML = `
+                        <div class="title">${escapeHTMLText(d.name)}</div>
+                        <div class="admin-actions">
+                            <button class="admin-btn" onclick="handleRenameDepartment('${d.id}', '${escapeHTMLText(d.name)}')">Rename</button>
+                            <button class="admin-btn" onclick="handleDeleteDepartment('${d.id}', '${escapeHTMLText(d.name)}')">Delete</button>
+                        </div>
+                    `;
+                    departmentsTable.appendChild(row);
+                });
+            }
         }
         users.forEach((u) => {
             const row = document.createElement("div");
@@ -1579,7 +1717,7 @@ async function refreshAdminPanel() {
                 : `<span class="meta">${escapeHTMLText(u.role_name)}</span>`;
             const deptSelect = currentUser && currentUser.role_name === "super_admin"
                 ? `<select class="admin-input" onchange="handleChangeDept('${u.id}', this.value)">
-                        ${departments.map((d) => `<option value="${escapeHTMLText(d)}" ${u.department === d ? "selected" : ""}>${escapeHTMLText(d)}</option>`).join("")}
+                        ${departments.map((d) => `<option value="${escapeHTMLText(d.name)}" ${u.department === d.name ? "selected" : ""}>${escapeHTMLText(d.name)}</option>`).join("")}
                    </select>`
                 : `<span class="meta">${escapeHTMLText(u.department || "general")}</span>`;
             row.innerHTML = `
@@ -1597,13 +1735,54 @@ async function refreshAdminPanel() {
             usersTable.appendChild(row);
         });
 
+        const auditActions = document.getElementById("auditActions");
+        if (auditActions) {
+            auditActions.innerHTML = "";
+            if (currentUser && currentUser.role_name === "super_admin") {
+                const btn = document.createElement("button");
+                btn.className = "admin-btn";
+                btn.textContent = "Clear All Audits";
+                btn.onclick = async () => {
+                    const ok = window.confirm("Clear all audits?");
+                    if (!ok) return;
+                    await clearAllAudits();
+                    await refreshAdminPanel();
+                };
+                auditActions.appendChild(btn);
+            }
+        }
+
+        const dateFilter = document.getElementById("auditFilterDate");
+        const deptFilter = document.getElementById("auditFilterDept");
+        const emailFilter = document.getElementById("auditFilterEmail");
+        if (dateFilter && dateFilter.value) {
+            events = events.filter((ev) => (ev.created_at || "").startsWith(dateFilter.value));
+        }
+        if (deptFilter && deptFilter.value && isSuper) {
+            events = events.filter((ev) => (ev.department || "").toLowerCase() === deptFilter.value.toLowerCase());
+        }
+        if (emailFilter && emailFilter.value) {
+            const needle = emailFilter.value.toLowerCase();
+            events = events.filter((ev) => (ev.email || "").toLowerCase().includes(needle));
+        }
+
         auditTable.innerHTML = events.length ? "" : "<div class='admin-note'>No events yet.</div>";
         events.forEach((ev) => {
             const row = document.createElement("div");
             row.className = "admin-row";
+            const info = formatAuditEvent(ev);
+            const loginTime = info.action === "auth:login" ? info.ts : "";
+            const logoutTime = info.action === "auth:logout" ? info.ts : "";
+            const deptText = ev.department || "-";
+            const historyText = `Department: ${deptText} • Login: ${loginTime || "-"} • Logout: ${logoutTime || "-"} • History: ${info.action}`;
             row.innerHTML = `
-                <div class="title">${escapeHTMLText(formatAuditEvent(ev))}</div>
-                <div class="meta">${escapeHTMLText(JSON.stringify(ev.metadata || {}))}</div>
+                <div>
+                    <div class="title">${escapeHTMLText(info.actor || "unknown")}</div>
+                    <div class="meta">${escapeHTMLText(historyText)}</div>
+                </div>
+                <div class="admin-actions">
+                    <button class="admin-btn" onclick="handleDeleteAudit('${ev.id}')">Delete</button>
+                </div>
             `;
             auditTable.appendChild(row);
         });
@@ -1652,11 +1831,42 @@ async function handleDeleteUser(userId) {
     await refreshAdminPanel();
 }
 
+async function handleDeleteAudit(eventId) {
+    const ok = window.confirm("Delete this audit entry?");
+    if (!ok) return;
+    await deleteAuditEvent(eventId);
+    await refreshAdminPanel();
+}
+
+function clearAuditFilters() {
+    const dateFilter = document.getElementById("auditFilterDate");
+    const deptFilter = document.getElementById("auditFilterDept");
+    const emailFilter = document.getElementById("auditFilterEmail");
+    if (dateFilter) dateFilter.value = "";
+    if (deptFilter) deptFilter.value = "";
+    if (emailFilter) emailFilter.value = "";
+    refreshAdminPanel();
+}
+
 async function handleCreateDepartment() {
     const name = (document.getElementById("adminCreateDepartment").value || "").trim();
     if (!name) return;
     await createDepartment(name);
     document.getElementById("adminCreateDepartment").value = "";
+    await refreshAdminPanel();
+}
+
+async function handleDeleteDepartment(departmentId, name) {
+    const ok = window.confirm(`Delete department '${name}'? This will delete all users in it.`);
+    if (!ok) return;
+    await deleteDepartment(departmentId);
+    await refreshAdminPanel();
+}
+
+async function handleRenameDepartment(departmentId, name) {
+    const next = window.prompt("Rename department:", name || "");
+    if (!next) return;
+    await updateDepartment(departmentId, next);
     await refreshAdminPanel();
 }
 
