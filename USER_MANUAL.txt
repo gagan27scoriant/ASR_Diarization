@@ -16,7 +16,7 @@ You can begin in one of two ways:
 - Start live meeting transcription using "Start live Meeting".
 
 Supported media:
-- Audio: .wav, .mp3, .aac, .aiff, .wma, .amr, .opus
+- Audio: .wav, .mp3, .aac, .aiff, .wma, .amr, .opus, .webm, .ogg, .m4a
 - Video: .mp4, .mkv, .avi, .mov, .wmv, .mpeg, .3gp
 - Documents: .pdf, .docx, .txt
 
@@ -56,8 +56,8 @@ What happens:
 4. Transcript updates with your custom names.
 
 
-6) SUMMARIZE
-------------
+6) SUMMARIZE MEETING
+--------------------
 1. Click "Summarize".
 2. Enter:
    - Meeting Title
@@ -66,7 +66,7 @@ What happens:
 3. Summary appears in a summary card.
 
 Notes:
-- Summary format is structured as meeting minutes.
+- Meeting summary format is structured as meeting minutes.
 - Summary can be copied using the copy icon.
 
 
@@ -85,14 +85,18 @@ Manual controls:
 - Translate icon on summary card: translates summary only.
 
 
-8) DOCUMENT MODE
-----------------
+8) DOCUMENT MODE (PDF/DOCX/TXT)
+-------------------------------
 1. Upload .pdf / .docx / .txt
-2. Enter meeting details when prompted.
-3. App extracts text and generates summary.
-4. Preview appears:
-   - PDF via iframe preview
-   - DOCX/TXT via text preview
+2. App extracts text and generates a concise document summary.
+3. Document Q&A box appears. Ask questions about the document content.
+4. Document history appears in the sidebar. Select a document to reopen it.
+5. Use the mini preview in the sidebar to View/Zoom the PDF.
+
+Notes:
+- Document summaries are NOT in meeting-minutes format.
+- Q&A is history-aware for each document.
+- For scanned PDFs, enable OCR (see Troubleshooting).
 
 
 9) HISTORY
@@ -108,14 +112,29 @@ History stores:
 - processed file metadata
 
 
-10) EXPORT
+10) DOCUMENT HISTORY
+--------------------
+Sidebar "Documents" provides:
+- open existing document
+- mini preview for PDFs
+
+
+11) EXPORT
 ----------
 - Export Transcript: downloads transcript as .doc
 - Export Summary: downloads summary as .doc
 
 
-11) COMMON ISSUES
+12) COMMON ISSUES
 -----------------
+Issue: "MongoDB connection refused"
+Fix:
+- Ensure MongoDB is running locally, or set MONGODB_URI.
+
+Issue: "document too large" during PDF processing
+Fix:
+- This is resolved by chunk storage in document_chunks collection. Ensure you are on the latest version and MongoDB is running.
+
 Issue: "NLLB model not found offline"
 Fix:
 - Set NLLB_MODEL_PATH to local model folder
@@ -135,3 +154,7 @@ Fix:
 - Allow microphone access in browser
 - Check browser supports MediaRecorder
 
+Issue: Scanned PDF returns no text
+Fix:
+- Enable OCR with DOCUMENT_OCR=1
+- Install pdf2image, pytesseract, and system tesseract

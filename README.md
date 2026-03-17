@@ -1,34 +1,38 @@
 # ASR Studio
 
-ASR Studio is a Flask-based speech platform for:
-- audio/video transcription
-- speaker diarization and speaker mapping
+ASR Studio is a Flask-based speech + document intelligence platform for:
+- audio/video transcription with diarization
 - live meeting chunk transcription
 - meeting summary generation
+- document ingestion + RAG Q&A
 - multilingual translation with local/offline NLLB
-- history management and export
+- session history and document history
 
 ## Features
 
 - Upload audio or video and get timestamped transcript with speakers.
 - Run live meeting transcription with start/pause/stop controls.
-- Extract text from documents (`.pdf`, `.docx`, `.txt`) and summarize it.
+- Upload documents (`.pdf`, `.docx`, `.txt`) to extract text, summarize, and ask questions.
+- RAG Q&A over documents with history-aware responses.
 - Auto-translate transcript, summary, and document text from the UI language selector.
-- Persist sessions in `outputs/*.json` with history list, rename, and delete.
+- Persist history in MongoDB (sessions + documents) with list, open, rename, delete.
 - Export transcript and summary as `.doc` files from the UI.
 
 ## Tech Stack
 
 - Backend: Flask
+- Database: MongoDB (history + document store)
 - ASR: `faster-whisper`
 - Diarization: `pyannote.audio`
 - Translation: NLLB (`transformers`, `sentencepiece`)
 - Summarization: Ollama (default) or local BART
-- Media/document tools: `ffmpeg-python`, `moviepy`, `pypdf`, `python-docx`
+- Document tools: `pypdf`, `python-docx`, optional OCR (`pdf2image`, `pytesseract`)
+- RAG embeddings: `sentence-transformers`
 
 ## Requirements
 
 - Python 3.10+ (project is currently used with Conda envs)
+- MongoDB running locally (or set `MONGODB_URI`)
 - FFmpeg installed on system path
 - Optional NVIDIA GPU for faster ASR/translation/diarization
 - Hugging Face token for diarization model download (`HUGGINGFACE_TOKEN`)
@@ -50,6 +54,23 @@ Open:
 ```text
 http://127.0.0.1:5000
 ```
+
+## Document Q&A (RAG)
+
+- Upload a PDF/DOCX/TXT and the app will:
+  - extract text
+  - split into chunks (recursive splitter)
+  - embed and store chunks in MongoDB
+  - enable document Q&A in the UI
+
+Document history appears in the sidebar with a mini PDF preview. Use View/Zoom in the sidebar to open the PDF.
+
+### RAG Environment Variables
+
+- `RAG_MODEL` (default: `mistral`) – model used by Ollama for Q&A
+- `DOC_CHUNK_SIZE` (default: `2000`)
+- `DOC_CHUNK_OVERLAP` (default: `80`)
+- `DOC_RETRIEVE_TOP_K` (default: `5`)
 
 ## Translation Model (NLLB)
 
@@ -76,7 +97,10 @@ set -a; source .env.nllb; set +a
 - `POST /process` - Process uploaded or path-based media file.
 - `POST /transcribe_chunk` - Live chunk transcription.
 - `POST /summarize_text` - Summarize transcript text.
-- `POST /process_document` - Upload and summarize document.
+- `POST /process_document` - Upload and summarize document + RAG ingestion.
+- `POST /api/document/ask` - Ask a question about a document.
+- `GET /api/documents` - List document history.
+- `GET /api/documents/<doc_id>` - Open a document history item.
 - `POST /translate` - Translate `text` or `texts`.
 - `GET /history` - List session history.
 - `GET /history/<session_id>` - Fetch one session.
@@ -89,7 +113,6 @@ set -a; source .env.nllb; set +a
 - `audio/` - uploaded and processed audio files
 - `videos/` - uploaded videos
 - `documents/` - uploaded docs
-- `outputs/` - session JSON history files
 - `recordings/` - temporary live chunk files
 - `demucs_outputs/` - Demucs separation output
 - `models/` / `nllb_model/` - local NLLB model folders
@@ -100,8 +123,7 @@ See `COMPLETE_DOCUMENTATION.txt` for the full environment variable reference and
 
 ## Troubleshooting
 
+- Mongo error `document too large`: resolved by chunk storage in `document_chunks` collection. Ensure Mongo is running.
 - `NLLB model not found offline`: set `NLLB_MODEL_PATH` to a complete local folder containing model weights.
-- `Cannot copy out of meta tensor`: ensure model directory is complete; current loader already handles this and reports incomplete model directories.
 - Diarization load failures: set valid `HUGGINGFACE_TOKEN`.
 - No summary from Ollama: verify Ollama service and `OLLAMA_URL`.
-

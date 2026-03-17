@@ -3,7 +3,7 @@ ASR STUDIO - COMPLETE TECHNICAL DOCUMENTATION
 
 1. OVERVIEW
 -----------
-ASR Studio is a Flask application for speech-to-text workflows with:
+ASR Studio is a Flask application for speech-to-text and document intelligence workflows with:
 - media ingestion (audio/video)
 - transcription (faster-whisper)
 - speaker diarization (pyannote)
@@ -11,7 +11,8 @@ ASR Studio is a Flask application for speech-to-text workflows with:
 - summary generation (Ollama or BART)
 - translation (NLLB)
 - live chunk transcription
-- session history persistence
+- session history persistence (MongoDB)
+- document ingestion + RAG Q&A (MongoDB)
 
 
 2. RUNTIME FLOW
@@ -22,7 +23,8 @@ Startup sequence:
    audio/, videos/, outputs/, documents/, recordings/
 3. ASR model loads (preferred ASR_MODEL_SIZE; fallback to "medium").
 4. Diarization pipeline loads.
-5. HTTP routes are served.
+5. MongoDB init + indexes.
+6. HTTP routes are served.
 
 Primary media flow (/process):
 1. Accept uploaded media or path payload.
@@ -32,8 +34,22 @@ Primary media flow (/process):
 5. Transcribe audio segments with timestamps and words.
 6. Run diarization.
 7. Map words/segments to speakers.
-8. Persist session JSON to outputs/.
+8. Persist session history to MongoDB.
 9. Return transcript + metadata.
+
+Document flow (/process_document):
+1. Accept uploaded document (.pdf/.docx/.txt).
+2. Extract text (PDF -> pypdf; optional OCR for scanned PDFs).
+3. Summarize document (non-meeting format).
+4. Chunk text (recursive splitter) + embed with sentence-transformers.
+5. Store document metadata in document_store and chunks in document_chunks.
+6. Return document summary + document_id for RAG Q&A.
+
+RAG Q&A flow (/api/document/ask):
+1. Retrieve top-k chunks by cosine similarity.
+2. Build prompt with context + conversation history.
+3. Generate answer via Ollama.
+4. Persist chat history for the document.
 
 
 3. PROJECT STRUCTURE
@@ -56,11 +72,12 @@ app/mapper.py
 
 app/media_utils.py
 - media conversion, extraction, Demucs enhancement
-- document text extraction
+- document text extraction (PDF/DOCX/TXT)
 
 app/summarize.py
 - summary backend integration (Ollama/BART)
-- structured meeting-minutes formatting
+- meeting-minutes for transcripts
+- plain summaries for documents
 
 app/translation.py
 - NLLB loading (offline-first)
@@ -71,7 +88,22 @@ app/processing_service.py
 - persistence helpers
 
 app/history_store.py
-- session history CRUD using JSON files in outputs/
+- session history CRUD (MongoDB)
+
+app/document_store.py
+- document metadata CRUD (MongoDB)
+
+app/document_chunks.py
+- document chunk storage (MongoDB)
+
+app/document_rag.py
+- chunking, embeddings, retrieval, history-aware Q&A
+
+app/semantic_search.py
+- semantic search for transcript history
+
+app/db.py
+- MongoDB connection and index creation
 
 templates/index.html + static/js/index.js + static/css/index.css
 - web UI
@@ -79,6 +111,7 @@ templates/index.html + static/js/index.js + static/css/index.css
 - translation dropdown auto-translation behavior
 - history rendering
 - export actions
+- document Q&A and preview
 
 scripts/download_nllb_model.py
 - utility script to download NLLB locally and generate env file
@@ -129,14 +162,31 @@ Output:
 POST /process_document
 Input form-data:
 - document_file (required)
-- meeting_title, meeting_date, meeting_place (required)
 Output:
 - {
     "summary": str,
     "document_filename": str,
     "document_type": str,
-    "document_text": str
+    "document_text": str,
+    "document_id": str,
+    "chunk_count": int
   }
+
+POST /api/document/ask
+Input JSON:
+- document_id (required)
+- question (required)
+- top_k (optional)
+Output:
+- {"answer": "...", "sources": [...], "history": [...]}
+
+GET /api/documents
+Output:
+- {"documents": [document_entry, ...]}
+
+GET /api/documents/<doc_id>
+Output:
+- {"document_id":..., "filename":..., "document_type":..., "text_preview":..., "summary":..., "chat_history":...}
 
 POST /translate
 Input JSON:
@@ -174,23 +224,41 @@ Output:
 - {"ok": true}
 
 
-5. HISTORY JSON SCHEMA
-----------------------
-Stored file: outputs/<session_id>.json
+5. DATA SCHEMAS (MongoDB)
+-------------------------
+Collections:
+- history
+- document_store
+- document_chunks
 
-Fields:
+History (history):
 - session_id
 - title
 - processed_file
 - before_audio_file
 - after_audio_file
 - source_video
-- transcript: list of segments
-  - speaker: str
-  - start: float seconds
-  - end: float seconds
-  - text: str
-- summary: str
+- transcript: list of segments {speaker, start, end, text}
+- summary
+- owner
+- created_at, updated_at
+
+Document metadata (document_store):
+- document_id
+- filename
+- document_type
+- text_preview
+- summary
+- chunk_count
+- chat_history
+- owner
+- created_at, updated_at
+
+Document chunks (document_chunks):
+- document_id
+- index
+- text
+- embedding
 
 
 6. ENVIRONMENT VARIABLES
@@ -199,100 +267,38 @@ Flask:
 - FLASK_DEBUG (default: 1)
 - FLASK_USE_RELOADER (default: 0)
 
+MongoDB:
+- MONGODB_URI (default: mongodb://localhost:27017)
+- MONGODB_DB (default: asr_studio)
+
 ASR:
-- ASR_MODEL_PATH
 - ASR_MODEL_SIZE (default: medium)
-- ASR_TASK (transcribe|translate; default: transcribe)
-- ASR_MULTILINGUAL (default: 1)
-- ASR_OUTPUT_ENGLISH (default: 1)
-- ASR_LANGUAGE
-- ASR_AUTO_LANGUAGE (default: 1)
-- ASR_AUTO_LANGUAGE_MIN_PROB (default: 0.55)
-- ASR_INITIAL_PROMPT
 
 Diarization:
 - HUGGINGFACE_TOKEN
-- DIARIZATION_NUM_SPEAKERS
-- DIARIZATION_MIN_SPEAKERS
-- DIARIZATION_MAX_SPEAKERS
-- DIARIZATION_PRELOAD_AUDIO (default: 1)
 
-Demucs:
-- DEMUCS_ENABLED (default: 1)
-- DEMUCS_MODEL (default: htdemucs)
-- DEMUCS_OUTPUT_FOLDER (default: demucs_outputs)
-- DEMUCS_TWO_STEMS (default: vocals)
-- DEMUCS_DEVICE (cpu|cuda)
-
-Summary:
-- SUMMARY_BACKEND (default: ollama)
-- SUMMARY_MODEL (default: mistral)
+Summarization:
+- SUMMARY_BACKEND (ollama | bart)
+- SUMMARY_MODEL (ollama model name, default: mistral)
 - OLLAMA_URL (default: http://localhost:11434/api/generate)
-- SUMMARY_TIMEOUT_SECONDS (default: 10800)
+
+Document OCR:
+- DOCUMENT_OCR (1/true/yes/on to enable OCR for PDFs)
+- DOCUMENT_OCR_LANGS (default: eng)
+
+RAG:
+- RAG_MODEL (default: mistral)
+- DOC_CHUNK_SIZE (default: 2000)
+- DOC_CHUNK_OVERLAP (default: 80)
+- DOC_RETRIEVE_TOP_K (default: 5)
 
 Translation (NLLB):
-- NLLB_MODEL_PATH
-- NLLB_MODEL_NAME (default: facebook/nllb-200-distilled-600M)
-- NLLB_OFFLINE_ONLY (default: 1)
-- NLLB_AUTO_DOWNLOAD (default: 0)
-- NLLB_SOURCE_LANG (default: eng_Latn)
-- NLLB_MAX_INPUT_TOKENS (default: 512)
-- NLLB_MAX_NEW_TOKENS (default: 512)
-- NLLB_BATCH_SIZE (default: 8)
-- HF_HOME (optional cache root)
+- NLLB_MODEL_PATH (optional)
 
 
-7. TRANSLATION MODEL RESOLUTION ORDER
--------------------------------------
-At runtime, NLLB model source is selected in this order:
-1. NLLB_MODEL_PATH (if valid local model folder)
-2. local folder ./nllb_model (legacy fallback)
-3. local folder ./models/nllb-200-distilled-600M
-4. Hugging Face cache snapshot (offline)
-5. explicit download path (when NLLB_AUTO_DOWNLOAD=1)
-6. model name fallback (online)
-
-Validation requires tokenizer/config + model weights files.
-
-
-8. UI FUNCTIONALITY NOTES
--------------------------
-- Translation dropdown applies translation automatically to:
-  - transcript
-  - summary
-  - document text
-- Selecting default/empty translation option restores source text.
-- Per-block translation and per-summary translation icons are also available.
-- Sidebar supports history list, rename, delete.
-- Export buttons appear when transcript/summary are available.
-
-
-9. ERROR HANDLING STRATEGY
---------------------------
-- Media conversion errors return HTTP 500 with detail.
-- Invalid file format returns HTTP 400 with supported formats.
-- Missing history session returns HTTP 404.
-- Mapping under-coverage triggers ASR-only timeline fallback.
-- Demucs failure is non-fatal and falls back to original audio.
-- Translation loader catches meta-tensor move errors and reports incomplete model guidance.
-
-
-10. SETUP CHECKLIST
--------------------
-1. Install Python dependencies:
-   pip install -r requirements.txt
-2. Ensure FFmpeg is installed.
-3. Set HUGGINGFACE_TOKEN for diarization.
-4. Ensure NLLB local model exists (or set NLLB_MODEL_PATH).
-5. (Optional) start Ollama if SUMMARY_BACKEND=ollama.
-6. Run:
-   python main.py
-
-
-11. MAINTENANCE NOTES
----------------------
-- outputs/ stores history; deleting files removes session history.
-- recordings/ stores temporary live chunks (cleaned after processing).
-- demucs_outputs/ can grow large; safe to clean when not needed.
-- nllb_model/ and models/ can consume several GB.
-
+7. TROUBLESHOOTING
+------------------
+- MongoDB connection refused: start MongoDB or set MONGODB_URI.
+- Document too large errors: resolved by chunk storage in document_chunks. Ensure MongoDB is running and indexes are initialized.
+- Scanned PDFs return no text: enable OCR and install dependencies.
+- Ollama summary/Q&A not responding: verify OLLAMA_URL and model availability.
