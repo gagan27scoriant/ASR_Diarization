@@ -55,6 +55,19 @@ Conversation:
 {transcript_text} """
 
 
+def _build_document_prompt(document_text: str) -> str:
+    return f"""
+Summarize the following document clearly and concisely.
+Rules:
+- Do NOT use a meeting minutes format.
+- Use short paragraphs or bullet points if helpful.
+- If the document is empty or unreadable, say so.
+
+Document:
+{document_text}
+"""
+
+
 def _summarize_with_ollama(
     transcript_text: str,
     meeting_title: str,
@@ -62,6 +75,22 @@ def _summarize_with_ollama(
     meeting_place: str
 ) -> str:
     prompt = _build_prompt(transcript_text, meeting_title, meeting_date, meeting_place)
+    response = requests.post(
+        OLLAMA_URL,
+        json={
+            "model": SUMMARY_MODEL,
+            "prompt": prompt,
+            "stream": False,
+        },
+        timeout=SUMMARY_TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    result = response.json()
+    return result.get("response", "").strip()
+
+
+def _summarize_document_with_ollama(document_text: str) -> str:
+    prompt = _build_document_prompt(document_text)
     response = requests.post(
         OLLAMA_URL,
         json={
@@ -149,6 +178,27 @@ THANK YOU
 
     return structured_summary.strip()
 
+
+def _summarize_document_with_bart(document_text: str) -> str:
+    document_text = (document_text or "").replace("\n", " ").strip()
+    if not document_text:
+        return "No text to summarize."
+    max_chunk_length = 1000
+    words = document_text.split()
+    chunks = [" ".join(words[i:i+max_chunk_length]) for i in range(0, len(words), max_chunk_length)]
+    chunk_summaries = []
+    for chunk in chunks:
+        inputs = tokenizer(chunk, return_tensors="pt", max_length=1024, truncation=True)
+        summary_ids = model.generate(
+            inputs["input_ids"],
+            num_beams=4,
+            max_length=180,
+            early_stopping=True
+        )
+        chunk_summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+        chunk_summaries.append(chunk_summary)
+    return " ".join(chunk_summaries).strip()
+
 def _strip_transcript_section(summary_text: str) -> str:
     # Safety: remove transcript section if model adds it despite prompt constraints.
     cleaned = re.sub(
@@ -182,4 +232,16 @@ def summarize_text(transcript_text, meeting_title, meeting_date, meeting_place):
         return _strip_transcript_section(raw)
     except Exception as e:
         print("Summarization error:", e)
+        return "Summary generation failed."
+
+
+def summarize_document_text(document_text: str) -> str:
+    if not (document_text or "").strip():
+        return "No text to summarize."
+    try:
+        if SUMMARY_BACKEND == "ollama":
+            return _summarize_document_with_ollama(document_text)
+        return _summarize_document_with_bart(document_text)
+    except Exception as e:
+        print("Document summarization error:", e)
         return "Summary generation failed."

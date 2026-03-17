@@ -25,6 +25,7 @@ POLICIES: dict[str, dict[str, Any]] = {
         "permissions": [
             "process:media",
             "process:document",
+            "rag:ask",
             "summary:generate",
             "translate:run",
             "history:read",
@@ -42,6 +43,7 @@ POLICIES: dict[str, dict[str, Any]] = {
         "permissions": [
             "process:media",
             "process:document",
+            "rag:ask",
             "summary:generate",
             "translate:run",
             "history:read",
@@ -57,6 +59,7 @@ POLICIES: dict[str, dict[str, Any]] = {
         "permissions": [
             "process:media",
             "process:document",
+            "rag:ask",
             "summary:generate",
             "translate:run",
             "history:read",

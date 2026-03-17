@@ -41,6 +41,33 @@
         <div id="historyList" class="history-list">
             <div class="history-empty">No history yet</div>
         </div>
+        <div class="history-header">
+            <h1>Documents</h1>
+            <button class="history-clear-btn" id="refreshDocsBtn" type="button" onclick="refreshDocumentHistory()">Refresh</button>
+        </div>
+        <div id="documentHistoryList" class="history-list docs">
+            <div class="history-empty">No documents yet</div>
+        </div>
+        <div id="docMiniPanel" class="doc-mini-panel hidden">
+            <div class="doc-mini-title">Mini Preview</div>
+            <div class="doc-mini-actions">
+                <button class="doc-mini-btn" type="button" onclick="openDocumentPreview('view')">View</button>
+                <button class="doc-mini-btn" type="button" onclick="openDocumentPreview('zoom')">Zoom</button>
+            </div>
+            <iframe id="docMiniFrame" class="doc-mini-frame" title="Document mini preview"></iframe>
+            <div id="docMiniName" class="doc-mini-name"></div>
+        </div>
+    </div>
+</div>
+
+<div id="docPreviewModal" class="doc-preview-modal hidden">
+    <div class="doc-preview-scrim" onclick="closeDocumentPreview()"></div>
+    <div class="doc-preview-sheet">
+        <div class="doc-preview-header">
+            <div class="doc-preview-title">Document Preview</div>
+            <button class="doc-preview-close" type="button" onclick="closeDocumentPreview()">Close</button>
+        </div>
+        <iframe id="docPreviewFrame" class="doc-preview-iframe" title="Document preview"></iframe>
     </div>
 </div>
 
@@ -69,7 +96,7 @@
             <div class="drop-zone-icon">🎙</div>
             <div class="drop-zone-title"></div>
             <div class="drop-zone-subtitle"><button class="browse-inline-btn" type="button" onclick="event.stopPropagation(); openFilePicker();">Browse File</button></div>
-            <div class="drop-zone-support">Supported: MP3, WAV, MP4, PDF, DOCX • Max size 500MB</div>
+            <div class="drop-zone-support">Supported: MP3, WAV, MP4, PDF, DOCX</div>
         </div>
       </div>
       <div class="message-row">

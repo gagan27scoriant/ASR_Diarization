@@ -11,6 +11,8 @@ let currentAfterAudio = "";
 let currentDocumentFilename = "";
 let currentDocumentType = "";
 let currentDocumentText = "";
+let currentDocumentId = "";
+let currentDocumentChat = [];
 let sourceTranscriptData = [];
 let sourceSummary = "";
 let sourceDocumentText = "";
@@ -20,6 +22,7 @@ let speakerOrderMap = {};
 let isSummaryLoading = false;
 let groupedTranscriptCache = [];
 let historyEntries = [];
+let documentEntries = [];
 let currentPolicy = null;
 let currentUser = null;
 let currentImpersonator = null;
@@ -549,6 +552,30 @@ function renderHistoryList() {
     }).join("");
 }
 
+function renderDocumentHistory() {
+    const list = document.getElementById("documentHistoryList");
+    if (!list) return;
+
+    if (!documentEntries || documentEntries.length === 0) {
+        list.innerHTML = `<div class="history-empty">No documents yet</div>`;
+        return;
+    }
+
+    list.innerHTML = documentEntries.map((entry) => {
+        const activeClass = entry.document_id === currentDocumentId ? "active" : "";
+        const title = truncateText(entry.filename || entry.document_id);
+        const meta = `${entry.chunk_count || 0} chunks • ${formatHistoryLabel(entry.updated_at)}`;
+        return `
+            <div class="history-item ${activeClass}" title="${escapeHTMLText(entry.filename || entry.document_id)}">
+                <button class="history-open-btn" onclick="openDocumentEntry('${entry.document_id}')">
+                    <span class="history-title">${escapeHTMLText(title)}</span>
+                    <span class="history-meta">${escapeHTMLText(meta)}</span>
+                </button>
+            </div>
+        `;
+    }).join("");
+}
+
 async function refreshHistory() {
     try {
         const response = await fetch("/history");
@@ -562,6 +589,23 @@ async function refreshHistory() {
         const list = document.getElementById("historyList");
         if (list) {
             list.innerHTML = `<div class="history-empty">History unavailable</div>`;
+        }
+    }
+}
+
+async function refreshDocumentHistory() {
+    try {
+        const response = await fetch("/api/documents");
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || "Failed to load documents");
+        }
+        documentEntries = result.documents || [];
+        renderDocumentHistory();
+    } catch (e) {
+        const list = document.getElementById("documentHistoryList");
+        if (list) {
+            list.innerHTML = `<div class="history-empty">Documents unavailable</div>`;
         }
     }
 }
@@ -709,6 +753,8 @@ async function openHistorySession(sessionId) {
         currentDocumentFilename = "";
         currentDocumentType = "";
         currentDocumentText = "";
+        currentDocumentId = "";
+        currentDocumentChat = [];
         lastAudioFile = currentAfterAudio || result.processed_file || result.title || sessionId;
         setSourceTranscript(transcriptData);
         setSourceSummary(currentSummary);
@@ -716,8 +762,47 @@ async function openHistorySession(sessionId) {
 
         await applySelectedLanguageToAllTexts(false);
         renderHistoryList();
+        renderDocumentHistory();
+        updateSidebarMiniPreview();
     } catch (e) {
         alert(e.message || "Failed to open history");
+    } finally {
+        document.getElementById("loadingOverlay").style.display = "none";
+    }
+}
+
+async function openDocumentEntry(docId) {
+    if (!docId) return;
+    document.getElementById("loadingOverlay").style.display = "flex";
+    try {
+        const response = await fetch(`/api/documents/${encodeURIComponent(docId)}`);
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || "Failed to open document");
+        }
+
+        currentDocumentId = result.document_id || docId;
+        currentDocumentFilename = result.filename || "";
+        currentDocumentType = (result.document_type || "").toLowerCase();
+        currentDocumentText = result.text_preview || "";
+        currentDocumentChat = result.chat_history || [];
+        currentSummary = result.summary || "";
+        currentSessionId = "";
+        transcriptData = [];
+        currentProcessedAudio = "";
+        currentProcessedVideo = "";
+        currentBeforeAudio = "";
+        currentAfterAudio = "";
+        setSourceTranscript([]);
+        setSourceSummary(currentSummary);
+        setSourceDocumentText(currentDocumentText);
+
+        await applySelectedLanguageToAllTexts(false);
+        renderDocumentHistory();
+        renderHistoryList();
+        updateSidebarMiniPreview();
+    } catch (e) {
+        alert(e.message || "Failed to open document");
     } finally {
         document.getElementById("loadingOverlay").style.display = "none";
     }
@@ -771,6 +856,9 @@ async function deleteHistorySession(sessionId) {
             currentDocumentFilename = "";
             currentDocumentType = "";
             currentDocumentText = "";
+            currentDocumentId = "";
+            currentDocumentChat = [];
+            updateSidebarMiniPreview();
             setSourceTranscript([]);
             setSourceSummary("");
             setSourceDocumentText("");
@@ -814,6 +902,8 @@ async function clearAllHistory() {
     currentDocumentFilename = "";
     currentDocumentType = "";
     currentDocumentText = "";
+    currentDocumentId = "";
+    currentDocumentChat = [];
     setSourceTranscript([]);
     setSourceSummary("");
     setSourceDocumentText("");
@@ -826,6 +916,8 @@ async function clearAllHistory() {
     document.getElementById("sumBtn").style.display = "none";
     updateTranscriptDependentUI();
     await refreshHistory();
+    await refreshDocumentHistory();
+    updateSidebarMiniPreview();
 }
 
 function formatTime(seconds) {
@@ -891,12 +983,14 @@ async function processSelectedFile(selectedFile, silentMode = false) {
             currentAfterAudio = "";
             currentDocumentFilename = result.document_filename || "";
             currentDocumentType = (result.document_type || "").toLowerCase();
-            const wantsExtract = window.confirm("Shall I show the extracted content?");
-            currentDocumentText = wantsExtract ? (result.document_text || "") : "";
+            currentDocumentId = result.document_id || "";
+            currentDocumentChat = result.chat_history || [];
+            currentDocumentText = result.document_text || "";
             setSourceTranscript([]);
             setSourceSummary(currentSummary);
             setSourceDocumentText(currentDocumentText);
             await applySelectedLanguageToAllTexts(false);
+            await refreshDocumentHistory();
             return;
         }
 
@@ -923,6 +1017,8 @@ async function processSelectedFile(selectedFile, silentMode = false) {
         currentDocumentFilename = "";
         currentDocumentType = "";
         currentDocumentText = "";
+        currentDocumentId = "";
+        currentDocumentChat = [];
         currentProcessedVideo = result.source_video || "";
         currentBeforeAudio = result.before_audio_file || result.processed_file || "";
         currentAfterAudio = result.after_audio_file || result.processed_file || "";
@@ -935,6 +1031,7 @@ async function processSelectedFile(selectedFile, silentMode = false) {
         setSourceDocumentText("");
         await applySelectedLanguageToAllTexts(false);
         await refreshHistory();
+        await refreshDocumentHistory();
     } catch (e) { 
         document.getElementById("loadingOverlay").style.display = "none";
         if (!silentMode) {
@@ -1233,35 +1330,188 @@ function renderDocumentResult() {
     const row = document.createElement("div");
     row.className = "message-row transcription";
 
-    let previewMarkup = "";
-    if (currentDocumentType === "pdf") {
-        previewMarkup = `
-            <div class="doc-preview-panel">
-                <iframe class="doc-preview-frame" src="/documents/${encodeURIComponent(currentDocumentFilename)}"></iframe>
-            </div>
-        `;
-    } else {
-        previewMarkup = `
-            <div class="doc-preview-panel">
-                <div class="doc-preview-text">${escapeHTMLText(currentDocumentText || "No preview available.")}</div>
-            </div>
-        `;
-    }
-
     row.innerHTML = `
         <div class="avatar" style="background:#ef4444">DOC</div>
         <div class="content doc-preview-content" style="border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.10);">
-            <span style="font-size:10px; font-weight:900; color:#ef4444; text-transform:uppercase;">DOCUMENT PREVIEW</span><br>
-            <span style="display:block; font-size:12px; color:var(--muted); margin-top:5px;">${escapeHTMLText(currentDocumentFilename)}</span>
-            ${previewMarkup}
+            <div class="doc-layout single">
+                <div class="doc-layout-left" id="docLayoutLeft">
+                    <div class="doc-info-card">
+                        <div class="doc-info-title">Document</div>
+                        <div class="doc-info-name">${escapeHTMLText(currentDocumentFilename)}</div>
+                    </div>
+                    <div class="content doc-summary-card" id="docSummaryCard" style="position:relative;"></div>
+                </div>
+            </div>
         </div>
     `;
 
     chat.appendChild(row);
+    updateSidebarMiniPreview();
+    renderDocumentQAPanel();
     if (currentSummary) {
-        renderSummaryCard(currentSummary);
+        const target = document.getElementById("docSummaryCard");
+        if (target) {
+            renderSummaryCard(currentSummary, target);
+        }
     }
     chat.scrollTop = chat.scrollHeight;
+}
+
+function renderDocumentQAPanel() {
+    const chat = document.getElementById("chat");
+    const existing = document.getElementById("documentQaPanel");
+    if (existing) existing.remove();
+
+    const row = document.createElement("div");
+    row.className = "message-row transcription";
+    row.id = "documentQaPanel";
+    row.innerHTML = `
+        <div class="avatar" style="background:#0ea5e9">Q&A</div>
+        <div class="content doc-qa-content" style="border-left: 4px solid #0ea5e9; background: rgba(14, 165, 233, 0.10);">
+            <span class="doc-qa-title">Ask questions about this document</span>
+            <div class="doc-qa-messages" id="docQaMessages"></div>
+            <div class="doc-qa-input-row">
+                <textarea id="docQaInput" placeholder="Ask a question about this document..." rows="2"></textarea>
+                <button class="doc-qa-send" id="docQaSend" type="button">Ask</button>
+            </div>
+            <div class="doc-qa-hint">History-aware answers are enabled for this document.</div>
+        </div>
+    `;
+    const target = document.getElementById("docLayoutLeft");
+    if (target) {
+        target.appendChild(row);
+    } else {
+        chat.appendChild(row);
+    }
+
+    const input = document.getElementById("docQaInput");
+    const sendBtn = document.getElementById("docQaSend");
+    if (sendBtn) {
+        sendBtn.addEventListener("click", () => askDocumentQuestion());
+    }
+    if (input) {
+        input.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                askDocumentQuestion();
+            }
+        });
+    }
+    renderDocumentChatHistory();
+}
+
+function updateSidebarMiniPreview() {
+    const panel = document.getElementById("docMiniPanel");
+    const frame = document.getElementById("docMiniFrame");
+    const name = document.getElementById("docMiniName");
+    if (!panel || !frame || !name) return;
+    if (currentDocumentType === "pdf" && currentDocumentFilename) {
+        frame.src = `/documents/${encodeURIComponent(currentDocumentFilename)}`;
+        name.textContent = currentDocumentFilename;
+        panel.classList.remove("hidden");
+    } else {
+        frame.src = "";
+        name.textContent = "";
+        panel.classList.add("hidden");
+    }
+}
+
+function openDocumentPreview(mode) {
+    if (currentDocumentType !== "pdf" || !currentDocumentFilename) return;
+    const modal = document.getElementById("docPreviewModal");
+    const frame = document.getElementById("docPreviewFrame");
+    const sheet = modal ? modal.querySelector(".doc-preview-sheet") : null;
+    if (!modal || !frame || !sheet) return;
+    frame.src = `/documents/${encodeURIComponent(currentDocumentFilename)}`;
+    sheet.classList.toggle("zoom", mode === "zoom");
+    modal.classList.remove("hidden");
+}
+
+function closeDocumentPreview() {
+    const modal = document.getElementById("docPreviewModal");
+    const frame = document.getElementById("docPreviewFrame");
+    const sheet = modal ? modal.querySelector(".doc-preview-sheet") : null;
+    if (!modal || !frame || !sheet) return;
+    frame.src = "";
+    sheet.classList.remove("zoom");
+    modal.classList.add("hidden");
+}
+
+function renderDocumentChatHistory() {
+    const list = document.getElementById("docQaMessages");
+    if (!list) return;
+    const items = Array.isArray(currentDocumentChat) ? currentDocumentChat : [];
+    if (!items.length) {
+        list.innerHTML = "<div class='doc-qa-empty'>No questions asked yet.</div>";
+        return;
+    }
+    list.innerHTML = items.map((item) => {
+        const role = item.role === "assistant" ? "AI" : "You";
+        const body = escapeHTMLText(item.content || "");
+        const sources = Array.isArray(item.sources) && item.sources.length
+            ? `<div class='doc-qa-sources'>` + item.sources.map((s) =>
+                `<span>Chunk ${Number(s.index) + 1}</span>`
+              ).join("") + `</div>`
+            : "";
+        return `
+            <div class="doc-qa-message ${item.role === "assistant" ? "assistant" : "user"}">
+                <div class="doc-qa-role">${role}</div>
+                <div class="doc-qa-text">${body}</div>
+                ${sources}
+            </div>
+        `;
+    }).join("");
+    list.scrollTop = list.scrollHeight;
+}
+
+async function askDocumentQuestion() {
+    const input = document.getElementById("docQaInput");
+    const sendBtn = document.getElementById("docQaSend");
+    if (!input || !sendBtn) return;
+    if (!currentDocumentId) {
+        alert("Document context not ready yet.");
+        return;
+    }
+    const question = (input.value || "").trim();
+    if (!question) return;
+    input.value = "";
+
+    currentDocumentChat = Array.isArray(currentDocumentChat) ? currentDocumentChat : [];
+    currentDocumentChat.push({ role: "user", content: question });
+    renderDocumentChatHistory();
+
+    sendBtn.disabled = true;
+    sendBtn.textContent = "Thinking...";
+    try {
+        const response = await fetch("/api/document/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                document_id: currentDocumentId,
+                question,
+                top_k: 5
+            })
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || "Failed to answer question");
+        }
+        currentDocumentChat = result.history || currentDocumentChat;
+        const sources = result.sources || [];
+        if (currentDocumentChat.length) {
+            const lastIdx = currentDocumentChat.length - 1;
+            if (currentDocumentChat[lastIdx].role === "assistant") {
+                currentDocumentChat[lastIdx].sources = sources;
+            }
+        }
+        renderDocumentChatHistory();
+    } catch (e) {
+        currentDocumentChat.push({ role: "assistant", content: e.message || "Failed to answer." });
+        renderDocumentChatHistory();
+    } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = "Ask";
+    }
 }
 
 function setupRenameSidebar() {
@@ -1576,6 +1826,15 @@ function renderSummaryCard(summaryText, targetCard = null) {
         targetCard.innerHTML = summaryMarkup;
         moveKeywordSearchToEnd();
         chat.scrollTop = chat.scrollHeight;
+        return;
+    }
+
+    if (currentDocumentFilename) {
+        const docTarget = document.getElementById("docSummaryCard");
+        if (docTarget) {
+            docTarget.id = "sumCard";
+            docTarget.innerHTML = summaryMarkup;
+        }
         return;
     }
 
@@ -2125,7 +2384,10 @@ async function showSummary() {
     }
 }
 
-loadPolicy().then(() => refreshHistory());
+loadPolicy().then(() => {
+    refreshHistory();
+    refreshDocumentHistory();
+});
 initTranslationLanguageDropdown();
 initDropZone();
 updateTranscriptDependentUI();

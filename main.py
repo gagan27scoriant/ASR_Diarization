@@ -49,6 +49,7 @@ from app.history_store import (
     rename_history_item as rename_history_record,
     update_history_transcript,
 )
+from app.document_store import list_documents, read_document, update_document
 from app.processing_service import (
     process_document_upload,
     process_media_pipeline,
@@ -56,6 +57,7 @@ from app.processing_service import (
     summarize_and_persist,
     transcribe_live_audio_chunk,
 )
+from app.document_rag import answer_document_question, ingest_document_text
 from app.semantic_search import search_history_segments
 from app.translation import get_translator
 
@@ -182,6 +184,15 @@ def _can_manage_department(actor: dict, target_department: str) -> bool:
 
 
 def _history_visible(entry: dict, actor: dict) -> bool:
+    owner = (entry or {}).get("owner") or {}
+    if _is_super_admin(actor):
+        return True
+    if _is_admin(actor):
+        return owner.get("department") == actor.get("department")
+    return owner.get("email") == actor.get("email")
+
+
+def _document_visible(entry: dict, actor: dict) -> bool:
     owner = (entry or {}).get("owner") or {}
     if _is_super_admin(actor):
         return True
@@ -518,6 +529,65 @@ def api_search():
     return jsonify({"results": results})
 
 
+@app.route("/api/document/ask", methods=["POST"])
+def api_document_ask():
+    forbidden = _require_permission("rag:ask")
+    if forbidden:
+        return forbidden
+    payload = request.get_json(silent=True) or {}
+    document_id = (payload.get("document_id") or "").strip()
+    question = (payload.get("question") or "").strip()
+    top_k = int(payload.get("top_k") or 5)
+    if not document_id or not question:
+        return jsonify({"error": "document_id and question are required"}), 400
+    try:
+        result = answer_document_question(document_id, question, top_k=top_k)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        print("❌ Document QA Error:", e)
+        return jsonify({"error": str(e)}), 500
+    user = _current_user()
+    log_activity(user["id"], "document:ask", {"document_id": document_id})
+    return jsonify(result)
+
+
+@app.route("/api/documents", methods=["GET"])
+def api_document_list():
+    forbidden = _require_permission("rag:ask")
+    if forbidden:
+        return forbidden
+    user = _current_user()
+    entries = list_documents()
+    filtered = [e for e in entries if _document_visible(e, user)]
+    return jsonify({"documents": filtered})
+
+
+@app.route("/api/documents/<doc_id>", methods=["GET"])
+def api_document_get(doc_id: str):
+    forbidden = _require_permission("rag:ask")
+    if forbidden:
+        return forbidden
+    record = read_document(doc_id) or {}
+    if not record:
+        return jsonify({"error": "Document not found"}), 404
+    user = _current_user()
+    if not _document_visible(record, user):
+        return jsonify({"error": "Forbidden"}), 403
+    text = record.get("text") or ""
+    preview = text[:8000]
+    return jsonify(
+        {
+            "document_id": record.get("document_id"),
+            "filename": record.get("filename") or "",
+            "document_type": record.get("document_type") or "",
+            "text_preview": preview,
+            "summary": record.get("summary") or "",
+            "chat_history": record.get("chat_history") or [],
+        }
+    )
+
+
 @app.route("/audio/<path:filename>")
 def serve_audio(filename):
     safe_name = secure_filename(filename)
@@ -633,6 +703,18 @@ def process_document():
             meeting_place="",
             owner=user,
         )
+        rag_meta = ingest_document_text(
+            result.get("document_text") or "",
+            result.get("document_filename") or uploaded_file.filename,
+            owner=user,
+        )
+        update_document(
+            rag_meta.get("document_id"),
+            {"summary": result.get("summary") or ""},
+        )
+        result["document_id"] = rag_meta.get("document_id")
+        result["chunk_count"] = rag_meta.get("chunk_count")
+        result["chat_history"] = []
         log_activity(user["id"], "process:document", {"filename": uploaded_file.filename})
         return jsonify(result)
     except ValueError as e:

@@ -28,7 +28,7 @@ from app.media_utils import (
     extract_text_from_document,
     resolve_media_source,
 )
-from app.summarize import summarize_text
+from app.summarize import summarize_document_text, summarize_text
 
 
 def _is_skippable_live_chunk_error(details: str) -> bool:
@@ -234,7 +234,7 @@ def process_document_upload(uploaded_file, meeting_title: str, meeting_date: str
     if not extracted_text:
         raise ValueError("No readable text found in document")
 
-    summary = summarize_text(extracted_text, meeting_title, meeting_date, meeting_place)
+    summary = summarize_document_text(extracted_text)
     result = {
         "summary": summary,
         "document_filename": filename,

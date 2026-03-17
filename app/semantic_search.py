@@ -3,25 +3,9 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
-from sentence_transformers import SentenceTransformer
 
+from app.embeddings import MODEL_NAME, embed_texts
 from app.history_store import read_history_item, update_history_embeddings
-
-
-MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
-_MODEL: SentenceTransformer | None = None
-
-
-def _get_model() -> SentenceTransformer:
-    global _MODEL
-    if _MODEL is None:
-        _MODEL = SentenceTransformer(MODEL_NAME)
-    return _MODEL
-
-
-def _embed(texts: list[str]) -> np.ndarray:
-    model = _get_model()
-    return model.encode(texts, normalize_embeddings=True)
 
 
 def search_history_segments(session_id: str, query: str, top_k: int = 5) -> list[dict[str, Any]]:
@@ -38,11 +22,11 @@ def search_history_segments(session_id: str, query: str, top_k: int = 5) -> list
         or not isinstance(embeddings, list)
         or len(embeddings) != len(texts)
     ):
-        embeddings = _embed(texts).tolist()
+        embeddings = embed_texts(texts).tolist()
         update_history_embeddings(session_id, embeddings, MODEL_NAME)
 
     emb_matrix = np.array(embeddings, dtype=np.float32)
-    query_emb = _embed([query]).astype(np.float32)[0]
+    query_emb = embed_texts([query]).astype(np.float32)[0]
     scores = emb_matrix @ query_emb
     top_k = max(1, min(int(top_k or 5), len(texts)))
     top_idx = np.argsort(scores)[::-1][:top_k]

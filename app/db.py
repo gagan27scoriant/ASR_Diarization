@@ -28,6 +28,7 @@ def init_db() -> None:
     db.departments.create_index("name", unique=True)
     db.activity_log.create_index([("created_at", ASCENDING)])
     db.history.create_index("session_id", unique=True)
+    db.document_store.create_index("document_id", unique=True)
 
     for role_id, role_name in ((1, "user"), (2, "admin"), (3, "super_admin")):
         db.roles.update_one(
