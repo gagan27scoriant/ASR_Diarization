@@ -8,6 +8,7 @@ import numpy as np
 import requests
 
 from app.document_store import create_document, read_document, update_document
+from app.document_chunks import load_document_chunks, replace_document_chunks
 from app.embeddings import embed_texts
 
 
@@ -132,14 +133,14 @@ def ingest_document_text(
     if not chunks:
         raise ValueError("No readable text found in document")
     embeddings = embed_texts(chunks).tolist()
+    preview = extracted_text[:8000]
     create_document(
         doc_id,
         {
             "filename": filename,
             "document_type": ext,
-            "text": extracted_text,
-            "chunks": chunks,
-            "embeddings": embeddings,
+            "text_preview": preview,
+            "chunk_count": len(chunks),
             "embedding_model": os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"),
             "chat_history": [],
             "owner": {
@@ -150,17 +151,19 @@ def ingest_document_text(
             },
         },
     )
+    replace_document_chunks(doc_id, chunks, embeddings)
     return {
         "document_id": doc_id,
-        "chunks": chunks,
         "chunk_count": len(chunks),
     }
 
 
 def retrieve_document_chunks(doc_id: str, query: str, top_k: int | None = None) -> list[dict[str, Any]]:
-    record = read_document(doc_id) or {}
-    chunks = record.get("chunks") or []
-    embeddings = record.get("embeddings") or []
+    rows = load_document_chunks(doc_id)
+    if not rows:
+        return []
+    chunks = [row.get("text") or "" for row in rows]
+    embeddings = [row.get("embedding") or [] for row in rows]
     if not chunks or not embeddings:
         return []
     matrix = np.array(embeddings, dtype=np.float32)
@@ -170,11 +173,12 @@ def retrieve_document_chunks(doc_id: str, query: str, top_k: int | None = None) 
     top_idx = np.argsort(scores)[::-1][:k]
     results = []
     for idx in top_idx:
+        row = rows[int(idx)] if int(idx) < len(rows) else {}
         results.append(
             {
                 "index": int(idx),
                 "score": float(scores[int(idx)]),
-                "text": chunks[int(idx)],
+                "text": row.get("text") or "",
             }
         )
     return results

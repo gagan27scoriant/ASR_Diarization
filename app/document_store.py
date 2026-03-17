@@ -45,7 +45,7 @@ def _document_doc_to_entry(doc: dict[str, Any]) -> dict[str, Any]:
         "document_id": doc.get("document_id"),
         "filename": doc.get("filename") or "",
         "document_type": doc.get("document_type") or "",
-        "chunk_count": len(doc.get("chunks") or []),
+        "chunk_count": int(doc.get("chunk_count") or 0),
         "updated_at": doc.get("updated_at") or doc.get("created_at") or "",
         "owner": doc.get("owner") or {},
         "summary": doc.get("summary") or "",

@@ -574,8 +574,7 @@ def api_document_get(doc_id: str):
     user = _current_user()
     if not _document_visible(record, user):
         return jsonify({"error": "Forbidden"}), 403
-    text = record.get("text") or ""
-    preview = text[:8000]
+    preview = record.get("text_preview") or ""
     return jsonify(
         {
             "document_id": record.get("document_id"),
