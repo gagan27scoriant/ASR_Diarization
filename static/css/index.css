@@ -753,7 +753,7 @@ textarea{
   justify-content:space-between;
   padding:0 30px;
 }
-.navbar h1{ font-size:36px; font-weight:700; color:#151515; }
+.navbar h1{ font-size:28px; font-weight:700; color:#151515; }
 .navbar h1{
   font-family: Inter, -apple-system, system-ui, sans-serif;
   letter-spacing: -0.02em;

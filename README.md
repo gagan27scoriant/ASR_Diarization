@@ -1,6 +1,6 @@
-# ASR Studio
+# AI Knowledge Studio 🧠✨
 
-ASR Studio is a Flask-based speech + document intelligence platform for:
+AI Knowledge Studio 🧠✨ is a Flask-based speech + document intelligence platform for:
 - audio/video transcription with diarization
 - live meeting chunk transcription
 - meeting summary generation

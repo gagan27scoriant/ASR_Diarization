@@ -2019,7 +2019,7 @@ function renderGreetingCard(name) {
     row.className = "message-row transcription";
     row.innerHTML = `
         <div class="avatar" style="background: #f59e0b">AI</div>
-        <div class="content">Hello ${escapeHTMLText(name || "there")}, welcome to the ASR Studio.</div>
+        <div class="content">Hello ${escapeHTMLText(name || "there")}, welcome to the AI Knowledge Studio 🧠✨.</div>
     `;
     chat.insertBefore(row, chat.querySelector(".message-row"));
 }
