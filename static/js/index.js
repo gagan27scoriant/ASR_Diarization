@@ -122,6 +122,26 @@ function resizeSidebar(e) {
 }
 function stopResize() { document.removeEventListener("mousemove", resizeSidebar); }
 
+const pdfGutter = document.getElementById("pdfGutter");
+const pdfPanel = document.getElementById("pdfPanel");
+if (pdfGutter && pdfPanel) {
+    pdfGutter.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        document.addEventListener("mousemove", resizePdfPanel);
+        document.addEventListener("mouseup", stopPdfResize);
+    });
+}
+function resizePdfPanel(e) {
+    if (!pdfPanel || !pdfPanel.classList.contains("open")) return;
+    const maxWidth = Math.min(window.innerWidth * 0.7, 900);
+    const minWidth = 320;
+    const newWidth = Math.min(maxWidth, Math.max(minWidth, window.innerWidth - e.clientX));
+    pdfPanel.style.width = `${newWidth}px`;
+}
+function stopPdfResize() {
+    document.removeEventListener("mousemove", resizePdfPanel);
+}
+
 const audioFileInput = document.getElementById("audioFile");
 const recordBtn = document.getElementById("recordBtn");
 const pauseBtn = document.getElementById("pauseBtn");
@@ -139,6 +159,25 @@ audioFileInput.addEventListener("change", () => {
 
 function openFilePicker() {
     audioFileInput.click();
+}
+
+async function parseJsonSafe(response) {
+    const text = await response.text();
+    if (!text) return { json: null, text: "" };
+    try {
+        return { json: JSON.parse(text), text };
+    } catch (_e) {
+        return { json: null, text };
+    }
+}
+
+function responseErrorMessage(result, text) {
+    if (result && result.error) return result.error;
+    const trimmed = (text || "").trim();
+    if (trimmed.toLowerCase().startsWith("<!doctype")) {
+        return "Unauthorized or session expired.";
+    }
+    return trimmed || "Request failed.";
 }
 
 function initTranslationLanguageDropdown() {
@@ -561,6 +600,9 @@ function renderDocumentHistory() {
         return;
     }
 
+    const canRename = currentPolicy ? (currentPolicy.permissions || []).includes("history:rename") : true;
+    const canDelete = currentPolicy ? (currentPolicy.permissions || []).includes("history:delete") : true;
+
     list.innerHTML = documentEntries.map((entry) => {
         const activeClass = entry.document_id === currentDocumentId ? "active" : "";
         const title = truncateText(entry.filename || entry.document_id);
@@ -571,6 +613,10 @@ function renderDocumentHistory() {
                     <span class="history-title">${escapeHTMLText(title)}</span>
                     <span class="history-meta">${escapeHTMLText(meta)}</span>
                 </button>
+                <div class="history-actions">
+                    ${canRename ? `<button class="history-action-btn" onclick="renameDocumentEntry('${entry.document_id}')" title="Rename">✎</button>` : ""}
+                    ${canDelete ? `<button class="history-action-btn delete" onclick="deleteDocumentEntry('${entry.document_id}')" title="Delete">🗑</button>` : ""}
+                </div>
             </div>
         `;
     }).join("");
@@ -806,6 +852,89 @@ async function openDocumentEntry(docId) {
     } finally {
         document.getElementById("loadingOverlay").style.display = "none";
     }
+}
+
+async function renameDocumentEntry(docId) {
+    const entry = (documentEntries || []).find((x) => x.document_id === docId);
+    const currentName = entry ? (entry.filename || entry.document_id) : docId;
+    const nextName = window.prompt("Rename document:", currentName);
+    if (nextName === null) return;
+    const clean = nextName.trim();
+    if (!clean) return;
+
+    try {
+        const response = await fetch(`/api/documents/${encodeURIComponent(docId)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ filename: clean })
+        });
+        const { json, text } = await parseJsonSafe(response);
+        const result = json || {};
+        if (!response.ok) {
+            throw new Error(responseErrorMessage(result, text));
+        }
+        await refreshDocumentHistory();
+    } catch (e) {
+        alert(e.message || "Failed to rename document");
+    }
+}
+
+async function deleteDocumentEntry(docId) {
+    const ok = window.confirm("Delete this document?");
+    if (!ok) return;
+    try {
+        const response = await fetch(`/api/documents/${encodeURIComponent(docId)}`, {
+            method: "DELETE"
+        });
+        const { json, text } = await parseJsonSafe(response);
+        const result = json || {};
+        if (!response.ok) {
+            throw new Error(responseErrorMessage(result, text));
+        }
+        if (currentDocumentId === docId) {
+            currentDocumentId = "";
+            currentDocumentFilename = "";
+            currentDocumentType = "";
+            currentDocumentText = "";
+            currentDocumentChat = [];
+            currentSummary = "";
+            setSourceSummary("");
+            setSourceDocumentText("");
+            await renderCurrentContent();
+            updateSidebarMiniPreview();
+        }
+        await refreshDocumentHistory();
+    } catch (e) {
+        alert(e.message || "Failed to delete document");
+    }
+}
+
+async function clearAllDocuments() {
+    if (!documentEntries || documentEntries.length === 0) return;
+    const ok = window.confirm("Clear all documents?");
+    if (!ok) return;
+    try {
+        const response = await fetch("/api/documents", { method: "DELETE" });
+        const { json, text } = await parseJsonSafe(response);
+        const result = json || {};
+        if (!response.ok) {
+            throw new Error(responseErrorMessage(result, text));
+        }
+    } catch (e) {
+        alert(e.message || "Failed to clear documents");
+        return;
+    }
+    currentDocumentId = "";
+    currentDocumentFilename = "";
+    currentDocumentType = "";
+    currentDocumentText = "";
+    currentDocumentChat = [];
+    currentSummary = "";
+    setSourceSummary("");
+    setSourceDocumentText("");
+    await renderCurrentContent();
+    updateSidebarMiniPreview();
+    await refreshDocumentHistory();
 }
 
 async function renameHistorySession(sessionId) {
@@ -1418,23 +1547,55 @@ function updateSidebarMiniPreview() {
 
 function openDocumentPreview(mode) {
     if (currentDocumentType !== "pdf" || !currentDocumentFilename) return;
-    const modal = document.getElementById("docPreviewModal");
-    const frame = document.getElementById("docPreviewFrame");
-    const sheet = modal ? modal.querySelector(".doc-preview-sheet") : null;
-    if (!modal || !frame || !sheet) return;
-    frame.src = `/documents/${encodeURIComponent(currentDocumentFilename)}`;
-    sheet.classList.toggle("zoom", mode === "zoom");
-    modal.classList.remove("hidden");
+    openPdfPanel(mode === "zoom" ? 1.25 : 1.0);
 }
 
 function closeDocumentPreview() {
-    const modal = document.getElementById("docPreviewModal");
-    const frame = document.getElementById("docPreviewFrame");
-    const sheet = modal ? modal.querySelector(".doc-preview-sheet") : null;
-    if (!modal || !frame || !sheet) return;
-    frame.src = "";
-    sheet.classList.remove("zoom");
-    modal.classList.add("hidden");
+    const panel = document.getElementById("pdfPanel");
+    const frame = document.getElementById("pdfFrameMain");
+    const gutter = document.getElementById("pdfGutter");
+    if (frame) frame.src = "";
+    if (panel) panel.classList.remove("open");
+    if (gutter) gutter.classList.remove("active");
+    updatePdfZoomIndicator(1.0);
+}
+
+let pdfZoom = 1.0;
+
+function openPdfPanel(zoomLevel = 1.0) {
+    const panel = document.getElementById("pdfPanel");
+    const frame = document.getElementById("pdfFrameMain");
+    const gutter = document.getElementById("pdfGutter");
+    if (!panel || !frame) return;
+    frame.src = `/documents/${encodeURIComponent(currentDocumentFilename)}`;
+    panel.style.width = "";
+    panel.classList.add("open");
+    if (gutter) gutter.classList.add("active");
+    pdfZoom = zoomLevel;
+    applyPdfZoom();
+}
+
+function applyPdfZoom() {
+    const frame = document.getElementById("pdfFrameMain");
+    if (!frame) return;
+    frame.style.transform = `scale(${pdfZoom})`;
+    updatePdfZoomIndicator(pdfZoom);
+}
+
+function updatePdfZoomIndicator(value) {
+    const indicator = document.getElementById("pdfZoomIndicator");
+    if (!indicator) return;
+    indicator.textContent = `${Math.round(value * 100)}%`;
+}
+
+function setPdfZoom(delta) {
+    pdfZoom = Math.min(2.0, Math.max(0.6, pdfZoom + delta));
+    applyPdfZoom();
+}
+
+function resetPdfZoom() {
+    pdfZoom = 1.0;
+    applyPdfZoom();
 }
 
 function renderDocumentChatHistory() {

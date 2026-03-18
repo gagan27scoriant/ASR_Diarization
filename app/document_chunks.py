@@ -32,3 +32,10 @@ def load_document_chunks(doc_id: str) -> list[dict[str, Any]]:
     if not doc_id:
         return []
     return list(_chunks_col().find({"document_id": doc_id}).sort("index", 1))
+
+
+def delete_document_chunks(doc_id: str) -> int:
+    if not doc_id:
+        return 0
+    res = _chunks_col().delete_many({"document_id": doc_id})
+    return int(res.deleted_count or 0)

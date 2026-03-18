@@ -27,5 +27,5 @@ sentencepiece>=0.2.0,<1.0.0
 sentence-transformers>=2.7.0,<3.0.0
 
 
-pip uninstall pyannote.audio -y
-pip install "pyannote.audio>=3.2"
+# pip uninstall pyannote.audio -y
+# pip install "pyannote.audio>=3.2"

@@ -40,6 +40,26 @@ def update_document(doc_id: str, update: dict[str, Any]) -> bool:
     return res.matched_count > 0
 
 
+def rename_document(doc_id: str, new_name: str) -> bool:
+    if not doc_id:
+        return False
+    clean = (new_name or "").strip()
+    if not clean:
+        return False
+    res = _doc_col().update_one(
+        {"document_id": doc_id},
+        {"$set": {"filename": clean, "updated_at": _now_iso()}},
+    )
+    return res.matched_count > 0
+
+
+def delete_document(doc_id: str) -> bool:
+    if not doc_id:
+        return False
+    res = _doc_col().delete_one({"document_id": doc_id})
+    return res.deleted_count > 0
+
+
 def _document_doc_to_entry(doc: dict[str, Any]) -> dict[str, Any]:
     return {
         "document_id": doc.get("document_id"),

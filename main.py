@@ -49,7 +49,8 @@ from app.history_store import (
     rename_history_item as rename_history_record,
     update_history_transcript,
 )
-from app.document_store import list_documents, read_document, update_document
+from app.document_store import list_documents, read_document, update_document, rename_document, delete_document
+from app.document_chunks import delete_document_chunks
 from app.processing_service import (
     process_document_upload,
     process_media_pipeline,
@@ -146,8 +147,9 @@ def enforce_login():
                 return None
         except Exception:
             pass
+    wants_json = request.path.startswith("/api/") or request.path.startswith("/history")
     accepts_html = "text/html" in request.accept_mimetypes
-    if accepts_html and request.method == "GET":
+    if not wants_json and accepts_html and request.method == "GET":
         return redirect(url_for("login"))
     return jsonify({"error": "Unauthorized"}), 401
 
@@ -585,6 +587,69 @@ def api_document_get(doc_id: str):
             "chat_history": record.get("chat_history") or [],
         }
     )
+
+
+@app.route("/api/documents/<doc_id>", methods=["PATCH"])
+def api_document_rename(doc_id: str):
+    forbidden = _require_permission("history:rename")
+    if forbidden:
+        return forbidden
+    record = read_document(doc_id) or {}
+    if not record:
+        return jsonify({"error": "Document not found"}), 404
+    user = _current_user()
+    if not _document_visible(record, user):
+        return jsonify({"error": "Forbidden"}), 403
+    payload = request.get_json(silent=True) or {}
+    name = (payload.get("filename") or "").strip()
+    if not name:
+        return jsonify({"error": "filename is required"}), 400
+    if not rename_document(doc_id, name):
+        return jsonify({"error": "Rename failed"}), 400
+    log_activity(user["id"], "document:rename", {"document_id": doc_id, "filename": name})
+    return jsonify({"ok": True, "filename": name})
+
+
+@app.route("/api/documents/<doc_id>", methods=["DELETE"])
+def api_document_delete(doc_id: str):
+    forbidden = _require_permission("history:delete")
+    if forbidden:
+        return forbidden
+    record = read_document(doc_id) or {}
+    if not record:
+        return jsonify({"error": "Document not found"}), 404
+    user = _current_user()
+    if not _document_visible(record, user):
+        return jsonify({"error": "Forbidden"}), 403
+    delete_document_chunks(doc_id)
+    if not delete_document(doc_id):
+        return jsonify({"error": "Delete failed"}), 400
+    log_activity(
+        user["id"],
+        "document:delete",
+        {"document_id": doc_id, "filename": record.get("filename") or ""},
+    )
+    return jsonify({"ok": True})
+
+
+@app.route("/api/documents", methods=["DELETE"])
+def api_document_clear():
+    forbidden = _require_permission("history:delete")
+    if forbidden:
+        return forbidden
+    user = _current_user()
+    entries = list_documents()
+    targets = [e for e in entries if _document_visible(e, user)]
+    deleted = 0
+    for entry in targets:
+        doc_id = entry.get("document_id")
+        if not doc_id:
+            continue
+        delete_document_chunks(doc_id)
+        if delete_document(doc_id):
+            deleted += 1
+    log_activity(user["id"], "document:clear", {"count": deleted})
+    return jsonify({"ok": True, "deleted": deleted})
 
 
 @app.route("/audio/<path:filename>")

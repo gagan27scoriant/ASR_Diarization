@@ -43,7 +43,10 @@
         </div>
         <div class="history-header">
             <h1>Documents</h1>
-            <button class="history-clear-btn" id="refreshDocsBtn" type="button" onclick="refreshDocumentHistory()">Refresh</button>
+            <div>
+                <button class="history-clear-btn" id="refreshDocsBtn" type="button" onclick="refreshDocumentHistory()">Refresh</button>
+                <button class="history-clear-btn" id="clearDocsBtn" type="button" onclick="clearAllDocuments()">Clear</button>
+            </div>
         </div>
         <div id="documentHistoryList" class="history-list docs">
             <div class="history-empty">No documents yet</div>
@@ -60,17 +63,7 @@
     </div>
 </div>
 
-<div id="docPreviewModal" class="doc-preview-modal hidden">
-    <div class="doc-preview-scrim" onclick="closeDocumentPreview()"></div>
-    <div class="doc-preview-sheet">
-        <div class="doc-preview-header">
-            <div class="doc-preview-title">Document Preview</div>
-            <button class="doc-preview-close" type="button" onclick="closeDocumentPreview()">Close</button>
-        </div>
-        <iframe id="docPreviewFrame" class="doc-preview-iframe" title="Document preview"></iframe>
-    </div>
-</div>
-
+<div class="app-shell">
 <div class="main">
     <div class="navbar">
         <h1>🎙️ ASR Studio</h1>
@@ -96,7 +89,7 @@
             <div class="drop-zone-icon">🎙</div>
             <div class="drop-zone-title"></div>
             <div class="drop-zone-subtitle"><button class="browse-inline-btn" type="button" onclick="event.stopPropagation(); openFilePicker();">Browse File</button></div>
-            <div class="drop-zone-support">Supported: MP3, WAV, MP4, PDF, DOCX</div>
+            <div class="drop-zone-support">Supported: MP3, WAV, AAC, AIFF, WMA, AMR, OPUS, WEBM, OGG, M4A, MP4, MKV, AVI, MOV, WMV, MPEG, 3GP, PDF, DOCX, TXT</div>
         </div>
       </div>
       <div class="message-row">
@@ -105,6 +98,20 @@
       </div>
     </div>
     <input type="file" id="audioFile" accept=".wav,.mp3,.aac,.aiff,.wma,.amr,.opus,.webm,.ogg,.m4a,.mp4,.mkv,.avi,.mov,.wmv,.mpeg,.3gp,.pdf,.docx,.txt" hidden>
+</div>
+<div class="gutter" id="pdfGutter" title="Resize PDF panel"></div>
+<aside id="pdfPanel" class="pdfPanel" aria-hidden="true">
+    <div class="pdf-toolbar">
+        <button type="button" class="zoom-btn" onclick="setPdfZoom(-0.1)">Zoom -</button>
+        <button type="button" class="zoom-btn" onclick="setPdfZoom(0.1)">Zoom +</button>
+        <button type="button" class="reset-btn" onclick="resetPdfZoom()">Reset</button>
+        <span class="zoom-indicator" id="pdfZoomIndicator">100%</span>
+        <button type="button" class="close-btn" onclick="closeDocumentPreview()">Close</button>
+    </div>
+    <div class="pdf-viewer-container">
+        <iframe id="pdfFrameMain" title="Document preview"></iframe>
+    </div>
+</aside>
 </div>
 
 <script src="{{ url_for('static', filename='js/index.js') }}"></script>
