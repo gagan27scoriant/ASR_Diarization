@@ -214,7 +214,14 @@ def _ocr_pdf(file_path: str) -> str:
     except Exception as e:
         raise RuntimeError("OCR dependencies missing. Install pdf2image and pytesseract, and system tesseract.") from e
 
-    langs = (os.getenv("DOCUMENT_OCR_LANGS", "eng") or "eng").strip()
+    langs = (os.getenv("DOCUMENT_OCR_LANGS", "") or "").strip()
+    if not langs:
+        try:
+            installed = pytesseract.get_languages(config="")
+        except Exception:
+            installed = []
+        cleaned = [lang for lang in installed if lang]
+        langs = "+".join(cleaned) if cleaned else "eng"
     pages = convert_from_path(file_path, dpi=300)
     parts = []
     for page in pages:
