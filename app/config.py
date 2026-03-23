@@ -13,13 +13,13 @@ SUPPORTED_AUDIO_EXTENSIONS = {
 SUPPORTED_VIDEO_EXTENSIONS = {
     ".mp4", ".mkv", ".avi", ".mov", ".wmv", ".mpeg", ".3gp"
 }
-SUPPORTED_DOCUMENT_EXTENSIONS = {".pdf", ".docx", ".txt"}
+SUPPORTED_DOCUMENT_EXTENSIONS = {".pdf", ".docx", ".txt", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"}
 
 MEDIA_FORMAT_ERROR = (
     "Unsupported media format. Audio: .wav, .mp3, .aac, .aiff, .wma, .amr, .opus, .webm, .ogg, .m4a | "
     "Video: .mp4, .mkv, .avi, .mov, .wmv, .mpeg, .3gp"
 )
-DOCUMENT_FORMAT_ERROR = "Unsupported document format. Use: .pdf, .docx, .txt"
+DOCUMENT_FORMAT_ERROR = "Unsupported document format. Use: .pdf, .docx, .txt, .png, .jpg, .jpeg, .tif, .tiff, .bmp"
 
 
 def ensure_workspace_folders():

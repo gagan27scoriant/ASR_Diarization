@@ -82,6 +82,17 @@ def update_history_embeddings(session_id: str, embeddings: list[list[float]], mo
     return res.matched_count > 0
 
 
+def update_history_chat(session_id: str, chat_history: list[dict]) -> bool:
+    if not session_id:
+        return False
+    update = {
+        "qa_history": chat_history,
+        "updated_at": _now_iso(),
+    }
+    res = _history_col().update_one({"session_id": session_id}, {"$set": update})
+    return res.matched_count > 0
+
+
 def rename_history_item(session_id: str, new_title: str) -> bool:
     if not session_id:
         return False

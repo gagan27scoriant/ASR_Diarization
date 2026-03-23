@@ -50,7 +50,7 @@ from app.history_store import (
     update_history_transcript,
 )
 from app.document_store import list_documents, read_document, update_document, rename_document, delete_document
-from app.document_chunks import delete_document_chunks
+from app.document_chunks import delete_document_chunks, load_document_chunks
 from app.processing_service import (
     process_document_upload,
     process_media_pipeline,
@@ -59,6 +59,7 @@ from app.processing_service import (
     transcribe_live_audio_chunk,
 )
 from app.document_rag import answer_document_question, ingest_document_text
+from app.history_rag import answer_history_question
 from app.semantic_search import search_history_segments
 from app.translation import get_translator
 
@@ -554,6 +555,34 @@ def api_document_ask():
     return jsonify(result)
 
 
+@app.route("/api/history/ask", methods=["POST"])
+def api_history_ask():
+    forbidden = _require_permission("rag:ask")
+    if forbidden:
+        return forbidden
+    payload = request.get_json(silent=True) or {}
+    session_id = (payload.get("session_id") or "").strip()
+    question = (payload.get("question") or "").strip()
+    top_k = int(payload.get("top_k") or 5)
+    if not session_id or not question:
+        return jsonify({"error": "session_id and question are required"}), 400
+    record = read_history_item(session_id) or {}
+    if not record:
+        return jsonify({"error": "History not found"}), 404
+    user = _current_user()
+    if not _history_visible(record, user):
+        return jsonify({"error": "Forbidden"}), 403
+    try:
+        result = answer_history_question(session_id, question, top_k=top_k)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        print("❌ History QA Error:", e)
+        return jsonify({"error": str(e)}), 500
+    log_activity(user["id"], "history:ask", {"session_id": session_id})
+    return jsonify(result)
+
+
 @app.route("/api/documents", methods=["GET"])
 def api_document_list():
     forbidden = _require_permission("rag:ask")
@@ -587,6 +616,28 @@ def api_document_get(doc_id: str):
             "chat_history": record.get("chat_history") or [],
         }
     )
+
+
+@app.route("/api/documents/<doc_id>/chunks/<int:chunk_idx>", methods=["GET"])
+def api_document_chunk(doc_id: str, chunk_idx: int):
+    forbidden = _require_permission("rag:ask")
+    if forbidden:
+        return forbidden
+    record = read_document(doc_id) or {}
+    if not record:
+        return jsonify({"error": "Document not found"}), 404
+    user = _current_user()
+    if not _document_visible(record, user):
+        return jsonify({"error": "Forbidden"}), 403
+
+    rows = load_document_chunks(doc_id)
+    if chunk_idx < 0 or chunk_idx >= len(rows):
+        return jsonify({"error": "Chunk not found"}), 404
+    row = rows[chunk_idx] if chunk_idx < len(rows) else {}
+    return jsonify({
+        "index": int(row.get("index") if row.get("index") is not None else chunk_idx),
+        "text": row.get("text") or "",
+    })
 
 
 @app.route("/api/documents/<doc_id>", methods=["PATCH"])
@@ -885,6 +936,7 @@ def get_history_item(session_id):
                 "source_video": data.get("source_video") or "",
                 "transcript": data.get("transcript") or [],
                 "summary": data.get("summary") or "",
+                "qa_history": data.get("qa_history") or [],
             }
         )
     except Exception as e:

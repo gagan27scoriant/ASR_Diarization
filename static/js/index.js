@@ -13,6 +13,7 @@ let currentDocumentType = "";
 let currentDocumentText = "";
 let currentDocumentId = "";
 let currentDocumentChat = [];
+let currentTranscriptChat = [];
 let sourceTranscriptData = [];
 let sourceSummary = "";
 let sourceDocumentText = "";
@@ -258,6 +259,21 @@ function clearChatRows() {
     old.forEach(r => r.remove());
 }
 
+
+function setSummaryButtonState() {
+    const sumBtn = document.getElementById("sumBtn");
+    if (!sumBtn) return;
+    const hasSummary = Boolean((currentSummary || "").trim());
+    sumBtn.disabled = hasSummary;
+    if (hasSummary) {
+        sumBtn.classList.add("disabled");
+        sumBtn.title = "Summary already generated for this file";
+    } else {
+        sumBtn.classList.remove("disabled");
+        sumBtn.title = "Generate summary";
+    }
+}
+
 function updateTranscriptDependentUI() {
     const hasTranscript = Array.isArray(transcriptData) && transcriptData.length > 0;
     const isExpanded = sidebar.classList.contains("expanded");
@@ -277,6 +293,7 @@ function updateTranscriptDependentUI() {
     if (!hasTranscript && renameBox) {
         renameBox.innerHTML = "";
     }
+    setSummaryButtonState();
 }
 
 function showKeywordSearch() {
@@ -354,6 +371,7 @@ function ensureLiveTranscriptCard() {
     liveTranscriptLinesEl = row.querySelector("#liveTranscriptLines");
     if (currentSummary) {
         renderSummaryCard(currentSummary);
+        setSummaryButtonState();
     }
     chat.scrollTop = chat.scrollHeight;
 }
@@ -801,6 +819,7 @@ async function openHistorySession(sessionId) {
         currentDocumentText = "";
         currentDocumentId = "";
         currentDocumentChat = [];
+        currentTranscriptChat = result.qa_history || [];
         lastAudioFile = currentAfterAudio || result.processed_file || result.title || sessionId;
         setSourceTranscript(transcriptData);
         setSourceSummary(currentSummary);
@@ -810,6 +829,7 @@ async function openHistorySession(sessionId) {
         renderHistoryList();
         renderDocumentHistory();
         updateSidebarMiniPreview();
+        setSummaryButtonState();
     } catch (e) {
         alert(e.message || "Failed to open history");
     } finally {
@@ -832,6 +852,7 @@ async function openDocumentEntry(docId) {
         currentDocumentType = (result.document_type || "").toLowerCase();
         currentDocumentText = result.text_preview || "";
         currentDocumentChat = result.chat_history || [];
+        currentTranscriptChat = [];
         currentSummary = result.summary || "";
         currentSessionId = "";
         transcriptData = [];
@@ -847,6 +868,7 @@ async function openDocumentEntry(docId) {
         renderDocumentHistory();
         renderHistoryList();
         updateSidebarMiniPreview();
+        setSummaryButtonState();
     } catch (e) {
         alert(e.message || "Failed to open document");
     } finally {
@@ -874,6 +896,7 @@ async function renameDocumentEntry(docId) {
             throw new Error(responseErrorMessage(result, text));
         }
         await refreshDocumentHistory();
+        setSummaryButtonState();
     } catch (e) {
         alert(e.message || "Failed to rename document");
     }
@@ -897,13 +920,16 @@ async function deleteDocumentEntry(docId) {
             currentDocumentType = "";
             currentDocumentText = "";
             currentDocumentChat = [];
+            currentTranscriptChat = [];
             currentSummary = "";
             setSourceSummary("");
             setSourceDocumentText("");
             await renderCurrentContent();
             updateSidebarMiniPreview();
+        setSummaryButtonState();
         }
         await refreshDocumentHistory();
+        setSummaryButtonState();
     } catch (e) {
         alert(e.message || "Failed to delete document");
     }
@@ -929,12 +955,15 @@ async function clearAllDocuments() {
     currentDocumentType = "";
     currentDocumentText = "";
     currentDocumentChat = [];
+    currentTranscriptChat = [];
     currentSummary = "";
     setSourceSummary("");
     setSourceDocumentText("");
     await renderCurrentContent();
     updateSidebarMiniPreview();
+        setSummaryButtonState();
     await refreshDocumentHistory();
+        setSummaryButtonState();
 }
 
 async function renameHistorySession(sessionId) {
@@ -987,7 +1016,9 @@ async function deleteHistorySession(sessionId) {
             currentDocumentText = "";
             currentDocumentId = "";
             currentDocumentChat = [];
+            currentTranscriptChat = [];
             updateSidebarMiniPreview();
+        setSummaryButtonState();
             setSourceTranscript([]);
             setSourceSummary("");
             setSourceDocumentText("");
@@ -1046,7 +1077,9 @@ async function clearAllHistory() {
     updateTranscriptDependentUI();
     await refreshHistory();
     await refreshDocumentHistory();
+        setSummaryButtonState();
     updateSidebarMiniPreview();
+        setSummaryButtonState();
 }
 
 function formatTime(seconds) {
@@ -1078,7 +1111,7 @@ function isVideoFile(name) {
 
 function isDocumentFile(name) {
     const ext = (name.split(".").pop() || "").toLowerCase();
-    return ["pdf", "docx", "txt"].includes(ext);
+    return ["pdf", "docx", "txt", "png", "jpg", "jpeg", "tif", "tiff", "bmp"].includes(ext);
 }
 
 async function processSelectedFile(selectedFile, silentMode = false) {
@@ -1114,12 +1147,14 @@ async function processSelectedFile(selectedFile, silentMode = false) {
             currentDocumentType = (result.document_type || "").toLowerCase();
             currentDocumentId = result.document_id || "";
             currentDocumentChat = result.chat_history || [];
+            currentTranscriptChat = [];
             currentDocumentText = result.document_text || "";
             setSourceTranscript([]);
             setSourceSummary(currentSummary);
             setSourceDocumentText(currentDocumentText);
             await applySelectedLanguageToAllTexts(false);
             await refreshDocumentHistory();
+        setSummaryButtonState();
             return;
         }
 
@@ -1148,6 +1183,7 @@ async function processSelectedFile(selectedFile, silentMode = false) {
         currentDocumentText = "";
         currentDocumentId = "";
         currentDocumentChat = [];
+        currentTranscriptChat = [];
         currentProcessedVideo = result.source_video || "";
         currentBeforeAudio = result.before_audio_file || result.processed_file || "";
         currentAfterAudio = result.after_audio_file || result.processed_file || "";
@@ -1161,6 +1197,7 @@ async function processSelectedFile(selectedFile, silentMode = false) {
         await applySelectedLanguageToAllTexts(false);
         await refreshHistory();
         await refreshDocumentHistory();
+        setSummaryButtonState();
     } catch (e) { 
         document.getElementById("loadingOverlay").style.display = "none";
         if (!silentMode) {
@@ -1305,11 +1342,224 @@ async function renderChatDelayed() {
             ? group.texts.map(t => `• ${t}`).join('<br>') 
             : group.texts[0];
 
-        row.innerHTML = `<div class="avatar" style="background: ${colorSet.main}">${group.speaker[0]}</div><div class="content" style="border-left: 4px solid ${colorSet.main}; background: ${colorSet.glow}"><div class="translate-transcript-icon" onclick="translateTranscriptByIndex(${i})" title="Translate Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8h14"></path><path d="M5 12h8"></path><path d="M13 19l4-8 4 8"></path><path d="M14.5 16h5"></path></svg></div><div class="copy-transcript-icon" onclick="copyTranscriptByIndex(${i})" title="Copy Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></div><span style="font-size:10px; font-weight:900; color:${colorSet.main}; text-transform:uppercase;">${group.speaker}</span><br>${combinedText}<span style="display:block; font-size:10px; color:var(--muted); margin-top:5px; font-weight:600;">${ts}</span></div>`;
+        row.innerHTML = `<div class="avatar" style="background: ${colorSet.main}">${group.speaker[0]}</div><div class="content" style="border-left: 4px solid ${colorSet.main}; background: ${colorSet.glow}"><div class="translate-transcript-icon" onclick="translateTranscriptByIndex(${i})" title="Translate Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8h14"></path><path d="M5 12h8"></path><path d="M13 19l4-8 4 8"></path><path d="M14.5 16h5"></path></svg></div><div class="copy-transcript-icon" onclick="copyTranscriptByIndex(${i})" title="Copy Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></div><div class="delete-transcript-icon" onclick="deleteTranscriptByIndex(${i})" title="Delete Transcript Block"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></div><span style="font-size:10px; font-weight:900; color:${colorSet.main}; text-transform:uppercase;">${group.speaker}</span><br>${combinedText}<span style="display:block; font-size:10px; color:var(--muted); margin-top:5px; font-weight:600;">${ts}</span></div>`;
         chat.appendChild(row);
         transcriptRowEls[i] = row;
     }
+    renderTranscriptQAPanel();
     chat.scrollTop = chat.scrollHeight;
+}
+
+
+function renderTranscriptQAPanel() {
+    const chat = document.getElementById("chat");
+    if (!chat) return;
+
+    const existing = document.getElementById("transcriptQaPanel");
+    if (existing) existing.remove();
+
+    if (!Array.isArray(transcriptData) || transcriptData.length === 0) {
+        return;
+    }
+
+    const row = document.createElement("div");
+    row.className = "message-row transcription";
+    row.id = "transcriptQaPanel";
+    row.innerHTML = `
+        <div class="avatar" style="background:#6366f1">Q&A</div>
+        <div class="content doc-qa-content" style="border-left: 4px solid #6366f1; background: rgba(99, 102, 241, 0.10);">
+            <span class="doc-qa-title">Ask questions about this transcript</span>
+            <div class="doc-qa-messages" id="transcriptQaMessages"></div>
+            <div class="doc-qa-input-row">
+                <textarea id="transcriptQaInput" placeholder="Ask a question about this transcript..." rows="2"></textarea>
+                <button class="doc-qa-send" id="transcriptQaSend" type="button">Ask</button>
+            </div>
+            <div class="doc-qa-hint">Answers use semantic transcript search + context.</div>
+        </div>
+    `;
+    chat.appendChild(row);
+
+    const input = document.getElementById("transcriptQaInput");
+    const sendBtn = document.getElementById("transcriptQaSend");
+    if (sendBtn) {
+        sendBtn.addEventListener("click", () => askTranscriptQuestion());
+    }
+    if (input) {
+        input.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                askTranscriptQuestion();
+            }
+        });
+    }
+    renderTranscriptChatHistory();
+}
+
+function renderTranscriptChatHistory() {
+    const list = document.getElementById("transcriptQaMessages");
+    if (!list) return;
+    const items = Array.isArray(currentTranscriptChat) ? currentTranscriptChat : [];
+    if (!items.length) {
+        list.innerHTML = "<div class='doc-qa-empty'>No questions asked yet.</div>";
+        return;
+    }
+
+    list.innerHTML = items.map((item, idx) => {
+        const role = item.role === "assistant" ? "AI" : "You";
+        const body = escapeHTMLText(item.content || "");
+        const sources = Array.isArray(item.sources) && item.sources.length
+            ? `<div class='doc-qa-sources'>` + item.sources.map((s) => {
+                const segIdx = Number(s.segment_index);
+                const label = Number.isFinite(segIdx)
+                    ? `Seg ${segIdx + 1} · ${formatTime(s.start || 0)}-${formatTime(s.end || 0)}`
+                    : "Segment";
+                return `<button type='button' class='doc-qa-source-btn' data-seg='${segIdx}'>${label}</button>`;
+              }).join("") + `</div>`
+            : "";
+        const actions = item.role === "assistant"
+            ? `
+                <div class="doc-qa-actions">
+                    <button type="button" class="doc-qa-action-btn" data-action="copy" data-index="${idx}" title="Copy answer">Copy</button>
+                    <button type="button" class="doc-qa-action-btn" data-action="translate" data-index="${idx}" title="Translate answer">Translate</button>
+                </div>
+            `
+            : "";
+        return `
+            <div class="doc-qa-message ${item.role === "assistant" ? "assistant" : "user"}">
+                <div class="doc-qa-role">${role}</div>
+                <div class="doc-qa-text">${body}</div>
+                ${actions}
+                ${sources}
+            </div>
+        `;
+    }).join("");
+
+    const sourceButtons = list.querySelectorAll('.doc-qa-source-btn');
+    sourceButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const idx = Number(btn.dataset.seg);
+            if (Number.isFinite(idx)) {
+                focusTranscriptSegment(idx);
+            }
+        });
+    });
+
+    const actionButtons = list.querySelectorAll('.doc-qa-action-btn');
+    actionButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const idx = Number(btn.dataset.index);
+            if (!Number.isFinite(idx)) return;
+            const action = btn.dataset.action || "";
+            if (action === "copy") {
+                copyTranscriptAnswerByIndex(idx);
+            } else if (action === "translate") {
+                translateTranscriptAnswerByIndex(idx);
+            }
+        });
+    });
+
+    list.scrollTop = list.scrollHeight;
+}
+
+function focusTranscriptSegment(segmentIndex) {
+    if (!Array.isArray(transcriptRowEls) || !segmentGroupMap) return;
+    const groupIndex = segmentGroupMap[segmentIndex];
+    if (typeof groupIndex !== "number") return;
+    const row = transcriptRowEls[groupIndex];
+    if (!row) return;
+
+    transcriptRowEls.forEach((el) => el && el.classList.remove("search-hit"));
+    row.classList.add("search-hit");
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    window.setTimeout(() => {
+        row.classList.remove("search-hit");
+    }, 2000);
+}
+
+function copyTranscriptAnswerByIndex(index) {
+    const item = Array.isArray(currentTranscriptChat) ? currentTranscriptChat[index] : null;
+    if (!item || item.role !== "assistant") return;
+    const text = String(item.content || "").trim();
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    alert("Answer copied to clipboard!");
+}
+
+async function translateTranscriptAnswerByIndex(index) {
+    const item = Array.isArray(currentTranscriptChat) ? currentTranscriptChat[index] : null;
+    if (!item || item.role !== "assistant") return;
+    const text = String(item.content || "").trim();
+    if (!text) return;
+
+    const targetLang = requestTargetLanguage();
+    if (!targetLang) return;
+
+    try {
+        const result = await translateViaAPI({
+            text,
+            target_lang: targetLang
+        });
+        const translated = String((result && result.text) || "").trim();
+        if (!translated) {
+            throw new Error("Translation returned empty text");
+        }
+        currentTranscriptChat[index].content = translated;
+        renderTranscriptChatHistory();
+    } catch (e) {
+        alert(e.message || "Answer translation failed.");
+    }
+}
+
+async function askTranscriptQuestion() {
+    const input = document.getElementById("transcriptQaInput");
+    const sendBtn = document.getElementById("transcriptQaSend");
+    if (!input || !sendBtn) return;
+    if (!currentSessionId) {
+        alert("Transcript context not ready yet.");
+        return;
+    }
+
+    const question = (input.value || "").trim();
+    if (!question) return;
+    input.value = "";
+
+    currentTranscriptChat = Array.isArray(currentTranscriptChat) ? currentTranscriptChat : [];
+    currentTranscriptChat.push({ role: "user", content: question });
+    renderTranscriptChatHistory();
+
+    sendBtn.disabled = true;
+    sendBtn.textContent = "Thinking...";
+    try {
+        const response = await fetch("/api/history/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                session_id: currentSessionId,
+                question,
+                top_k: 5
+            })
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || "Failed to answer question");
+        }
+        currentTranscriptChat = result.history || currentTranscriptChat;
+        const sources = result.sources || [];
+        if (currentTranscriptChat.length) {
+            const lastIdx = currentTranscriptChat.length - 1;
+            if (currentTranscriptChat[lastIdx].role === "assistant") {
+                currentTranscriptChat[lastIdx].sources = sources;
+            }
+        }
+        renderTranscriptChatHistory();
+    } catch (e) {
+        currentTranscriptChat.push({ role: "assistant", content: e.message || "Failed to answer." });
+        renderTranscriptChatHistory();
+    } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = "Ask";
+    }
 }
 
 function renderKeywordSearchBar() {
@@ -1476,6 +1726,7 @@ function renderDocumentResult() {
 
     chat.appendChild(row);
     updateSidebarMiniPreview();
+        setSummaryButtonState();
     renderDocumentQAPanel();
     if (currentSummary) {
         const target = document.getElementById("docSummaryCard");
@@ -1499,6 +1750,13 @@ function renderDocumentQAPanel() {
         <div class="content doc-qa-content" style="border-left: 4px solid #0ea5e9; background: rgba(14, 165, 233, 0.10);">
             <span class="doc-qa-title">Ask questions about this document</span>
             <div class="doc-qa-messages" id="docQaMessages"></div>
+            <div class="doc-qa-chunk-preview hidden" id="docChunkPreview">
+                <div class="doc-qa-chunk-header">
+                    <div class="doc-qa-chunk-title" id="docChunkTitle">Chunk</div>
+                    <button type="button" class="doc-qa-chunk-close" onclick="closeChunkPreview()">Close</button>
+                </div>
+                <div class="doc-qa-chunk-body" id="docChunkBody"></div>
+            </div>
             <div class="doc-qa-input-row">
                 <textarea id="docQaInput" placeholder="Ask a question about this document..." rows="2"></textarea>
                 <button class="doc-qa-send" id="docQaSend" type="button">Ask</button>
@@ -1606,23 +1864,127 @@ function renderDocumentChatHistory() {
         list.innerHTML = "<div class='doc-qa-empty'>No questions asked yet.</div>";
         return;
     }
-    list.innerHTML = items.map((item) => {
+    list.innerHTML = items.map((item, idx) => {
         const role = item.role === "assistant" ? "AI" : "You";
         const body = escapeHTMLText(item.content || "");
         const sources = Array.isArray(item.sources) && item.sources.length
-            ? `<div class='doc-qa-sources'>` + item.sources.map((s) =>
-                `<span>Chunk ${Number(s.index) + 1}</span>`
-              ).join("") + `</div>`
+            ? `<div class='doc-qa-sources'>` + item.sources.map((s) => {
+                const idx = Number(s.index);
+                const label = Number.isFinite(idx) ? `Chunk ${idx + 1}` : "Chunk";
+                return `<button type='button' class='doc-qa-source-btn' data-index='${idx}'>${label}</button>`;
+              }).join("") + `</div>`
+            : "";
+        const actions = item.role === "assistant"
+            ? `
+                <div class="doc-qa-actions">
+                    <button type="button" class="doc-qa-action-btn" data-action="copy" data-index="${idx}" title="Copy answer">Copy</button>
+                    <button type="button" class="doc-qa-action-btn" data-action="translate" data-index="${idx}" title="Translate answer">Translate</button>
+                </div>
+            `
             : "";
         return `
             <div class="doc-qa-message ${item.role === "assistant" ? "assistant" : "user"}">
                 <div class="doc-qa-role">${role}</div>
                 <div class="doc-qa-text">${body}</div>
+                ${actions}
                 ${sources}
             </div>
         `;
     }).join("");
+
+    const sourceButtons = list.querySelectorAll('.doc-qa-source-btn');
+    sourceButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const idx = Number(btn.dataset.index);
+            if (Number.isFinite(idx)) {
+                openChunkPreview(idx);
+            }
+        });
+    });
+
+    const actionButtons = list.querySelectorAll('.doc-qa-action-btn');
+    actionButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const idx = Number(btn.dataset.index);
+            if (!Number.isFinite(idx)) return;
+            const action = btn.dataset.action || "";
+            if (action === "copy") {
+                copyDocumentAnswerByIndex(idx);
+            } else if (action === "translate") {
+                translateDocumentAnswerByIndex(idx);
+            }
+        });
+    });
+
     list.scrollTop = list.scrollHeight;
+}
+
+
+function closeChunkPreview() {
+    const panel = document.getElementById("docChunkPreview");
+    const body = document.getElementById("docChunkBody");
+    const title = document.getElementById("docChunkTitle");
+    if (body) body.textContent = "";
+    if (title) title.textContent = "";
+    if (panel) panel.classList.add("hidden");
+}
+
+async function openChunkPreview(chunkIndex) {
+    if (!currentDocumentId) return;
+    const panel = document.getElementById("docChunkPreview");
+    const body = document.getElementById("docChunkBody");
+    const title = document.getElementById("docChunkTitle");
+    if (!panel || !body || !title) return;
+
+    title.textContent = `Chunk ${Number(chunkIndex) + 1}`;
+    body.textContent = "Loading chunk...";
+    panel.classList.remove("hidden");
+
+    try {
+        const response = await fetch(`/api/documents/${encodeURIComponent(currentDocumentId)}/chunks/${chunkIndex}`);
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || "Failed to load chunk");
+        }
+        body.textContent = result.text || "";
+    } catch (e) {
+        body.textContent = e.message || "Failed to load chunk";
+    }
+}
+
+
+function copyDocumentAnswerByIndex(index) {
+    const item = Array.isArray(currentDocumentChat) ? currentDocumentChat[index] : null;
+    if (!item || item.role !== "assistant") return;
+    const text = String(item.content || "").trim();
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    alert("Answer copied to clipboard!");
+}
+
+async function translateDocumentAnswerByIndex(index) {
+    const item = Array.isArray(currentDocumentChat) ? currentDocumentChat[index] : null;
+    if (!item || item.role !== "assistant") return;
+    const text = String(item.content || "").trim();
+    if (!text) return;
+
+    const targetLang = requestTargetLanguage();
+    if (!targetLang) return;
+
+    try {
+        const result = await translateViaAPI({
+            text,
+            target_lang: targetLang
+        });
+        const translated = String((result && result.text) || "").trim();
+        if (!translated) {
+            throw new Error("Translation returned empty text");
+        }
+        currentDocumentChat[index].content = translated;
+        renderDocumentChatHistory();
+    } catch (e) {
+        alert(e.message || "Answer translation failed.");
+    }
 }
 
 async function askDocumentQuestion() {
@@ -1763,6 +2125,21 @@ function buildExportTranscriptText() {
     });
 
     return content;
+}
+
+
+function deleteTranscriptByIndex(index) {
+    const group = groupedTranscriptCache[index];
+    if (!group || !Array.isArray(group.segmentIndices)) return;
+    const ok = window.confirm("Delete this transcript block?");
+    if (!ok) return;
+
+    const toRemove = new Set(group.segmentIndices);
+    transcriptData = transcriptData.filter((_, idx) => !toRemove.has(idx));
+    sourceTranscriptData = sourceTranscriptData.filter((_, idx) => !toRemove.has(idx));
+
+    renderChatDelayed();
+    persistSessionTranscript();
 }
 
 function copyTranscriptByIndex(index) {
@@ -1976,6 +2353,16 @@ function renderSummaryCard(summaryText, targetCard = null) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="9" y="9" width="13" height="13" rx="2"></rect>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+        </div>
+        <div class="delete-sum-icon" onclick="deleteSummary()" title="Delete Summary"
+            style="position:absolute;top:10px;right:64px;cursor:pointer;opacity:0.7">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18"></path>
+                <path d="M8 6V4h8v2"></path>
+                <path d="M19 6l-1 14H6L5 6"></path>
+                <path d="M10 11v6"></path>
+                <path d="M14 11v6"></path>
             </svg>
         </div>
         ${formatted}
@@ -2489,9 +2876,11 @@ function requestMeetingDetails() {
 async function showSummary() {
     if (!transcriptData || transcriptData.length === 0) return;
     if (isSummaryLoading) return;
+    if (Boolean((currentSummary || "").trim())) return;
 
     if (currentSummary) {
         renderSummaryCard(currentSummary);
+        setSummaryButtonState();
         return;
     }
 
@@ -2534,6 +2923,7 @@ async function showSummary() {
             currentSummary = freshSummary;
         }
         renderSummaryCard(currentSummary, pendingCard);
+        setSummaryButtonState();
         await refreshHistory();
     } catch (e) {
         if (pendingCard) {
@@ -2553,6 +2943,17 @@ initTranslationLanguageDropdown();
 initDropZone();
 updateTranscriptDependentUI();
 setUploadHeroVisible(true);
+
+
+function deleteSummary() {
+    const ok = window.confirm("Delete the summary?");
+    if (!ok) return;
+    currentSummary = "";
+    setSourceSummary("");
+    renderCurrentContent();
+    setSummaryButtonState();
+    persistSessionTranscript();
+}
 
 function copySummary() {
     const text = document.getElementById("sumCard").innerText;
@@ -2578,6 +2979,7 @@ async function translateSummary() {
             renderSummaryCard(currentSummary, sumCard);
         } else {
             renderSummaryCard(currentSummary);
+        setSummaryButtonState();
         }
         await persistSessionTranscript();
     } catch (e) {

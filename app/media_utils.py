@@ -202,9 +202,24 @@ def extract_text_from_document(file_path: str, filename: str) -> str:
         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
             return f.read().strip()
 
+    if ext in {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"}:
+        return _ocr_image(file_path)
+
     if ext not in SUPPORTED_DOCUMENT_EXTENSIONS:
         raise ValueError(DOCUMENT_FORMAT_ERROR)
     raise ValueError(DOCUMENT_FORMAT_ERROR)
+
+
+def _resolve_ocr_langs(pytesseract_module) -> str:
+    langs = (os.getenv("DOCUMENT_OCR_LANGS", "") or "").strip()
+    if langs:
+        return langs
+    try:
+        installed = pytesseract_module.get_languages(config="")
+    except Exception:
+        installed = []
+    cleaned = [lang for lang in installed if lang]
+    return "+".join(cleaned) if cleaned else "eng"
 
 
 def _ocr_pdf(file_path: str) -> str:
@@ -214,16 +229,28 @@ def _ocr_pdf(file_path: str) -> str:
     except Exception as e:
         raise RuntimeError("OCR dependencies missing. Install pdf2image and pytesseract, and system tesseract.") from e
 
-    langs = (os.getenv("DOCUMENT_OCR_LANGS", "") or "").strip()
-    if not langs:
-        try:
-            installed = pytesseract.get_languages(config="")
-        except Exception:
-            installed = []
-        cleaned = [lang for lang in installed if lang]
-        langs = "+".join(cleaned) if cleaned else "eng"
+    langs = _resolve_ocr_langs(pytesseract)
     pages = convert_from_path(file_path, dpi=300)
     parts = []
     for page in pages:
         parts.append(pytesseract.image_to_string(page, lang=langs))
     return "\n".join([p.strip() for p in parts if p and p.strip()]).strip()
+
+
+def _ocr_image(file_path: str) -> str:
+    try:
+        from PIL import Image
+        import pytesseract
+    except Exception as e:
+        raise RuntimeError("OCR dependencies missing. Install pillow and pytesseract, and system tesseract.") from e
+
+    langs = _resolve_ocr_langs(pytesseract)
+    image = Image.open(file_path)
+    try:
+        text = pytesseract.image_to_string(image, lang=langs)
+    finally:
+        try:
+            image.close()
+        except Exception:
+            pass
+    return (text or "").strip()

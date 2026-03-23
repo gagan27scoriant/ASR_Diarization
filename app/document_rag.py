@@ -6,6 +6,9 @@ from typing import Any
 
 import numpy as np
 import requests
+from langdetect import LangDetectException, detect
+
+from app.translation import get_translator
 
 from app.document_store import create_document, read_document, update_document
 from app.document_chunks import load_document_chunks, replace_document_chunks
@@ -16,6 +19,13 @@ DEFAULT_SEPARATORS = ["\n\n", "\n", ". ", " ", ""]
 DEFAULT_CHUNK_SIZE = int(os.getenv("DOC_CHUNK_SIZE", "2000"))
 DEFAULT_CHUNK_OVERLAP = int(os.getenv("DOC_CHUNK_OVERLAP", "80"))
 DEFAULT_TOP_K = int(os.getenv("DOC_RETRIEVE_TOP_K", "5"))
+DEFAULT_TRANSLATE_SEGMENT_SIZE = int(os.getenv("DOC_TRANSLATE_SEGMENT_SIZE", "1200"))
+DEFAULT_TRANSLATE_TO_ENGLISH = (os.getenv("DOC_TRANSLATE_TO_ENGLISH", "1") or "").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
 RAG_MODEL = os.getenv("RAG_MODEL", os.getenv("SUMMARY_MODEL", "mistral"))
@@ -24,6 +34,69 @@ RAG_TIMEOUT_SECONDS = int(os.getenv("RAG_TIMEOUT_SECONDS", "10800"))
 
 def _clean_text(text: str) -> str:
     return (text or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+
+
+def _normalize_lang_code(lang_code: str) -> str:
+    code = (lang_code or "").strip().lower()
+    if not code:
+        return ""
+    if code.startswith("zh"):
+        return "zh"
+    if code.startswith("pt"):
+        return "pt"
+    return code
+
+
+def _detect_language(text: str) -> str:
+    sample = (text or "").strip()
+    if not sample:
+        return ""
+    sample = sample[:6000]
+    try:
+        return detect(sample)
+    except LangDetectException:
+        return ""
+
+
+def _translate_to_english(text: str) -> tuple[str, dict[str, int], bool]:
+    if not DEFAULT_TRANSLATE_TO_ENGLISH:
+        return text, {}, False
+
+    cleaned = _clean_text(text)
+    if not cleaned:
+        return cleaned, {}, False
+
+    translator = get_translator()
+    segments = _recursive_split(cleaned, DEFAULT_TRANSLATE_SEGMENT_SIZE, DEFAULT_SEPARATORS)
+    translated_segments: list[str] = []
+    lang_counts: dict[str, int] = {}
+    did_translate = False
+
+    for segment in segments:
+        if not segment.strip():
+            translated_segments.append(segment)
+            continue
+
+        detected = _normalize_lang_code(_detect_language(segment))
+        if detected:
+            lang_counts[detected] = lang_counts.get(detected, 0) + 1
+
+        if not detected or detected in {"en", "eng"}:
+            translated_segments.append(segment)
+            continue
+
+        try:
+            src_lang = translator.resolve_lang_code(detected, is_target=False)
+        except ValueError:
+            translated_segments.append(segment)
+            continue
+
+        translated_segments.append(
+            translator.translate_text(segment, target_lang="eng_Latn", source_lang=src_lang)
+        )
+        did_translate = True
+
+    return "".join(translated_segments), lang_counts, did_translate
 
 
 def _recursive_split(text: str, chunk_size: int, separators: list[str]) -> list[str]:
@@ -99,12 +172,12 @@ def _build_prompt(question: str, context: list[str], history: list[dict[str, Any
         [f"{item.get('role','user').title()}: {item.get('content','')}" for item in history]
     ).strip()
     return (
-        "You are a precise assistant. Answer the user using only the provided document context. "
+        "You are a precise assistant. Answer the user using only the provided document context. Do not mention chunk numbers, sources, or phrases like 'mentioned in Chunk 1'. "
         "If the answer is not in the context, say you don't know and suggest what to look for.\n\n"
         f"Document Context:\n{context_block}\n\n"
         f"Conversation History:\n{history_block}\n\n"
         f"Question: {question}\n"
-        "Answer (cite chunk numbers when relevant):"
+        "Answer (do not mention chunk numbers or sources):"
     )
 
 
@@ -129,11 +202,12 @@ def ingest_document_text(
 ) -> dict[str, Any]:
     doc_id = uuid.uuid4().hex
     ext = os.path.splitext(filename.lower())[1].lstrip(".")
-    chunks = chunk_text(extracted_text)
+    translated_text, lang_counts, did_translate = _translate_to_english(extracted_text)
+    chunks = chunk_text(translated_text)
     if not chunks:
         raise ValueError("No readable text found in document")
     embeddings = embed_texts(chunks).tolist()
-    preview = extracted_text[:8000]
+    preview = translated_text[:8000]
     create_document(
         doc_id,
         {
@@ -142,6 +216,8 @@ def ingest_document_text(
             "text_preview": preview,
             "chunk_count": len(chunks),
             "embedding_model": os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"),
+            "translated_to_english": bool(did_translate),
+            "detected_languages": lang_counts,
             "chat_history": [],
             "owner": {
                 "id": owner.get("id") if owner else None,
