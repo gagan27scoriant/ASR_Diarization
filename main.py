@@ -2,6 +2,7 @@ import os
 import time
 import uuid
 import warnings
+from typing import Any
 
 from flask import Flask, jsonify, redirect, render_template, request, send_from_directory, url_for, g, make_response
 from werkzeug.utils import secure_filename
@@ -113,6 +114,75 @@ except Exception as asr_err:
 print("🚀 Loading diarization model...")
 diarization_pipeline = load_diarization()
 print("✅ Models ready\n")
+
+
+def _trim_text(value: Any, limit: int = 500) -> str:
+    text = str(value or "").strip()
+    if len(text) <= limit:
+        return text
+    return text[:limit] + "..."
+
+
+def _safe_list(value: Any, limit: int = 10) -> list[Any]:
+    if not isinstance(value, list):
+        return []
+    return value[:limit]
+
+
+def _request_meta(
+    *,
+    payload: dict[str, Any] | None = None,
+    result: dict[str, Any] | None = None,
+    uploaded_file=None,
+    deleted_target: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    payload = payload or {}
+    result = result or {}
+    result_payload = (result.get("result") if isinstance(result.get("result"), dict) else result) or {}
+
+    meta: dict[str, Any] = {
+        "http_method": request.method,
+        "path": request.path,
+        "ip_address": request.headers.get("X-Forwarded-For", request.remote_addr or ""),
+        "user_agent": request.headers.get("User-Agent", ""),
+        "query_text": _trim_text(payload.get("query") or payload.get("question") or ""),
+        "tool": result.get("selected_tool") or payload.get("tool") or "",
+        "session_id": payload.get("session_id") or result_payload.get("session_id") or "",
+        "document_id": payload.get("document_id") or result_payload.get("document_id") or "",
+        "target_lang": payload.get("target_lang") or payload.get("tts_lang") or "",
+        "chat_history_count": len(payload.get("chat_history") or []) if isinstance(payload.get("chat_history"), list) else 0,
+        "plan": result.get("plan") if isinstance(result.get("plan"), list) else [],
+        "input_refs": {
+            "has_content": bool(str(payload.get("content") or "").strip()),
+            "content_preview": _trim_text(payload.get("content") or "", 250),
+            "text_preview": _trim_text(payload.get("text") or "", 250),
+            "document_filename": _trim_text(payload.get("document_filename") or result_payload.get("document_filename") or "", 180),
+            "file_path": _trim_text(payload.get("file_path") or "", 220),
+        },
+        "output_meta": {
+            "has_answer": bool(str(result_payload.get("answer") or "").strip()),
+            "answer_preview": _trim_text(result_payload.get("answer") or "", 250),
+            "has_summary": bool(str(result_payload.get("summary") or result_payload.get("translated_summary") or "").strip()),
+            "summary_preview": _trim_text(result_payload.get("summary") or result_payload.get("translated_summary") or "", 250),
+            "transcript_segments": len(result_payload.get("transcript") or []) if isinstance(result_payload.get("transcript"), list) else 0,
+            "audio_file": result_payload.get("audio_file") or "",
+            "audio_url": result_payload.get("audio_url") or "",
+            "result_count": len(result_payload.get("results") or []) if isinstance(result_payload.get("results"), list) else 0,
+        },
+    }
+    if uploaded_file is not None:
+        meta["uploaded_file"] = {
+            "filename": secure_filename(getattr(uploaded_file, "filename", "") or ""),
+            "content_type": getattr(uploaded_file, "mimetype", "") or "",
+            "content_length": request.content_length or 0,
+        }
+    if deleted_target:
+        meta["deleted_target"] = deleted_target
+    texts = payload.get("texts")
+    if isinstance(texts, list):
+        meta["input_refs"]["texts_count"] = len(texts)
+        meta["input_refs"]["texts_preview"] = [_trim_text(item, 140) for item in _safe_list(texts, limit=3)]
+    return meta
 
 
 def _current_user():
@@ -533,7 +603,7 @@ def api_search():
     if not _history_visible(item, user):
         return jsonify({"error": "Forbidden"}), 403
     results = search_history_segments(session_id, query, top_k=top_k)
-    log_activity(user["id"], "history:search", {"session_id": session_id})
+    log_activity(user["id"], "history:search", _request_meta(payload=payload, result={"results": results}))
     return jsonify({"results": results})
 
 
@@ -556,7 +626,7 @@ def api_document_ask():
         print("❌ Document QA Error:", e)
         return jsonify({"error": str(e)}), 500
     user = _current_user()
-    log_activity(user["id"], "document:ask", {"document_id": document_id})
+    log_activity(user["id"], "document:ask", _request_meta(payload=payload, result=result))
     return jsonify(result)
 
 
@@ -584,7 +654,7 @@ def api_history_ask():
     except Exception as e:
         print("❌ History QA Error:", e)
         return jsonify({"error": str(e)}), 500
-    log_activity(user["id"], "history:ask", {"session_id": session_id})
+    log_activity(user["id"], "history:ask", _request_meta(payload=payload, result=result))
     return jsonify(result)
 
 
@@ -647,11 +717,7 @@ def api_agent_query():
     log_activity(
         user["id"],
         "agent:query",
-        {
-            "tool": result.get("selected_tool"),
-            "session_id": session_id,
-            "document_id": document_id,
-        },
+        _request_meta(payload=payload, result=result),
     )
     return jsonify(result)
 
@@ -714,12 +780,7 @@ def api_agent_chat():
         log_activity(
             user["id"],
             "agent:chat",
-            {
-                "tool": result.get("selected_tool"),
-                "filename": filename,
-                "session_id": (result.get("result") or {}).get("session_id"),
-                "document_id": (result.get("result") or {}).get("document_id"),
-            },
+            _request_meta(payload=payload, result=result, uploaded_file=uploaded_file),
         )
         return jsonify(result)
 
@@ -800,7 +861,7 @@ def api_document_rename(doc_id: str):
         return jsonify({"error": "filename is required"}), 400
     if not rename_document(doc_id, name):
         return jsonify({"error": "Rename failed"}), 400
-    log_activity(user["id"], "document:rename", {"document_id": doc_id, "filename": name})
+    log_activity(user["id"], "document:rename", _request_meta(payload=payload, result={"document_id": doc_id, "document_filename": name}))
     return jsonify({"ok": True, "filename": name})
 
 
@@ -821,7 +882,7 @@ def api_document_delete(doc_id: str):
     log_activity(
         user["id"],
         "document:delete",
-        {"document_id": doc_id, "filename": record.get("filename") or ""},
+        _request_meta(deleted_target={"kind": "document", "document_id": doc_id, "filename": record.get("filename") or ""}),
     )
     return jsonify({"ok": True})
 
@@ -842,7 +903,7 @@ def api_document_clear():
         delete_document_chunks(doc_id)
         if delete_document(doc_id):
             deleted += 1
-    log_activity(user["id"], "document:clear", {"count": deleted})
+    log_activity(user["id"], "document:clear", _request_meta(deleted_target={"kind": "document_batch", "count": deleted}))
     return jsonify({"ok": True, "deleted": deleted})
 
 
@@ -881,7 +942,7 @@ def process_audio():
         source_path, filename = resolve_uploaded_or_path_media(uploaded_file, payload)
         user = _current_user()
         result = process_media_pipeline(source_path, filename, asr_model, diarization_pipeline, owner=user)
-        log_activity(user["id"], "process:media", {"filename": filename, "session_id": result.get("session_id")})
+        log_activity(user["id"], "process:media", _request_meta(payload=payload or {"file_path": source_path, "query": "process media"}, result=result, uploaded_file=uploaded_file))
         return jsonify(result)
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
@@ -933,7 +994,7 @@ def summarize_from_text():
             (data.get("session_id") or "").strip(),
         )
         user = _current_user()
-        log_activity(user["id"], "summary:generate", {"session_id": (data.get("session_id") or "").strip()})
+        log_activity(user["id"], "summary:generate", _request_meta(payload=data, result={"summary": summary}))
         return jsonify({"summary": summary})
     except Exception as e:
         print("❌ Summary Error:", e)
@@ -1049,7 +1110,7 @@ def list_history():
         user = _current_user()
         entries = list_history_entries()
         filtered = [e for e in entries if _history_visible(e, user)]
-        log_activity(user["id"], "history:read", {})
+        log_activity(user["id"], "history:read", _request_meta())
         return jsonify({"history": filtered})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -1067,7 +1128,7 @@ def get_history_item(session_id):
         user = _current_user()
         if not _history_visible(data, user):
             return jsonify({"error": "Forbidden"}), 403
-        log_activity(user["id"], "history:item", {"session_id": session_id})
+        log_activity(user["id"], "history:item", _request_meta(payload={"session_id": session_id}, result=data))
 
         return jsonify(
             {
@@ -1109,7 +1170,7 @@ def save_history_transcript(session_id):
         item = read_history_item(session_id) or {}
         if not _history_visible(item, user):
             return jsonify({"error": "Forbidden"}), 403
-        log_activity(user["id"], "history:update", {"session_id": session_id})
+        log_activity(user["id"], "history:update", _request_meta(payload={"session_id": session_id, **payload}, result=item))
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -1134,7 +1195,7 @@ def rename_history_item(session_id):
         item = read_history_item(session_id) or {}
         if not _history_visible(item, user):
             return jsonify({"error": "Forbidden"}), 403
-        log_activity(user["id"], "history:rename", {"session_id": session_id, "title": new_title})
+        log_activity(user["id"], "history:rename", _request_meta(payload={"session_id": session_id, "title": new_title}, result=item))
         return jsonify({"ok": True, "title": new_title})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -1152,7 +1213,7 @@ def delete_history_item(session_id):
         if not remove_history_item(session_id):
             return jsonify({"error": "History not found"}), 404
         user = _current_user()
-        log_activity(user["id"], "history:delete", {"session_id": session_id})
+        log_activity(user["id"], "history:delete", _request_meta(payload={"session_id": session_id}, deleted_target={"kind": "history", "session_id": session_id, "title": item.get("title") or session_id, "processed_file": item.get("processed_file") or ""}))
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500

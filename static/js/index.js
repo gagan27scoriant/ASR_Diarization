@@ -1398,7 +1398,7 @@ async function renderChatDelayed() {
             ? group.texts.map(t => `• ${t}`).join('<br>') 
             : group.texts[0];
 
-        row.innerHTML = `<div class="avatar" style="background: ${colorSet.main}">${group.speaker[0]}</div><div class="content" style="border-left: 4px solid ${colorSet.main}; background: ${colorSet.glow}"><div class="translate-transcript-icon" onclick="translateTranscriptByIndex(${i})" title="Translate Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8h14"></path><path d="M5 12h8"></path><path d="M13 19l4-8 4 8"></path><path d="M14.5 16h5"></path></svg></div><div class="copy-transcript-icon" onclick="copyTranscriptByIndex(${i})" title="Copy Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></div><div class="delete-transcript-icon" onclick="deleteTranscriptByIndex(${i})" title="Delete Transcript Block"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></div><span style="font-size:10px; font-weight:900; color:${colorSet.main}; text-transform:uppercase;">${group.speaker}</span><br>${combinedText}<span style="display:block; font-size:10px; color:var(--muted); margin-top:5px; font-weight:600;">${ts}</span></div>`;
+        row.innerHTML = `<div class="avatar" style="background: ${colorSet.main}">${group.speaker[0]}</div><div class="content" style="border-left: 4px solid ${colorSet.main}; background: ${colorSet.glow}"><div class="translate-transcript-icon" onclick="translateTranscriptByIndex(${i})" title="Translate Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8h14"></path><path d="M5 12h8"></path><path d="M13 19l4-8 4 8"></path><path d="M14.5 16h5"></path></svg></div><div class="copy-transcript-icon" onclick="copyTranscriptByIndex(${i})" title="Copy Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></div><div class="listen-transcript-icon" onclick="speakTranscriptByIndex(${i})" title="Listen to Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M19 5a10 10 0 0 1 0 14"></path></svg></div><span style="font-size:10px; font-weight:900; color:${colorSet.main}; text-transform:uppercase;">${group.speaker}</span><br>${combinedText}<span style="display:block; font-size:10px; color:var(--muted); margin-top:5px; font-weight:600;">${ts}</span></div>`;
         chat.appendChild(row);
         transcriptRowEls[i] = row;
     }
@@ -1576,19 +1576,7 @@ async function speakTranscriptAnswerByIndex(index) {
     if (!item || item.role !== "assistant") return;
     const text = String(item.content || "").trim();
     if (!text) return;
-
-    const targetLang = translationTargetSelect ? (translationTargetSelect.value || "").trim() : "";
-    try {
-        const result = await agentQueryJSON({
-            tool: "text_to_speech",
-            query: "convert this answer to speech",
-            text,
-            tts_lang: targetLang || "en"
-        });
-        await handleAgentResponse(result, { source: "tts" });
-    } catch (e) {
-        alert(e.message || "Text-to-speech failed.");
-    }
+    await requestTextToSpeech(text, "Transcript Answer");
 }
 
 async function askTranscriptQuestion() {
@@ -2058,19 +2046,7 @@ async function speakDocumentAnswerByIndex(index) {
     if (!item || item.role !== "assistant") return;
     const text = String(item.content || "").trim();
     if (!text) return;
-
-    const targetLang = translationTargetSelect ? (translationTargetSelect.value || "").trim() : "";
-    try {
-        const result = await agentQueryJSON({
-            tool: "text_to_speech",
-            query: "convert this answer to speech",
-            text,
-            tts_lang: targetLang || "en"
-        });
-        await handleAgentResponse(result, { source: "tts" });
-    } catch (e) {
-        alert(e.message || "Text-to-speech failed.");
-    }
+    await requestTextToSpeech(text, "Document Answer");
 }
 
 async function askDocumentQuestion() {
@@ -2199,20 +2175,6 @@ function buildExportTranscriptText() {
 }
 
 
-function deleteTranscriptByIndex(index) {
-    const group = groupedTranscriptCache[index];
-    if (!group || !Array.isArray(group.segmentIndices)) return;
-    const ok = window.confirm("Delete this transcript block?");
-    if (!ok) return;
-
-    const toRemove = new Set(group.segmentIndices);
-    transcriptData = transcriptData.filter((_, idx) => !toRemove.has(idx));
-    sourceTranscriptData = sourceTranscriptData.filter((_, idx) => !toRemove.has(idx));
-
-    renderChatDelayed();
-    persistSessionTranscript();
-}
-
 function copyTranscriptByIndex(index) {
     const group = groupedTranscriptCache[index];
     if (!group) return;
@@ -2224,6 +2186,34 @@ function copyTranscriptByIndex(index) {
 
     navigator.clipboard.writeText(text.trim());
     alert("Transcript copied to clipboard!");
+}
+
+async function requestTextToSpeech(text, label = "Response") {
+    const trimmedText = String(text || "").trim();
+    if (!trimmedText) {
+        alert("No text available to convert to speech.");
+        return;
+    }
+    const targetLang = translationTargetSelect ? (translationTargetSelect.value || "").trim() : "";
+    try {
+        const result = await agentQueryJSON({
+            tool: "text_to_speech",
+            query: `convert this ${label.toLowerCase()} to speech`,
+            text: trimmedText,
+            tts_lang: targetLang || "en"
+        });
+        await handleAgentResponse(result, { source: "tts" });
+    } catch (e) {
+        alert(e.message || "Text-to-speech failed.");
+    }
+}
+
+async function speakTranscriptByIndex(index) {
+    const group = groupedTranscriptCache[index];
+    if (!group) return;
+    let text = `${group.speaker} speaking from ${formatTime(group.start || 0)} to ${formatTime(group.end || 0)}. `;
+    text += (group.texts || []).join(" ");
+    await requestTextToSpeech(text.trim(), "Transcript");
 }
 
 function requestTargetLanguage() {
@@ -2603,7 +2593,15 @@ function formatAuditEvent(ev) {
     const ts = new Date(ev.created_at || ev.ts || "").toLocaleString("en-GB");
     const actor = ev.email || ev.username || "";
     const action = ev.action || "event";
-    return { ts, actor, action };
+    const meta = ev.meta || {};
+    const tags = [];
+    if (meta.tool) tags.push(`Tool: ${meta.tool}`);
+    if (meta.session_id) tags.push(`Session: ${meta.session_id}`);
+    if (meta.document_id) tags.push(`Document: ${meta.document_id}`);
+    if (meta.uploaded_file && meta.uploaded_file.filename) tags.push(`File: ${meta.uploaded_file.filename}`);
+    if (meta.deleted_target && meta.deleted_target.kind) tags.push(`Deleted: ${meta.deleted_target.kind}`);
+    if (meta.query_text) tags.push(`Prompt: ${meta.query_text}`);
+    return { ts, actor, action, tags, meta };
 }
 
 async function showAdminPanel() {
@@ -2838,10 +2836,19 @@ async function refreshAdminPanel() {
             const logoutTime = info.action === "auth:logout" ? info.ts : "";
             const deptText = ev.department || "-";
             const historyText = `Department: ${deptText} • Login: ${loginTime || "-"} • Logout: ${logoutTime || "-"} • History: ${info.action}`;
+            const tagMarkup = (info.tags || []).length
+                ? `<div class="audit-meta-preview">${info.tags.map((tag) => `<span>${escapeHTMLText(tag)}</span>`).join("")}</div>`
+                : "";
+            const metaMarkup = `<details class="audit-meta-details">
+                <summary>View Metadata</summary>
+                <pre class="audit-meta-json">${escapeHTMLText(JSON.stringify(info.meta || {}, null, 2))}</pre>
+            </details>`;
             row.innerHTML = `
                 <div>
                     <div class="title">${escapeHTMLText(info.actor || "unknown")}</div>
                     <div class="meta">${escapeHTMLText(historyText)}</div>
+                    ${tagMarkup}
+                    ${metaMarkup}
                 </div>
                 <div class="admin-actions">
                     <button class="admin-btn" onclick="handleDeleteAudit('${ev.id}')">Delete</button>
@@ -3264,6 +3271,7 @@ async function handleAgentResponse(agentResult, options = {}) {
     }
 
     if (result.document_id || result.document_filename) {
+        setAgentBarVisible(false);
         transcriptData = [];
         groupedTranscriptCache = [];
         currentSummary = result.summary || "";
@@ -3291,6 +3299,7 @@ async function handleAgentResponse(agentResult, options = {}) {
     }
 
     if (Array.isArray(result.transcript) || result.session_id) {
+        setAgentBarVisible(false);
         transcriptData = result.transcript || [];
         currentSummary = result.summary || "";
         currentSessionId = result.session_id || currentSessionId;
@@ -3332,6 +3341,7 @@ async function handleAgentResponse(agentResult, options = {}) {
     }
 
     if (result.summary || result.translated_summary) {
+        setAgentBarVisible(false);
         const sourceSummaryText = result.summary || "";
         setSourceSummary(sourceSummaryText);
         currentSummary = result.translated_summary || result.summary || "";
@@ -3476,17 +3486,5 @@ async function speakSummary() {
         alert("Summary is not available yet.");
         return;
     }
-
-    const targetLang = translationTargetSelect ? (translationTargetSelect.value || "").trim() : "";
-    try {
-        const result = await agentQueryJSON({
-            tool: "text_to_speech",
-            query: "convert this summary to speech",
-            text,
-            tts_lang: targetLang || "en"
-        });
-        await handleAgentResponse(result, { source: "tts" });
-    } catch (e) {
-        alert(e.message || "Text-to-speech failed.");
-    }
+    await requestTextToSpeech(text, "Summary");
 }

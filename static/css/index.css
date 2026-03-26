@@ -635,6 +635,42 @@ textarea{
   font-size:12px;
   color:#666;
 }
+.audit-meta-preview{
+  margin-top:8px;
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
+.audit-meta-preview span{
+  font-size:10px;
+  font-weight:700;
+  color:#8a5b00;
+  background:#fff7e8;
+  border:1px solid #ecd8b7;
+  border-radius:999px;
+  padding:4px 8px;
+}
+.audit-meta-details{
+  margin-top:8px;
+}
+.audit-meta-details summary{
+  font-size:11px;
+  font-weight:800;
+  color:#9a6700;
+  cursor:pointer;
+}
+.audit-meta-json{
+  margin-top:8px;
+  padding:10px;
+  border-radius:10px;
+  background:#fffdf8;
+  border:1px solid #ece3d4;
+  color:#374151;
+  font-size:11px;
+  line-height:1.5;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
 
 .search-card{
   background:linear-gradient(135deg, #d7e7ff 0%, #c9dcff 55%, #f8fbff 100%);
@@ -1223,12 +1259,12 @@ textarea{
   max-width:100%;
   box-sizing:border-box;
 }
-.copy-sum-icon,.copy-transcript-icon,.translate-sum-icon,.translate-transcript-icon,.delete-sum-icon,.delete-transcript-icon{
+.copy-sum-icon,.copy-transcript-icon,.translate-sum-icon,.translate-transcript-icon,.delete-sum-icon,.listen-transcript-icon{
   position:absolute; right:10px; top:10px; opacity:.6; cursor:pointer;
 }
 .translate-sum-icon,.translate-transcript-icon{ right:36px; }
-.delete-sum-icon,.delete-transcript-icon{ right:64px; }
-.copy-sum-icon:hover,.copy-transcript-icon:hover,.translate-sum-icon:hover,.translate-transcript-icon:hover,.delete-sum-icon:hover,.delete-transcript-icon:hover{ opacity:1; }
+.delete-sum-icon,.listen-transcript-icon{ right:64px; }
+.copy-sum-icon:hover,.copy-transcript-icon:hover,.translate-sum-icon:hover,.translate-transcript-icon:hover,.delete-sum-icon:hover,.listen-transcript-icon:hover{ opacity:1; }
 
 .audio-preview-content,
 .video-preview-content,

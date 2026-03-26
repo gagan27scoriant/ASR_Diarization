@@ -1,4 +1,5 @@
 import os
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -272,6 +273,7 @@ def log_activity(user_id: Any, action: str, meta: dict[str, Any] | None = None) 
     user = _users_col().find_one({"_id": oid}) if oid else None
     _activity_col().insert_one(
         {
+            "event_id": uuid.uuid4().hex,
             "user_id": oid,
             "action": action,
             "meta": meta or {},
@@ -296,6 +298,7 @@ def list_activity(limit: int = 200) -> list[dict[str, Any]]:
                 "email": row.get("email"),
                 "department": row.get("department"),
                 "role": row.get("role"),
+                "event_id": row.get("event_id") or "",
             }
         )
     return events
