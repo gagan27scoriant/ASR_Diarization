@@ -14,6 +14,7 @@ let currentDocumentText = "";
 let currentDocumentId = "";
 let currentDocumentChat = [];
 let currentTranscriptChat = [];
+let currentAgentChat = [];
 let sourceTranscriptData = [];
 let sourceSummary = "";
 let sourceDocumentText = "";
@@ -919,6 +920,7 @@ async function openHistorySession(sessionId) {
         currentDocumentId = "";
         currentDocumentChat = [];
         currentTranscriptChat = result.qa_history || [];
+        currentAgentChat = [];
         lastAudioFile = currentAfterAudio || result.processed_file || result.title || sessionId;
         setSourceTranscript(transcriptData);
         setSourceSummary(currentSummary);
@@ -952,6 +954,7 @@ async function openDocumentEntry(docId) {
         currentDocumentText = result.text_preview || "";
         currentDocumentChat = result.chat_history || [];
         currentTranscriptChat = [];
+        currentAgentChat = [];
         currentSummary = result.summary || "";
         currentSessionId = "";
         transcriptData = [];
@@ -3204,6 +3207,7 @@ async function handleAgentResponse(agentResult, options = {}) {
     lastAgentPlan = Array.isArray(agentResult && agentResult.plan) ? agentResult.plan : [];
 
     if (result.answer && (agentResult && agentResult.selected_tool) === "chat_response") {
+        currentAgentChat = Array.isArray(result.history) ? result.history : currentAgentChat;
         appendChatBubble("assistant", result.answer);
         return;
     }
@@ -3247,6 +3251,7 @@ async function handleAgentResponse(agentResult, options = {}) {
         currentDocumentId = result.document_id || "";
         currentDocumentChat = result.chat_history || [];
         currentTranscriptChat = [];
+        currentAgentChat = [];
         currentDocumentText = result.document_text || result.text_preview || "";
         setSourceTranscript([]);
         setSourceSummary(currentSummary);
@@ -3270,6 +3275,7 @@ async function handleAgentResponse(agentResult, options = {}) {
         currentDocumentId = "";
         currentDocumentChat = [];
         currentTranscriptChat = result.history || result.qa_history || [];
+        currentAgentChat = [];
         currentProcessedVideo = result.source_video || "";
         currentBeforeAudio = result.before_audio_file || result.processed_file || "";
         currentAfterAudio = result.after_audio_file || result.processed_file || "";
@@ -3326,6 +3332,9 @@ async function handleAgentResponse(agentResult, options = {}) {
 
 function buildAgentContextPayload(queryText) {
     const payload = { query: queryText };
+    if (Array.isArray(currentAgentChat) && currentAgentChat.length > 0) {
+        payload.chat_history = currentAgentChat.slice(-10);
+    }
     if (/\b(text to speech|tts|speak|voice|read aloud)\b/i.test(queryText || "")) {
         if ((currentSummary || "").trim()) {
             payload.text = currentSummary;
@@ -3380,6 +3389,8 @@ async function submitAgentQuery() {
     );
 
     if (isPlainChatMode) {
+        currentAgentChat = Array.isArray(currentAgentChat) ? currentAgentChat : [];
+        currentAgentChat.push({ role: "user", content: queryText });
         appendChatBubble("user", queryText);
     }
 
@@ -3401,6 +3412,7 @@ async function submitAgentQuery() {
         }
     } catch (e) {
         if (isPlainChatMode) {
+            currentAgentChat.push({ role: "assistant", content: e.message || "Agent request failed" });
             appendChatBubble("assistant", e.message || "Agent request failed");
         } else {
             appendAgentResponseCard("Agent Error", e.message || "Agent request failed", "#b91c1c");

@@ -114,11 +114,16 @@ def text_to_speech_tool(payload: dict[str, Any], deps: dict[str, Any]) -> dict[s
 
 
 def chat_response_tool(payload: dict[str, Any], deps: dict[str, Any]) -> dict[str, Any]:
+    history = payload.get("chat_history") if isinstance(payload.get("chat_history"), list) else []
+    question = (payload.get("query") or payload.get("question") or "").strip()
+    answer = chat_with_agent(question, payload)
+    updated_history = list(history)
+    if question:
+        updated_history.append({"role": "user", "content": question})
+    updated_history.append({"role": "assistant", "content": answer})
     return {
-        "answer": chat_with_agent(
-            (payload.get("query") or payload.get("question") or "").strip(),
-            payload,
-        )
+        "answer": answer,
+        "history": updated_history[-20:],
     }
 
 
