@@ -535,10 +535,22 @@ textarea{
   padding:14px 16px;
   box-shadow: 0 6px 14px rgba(17, 24, 39, 0.05);
 }
+.admin-card-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
 .admin-card h3{
   font-size:14px;
   font-weight:800;
-  margin-bottom:10px;
+  margin:0;
+}
+.admin-card-body{
+  margin-top:12px;
+}
+.admin-card-body.collapsed{
+  display:none;
 }
 .admin-grid{
   display:grid;
@@ -575,6 +587,23 @@ textarea{
   background:var(--accent);
   border-color:var(--accent);
   color:#fff;
+}
+.admin-section-toggle{
+  border:1px solid #f2d5a0;
+  background:linear-gradient(135deg, #fff9ee 0%, #fff3d9 100%);
+  color:#a66300;
+  border-radius:999px;
+  padding:7px 14px;
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+  transition: all .2s ease;
+  white-space:nowrap;
+}
+.admin-section-toggle:hover{
+  transform:translateY(-1px);
+  border-color:#f3b44c;
+  box-shadow:0 8px 18px rgba(243, 180, 76, 0.22);
 }
 .admin-table{
   display:flex;

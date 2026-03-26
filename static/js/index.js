@@ -577,6 +577,7 @@ async function startRecording() {
     }
 
     try {
+        setAgentBarVisible(false);
         recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const options = {};
         const mimeType = preferredRecorderMimeType();
@@ -2611,6 +2612,7 @@ async function showAdminPanel() {
     if (!currentUser) {
         await loadPolicy();
     }
+    setAgentBarVisible(false);
     clearChatRows();
     setUploadHeroVisible(false);
     const row = document.createElement("div");
@@ -2641,38 +2643,61 @@ async function showAdminPanel() {
                 <div class="admin-note">Admins can create users in their department. Superusers can create admins and users for any department.</div>
             </div>
             <div class="admin-card" id="departmentPanel" style="display:none;">
-                <h3>Departments</h3>
-                <div class="admin-grid">
-                    <input class="admin-input" id="adminCreateDepartment" placeholder="New Department">
+                <div class="admin-card-header">
+                    <h3>Departments</h3>
+                    <button class="admin-section-toggle" type="button" onclick="toggleAdminSection('adminDepartmentsSection', this)">Expand</button>
                 </div>
-                <div class="admin-actions">
-                    <button class="admin-btn" onclick="handleCreateDepartment()">Add Department</button>
+                <div class="admin-card-body collapsed" id="adminDepartmentsSection">
+                    <div class="admin-grid">
+                        <input class="admin-input" id="adminCreateDepartment" placeholder="New Department">
+                    </div>
+                    <div class="admin-actions">
+                        <button class="admin-btn" onclick="handleCreateDepartment()">Add Department</button>
+                    </div>
+                    <div class="admin-table" id="adminDepartmentsTable"></div>
                 </div>
-                <div class="admin-table" id="adminDepartmentsTable"></div>
             </div>
             <div class="admin-card">
-                <h3>Users</h3>
-                <div class="admin-table" id="adminUsersTable"></div>
+                <div class="admin-card-header">
+                    <h3>Users</h3>
+                    <button class="admin-section-toggle" type="button" onclick="toggleAdminSection('adminUsersSection', this)">Expand</button>
+                </div>
+                <div class="admin-card-body collapsed" id="adminUsersSection">
+                    <div class="admin-table" id="adminUsersTable"></div>
+                </div>
             </div>
             <div class="admin-card">
-                <h3>Audit Log</h3>
-                <div class="admin-actions" id="auditActions" style="margin-bottom:8px;"></div>
-                <div class="admin-grid" style="margin-bottom:10px;">
-                    <input class="admin-input" id="auditFilterDate" type="date">
-                    <select class="admin-input" id="auditFilterDept">
-                        <option value="">All Departments</option>
-                    </select>
-                    <input class="admin-input" id="auditFilterEmail" placeholder="Filter by Email">
-                    <button class="admin-btn" onclick="refreshAdminPanel()">Apply Filters</button>
-                    <button class="admin-btn" onclick="clearAuditFilters()">Clear Filters</button>
+                <div class="admin-card-header">
+                    <h3>Audit Log</h3>
+                    <button class="admin-section-toggle" type="button" onclick="toggleAdminSection('adminAuditSection', this)">Expand</button>
                 </div>
-                <div class="admin-table" id="adminAuditTable"></div>
+                <div class="admin-card-body collapsed" id="adminAuditSection">
+                    <div class="admin-actions" id="auditActions" style="margin-bottom:8px;"></div>
+                    <div class="admin-grid" style="margin-bottom:10px;">
+                        <input class="admin-input" id="auditFilterDate" type="date">
+                        <select class="admin-input" id="auditFilterDept">
+                            <option value="">All Departments</option>
+                        </select>
+                        <input class="admin-input" id="auditFilterEmail" placeholder="Filter by Email">
+                        <button class="admin-btn" onclick="refreshAdminPanel()">Apply Filters</button>
+                        <button class="admin-btn" onclick="clearAuditFilters()">Clear Filters</button>
+                    </div>
+                    <div class="admin-table" id="adminAuditTable"></div>
+                </div>
             </div>
         </div>
     `;
     chat.appendChild(row);
     chat.scrollTop = chat.scrollHeight;
     await refreshAdminPanel();
+}
+
+function toggleAdminSection(sectionId, button) {
+    const section = document.getElementById(sectionId);
+    if (!section || !button) return;
+    const isCollapsed = section.classList.contains("collapsed");
+    section.classList.toggle("collapsed", !isCollapsed);
+    button.textContent = isCollapsed ? "Collapse" : "Expand";
 }
 
 async function refreshAdminPanel() {

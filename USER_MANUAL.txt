@@ -1,160 +1,283 @@
-ASR STUDIO - USER MANUAL
-========================
+AI KNOWLEDGE STUDIO - USER MANUAL
+================================
 
-1) OPEN THE APP
----------------
-1. Start backend:
+1) START THE APP
+----------------
+1. Install dependencies:
+   pip install -r requirements.txt
+
+2. Start backend:
    python main.py
-2. Open browser:
+
+3. Open browser:
    http://127.0.0.1:5000
 
 
-2) START A NEW SESSION
+2) WHAT THE APP CAN DO
 ----------------------
-You can begin in one of two ways:
-- Upload a file from the drop zone / Browse File.
-- Start live meeting transcription using "Start live Meeting".
-
-Supported media:
-- Audio: .wav, .mp3, .aac, .aiff, .wma, .amr, .opus, .webm, .ogg, .m4a
-- Video: .mp4, .mkv, .avi, .mov, .wmv, .mpeg, .3gp
-- Documents: .pdf, .docx, .txt
-
-
-3) PROCESS AUDIO/VIDEO
-----------------------
-1. Upload audio/video.
-2. Wait for processing (loader shown on screen).
-3. App automatically runs:
-   - conversion to WAV if needed
-   - optional Demucs enhancement
-   - transcription
-   - speaker diarization
-   - speaker mapping
-4. Transcript appears in chat with speaker labels and timestamps.
-5. Audio/video preview cards appear when available.
+This application supports:
+- plain chat in the docked assistant bar
+- audio/video transcription with speaker diarization
+- live meeting transcription
+- transcript summarization
+- document upload and document Q&A
+- transcript Q&A
+- transcript search
+- translation
+- text-to-speech
+- session and document history
 
 
-4) LIVE MEETING MODE
---------------------
-Buttons:
-- Start live Meeting: starts microphone capture
-- Pause: pauses stream
-- Stop: stops stream
+3) TWO WAYS TO USE THE APP
+--------------------------
+A. Plain chat mode
+- Type into the assistant bar without uploading a file.
+- The assistant replies like a chatbot.
+- Follow-up chat turns keep recent conversation history in the current session.
+
+B. Upload + query mode
+- Attach a file using the upload button in the assistant bar.
+- The file is staged first.
+- Nothing is processed yet.
+- Then type your instruction and send it.
+- The app runs the matching workflow based on your query.
+
+
+4) SUPPORTED FILES
+------------------
+Audio:
+- .wav
+- .mp3
+- .aac
+- .aiff
+- .wma
+- .amr
+- .opus
+- .webm
+- .ogg
+- .m4a
+
+Video:
+- .mp4
+- .mkv
+- .avi
+- .mov
+- .wmv
+- .mpeg
+- .3gp
+
+Documents:
+- .pdf
+- .docx
+- .txt
+
+
+5) PLAIN CHAT MODE
+------------------
+Use the assistant bar without uploading a file.
+
+Examples:
+- What day is today?
+- What is 2+2?
+- Explain what this app can do.
+- How do I upload a document?
+
+Notes:
+- The chat keeps short-term conversation history in the current browser session.
+- Date/time questions are answered from runtime code.
+- Many math questions are solved deterministically.
+
+
+6) MEDIA PROCESSING
+-------------------
+To process audio or video:
+1. Attach an audio/video file.
+2. Type a query like:
+   - transcribe this recording
+   - transcribe and diarize this audio
+   - summarize this meeting after transcription
+3. Send the query.
 
 What happens:
-- Audio is captured in short chunks.
-- Each chunk is sent to backend and transcribed.
-- Live text appears in the "Live Transcription" card.
+- media is prepared
+- transcription runs
+- speaker diarization runs
+- transcript is shown with timestamps and speakers
+- audio/video preview appears when available
 
 
-5) RENAME SPEAKERS
+7) LIVE MEETING MODE
+--------------------
+Buttons:
+- Start live Meeting
+- Pause
+- Stop
+
+How it works:
+- microphone audio is captured in chunks
+- chunks are transcribed live
+- live text appears in the interface
+- when recording ends, the result can be staged for agent-driven follow-up processing
+
+
+8) TRANSCRIPT Q&A
+-----------------
+Once a transcript session exists, you can:
+- ask questions about the transcript
+- search for relevant parts
+- summarize it
+- translate transcript-derived content
+- convert transcript-derived content to speech
+
+Examples:
+- What did the client say about deadlines?
+- Search this transcript for pricing discussion.
+- Summarize the action items.
+
+
+9) DOCUMENT MODE
+----------------
+To use document workflows:
+1. Attach a PDF, DOCX, or TXT file.
+2. Type a query such as:
+   - summarize this document
+   - ask this document about the conclusion
+   - what are the key findings in this document?
+3. Send the query.
+
+What happens:
+- text is extracted
+- document summary is generated
+- the document is indexed for question answering
+- document history appears in the sidebar
+
+Notes:
+- PDF mini preview is available from the sidebar
+- document Q&A is history-aware for that document thread
+
+
+10) SUMMARIZATION
+-----------------
+Transcript summaries:
+- use the top Summarize button or a query-driven request
+- transcript summaries use meeting-style formatting
+
+Document summaries:
+- use plain summary formatting, not meeting minutes
+
+
+11) TRANSLATION
+---------------
+Use the translation language dropdown for supported translation flows.
+
+You can:
+- translate summaries
+- translate transcript-derived text
+- translate document-derived text
+- use query-first commands such as:
+  - translate the summary to Hindi
+  - translate this answer to Tamil
+
+
+12) TEXT-TO-SPEECH
 ------------------
-1. Expand sidebar if needed.
-2. Enter speaker names in "Speaker Mapping" input fields.
-3. Click "Finalize Names".
-4. Transcript updates with your custom names.
+The app can convert supported text into speech.
 
-
-6) SUMMARIZE MEETING
---------------------
-1. Click "Summarize".
-2. Enter:
-   - Meeting Title
-   - Meeting Date
-   - Meeting Place
-3. Summary appears in a summary card.
+Examples:
+- convert this summary to speech
+- read this answer aloud
 
 Notes:
-- Meeting summary format is structured as meeting minutes.
-- Summary can be copied using the copy icon.
+- generated audio is stored in audio/
+- gTTS usually needs internet access
 
 
-7) TRANSLATE CONTENT
---------------------
-1. Select target language from top dropdown.
-2. App automatically translates:
-   - full transcript
-   - summary
-   - document text preview
-3. Change language again to re-translate from source text.
-4. Clear selection (default option) to restore original source text.
-
-Manual controls:
-- Translate icon on each transcript block: translates only that block.
-- Translate icon on summary card: translates summary only.
-
-
-8) DOCUMENT MODE (PDF/DOCX/TXT)
--------------------------------
-1. Upload .pdf / .docx / .txt
-2. App extracts text and generates a concise document summary.
-3. Document Q&A box appears. Ask questions about the document content.
-4. Document history appears in the sidebar. Select a document to reopen it.
-5. Use the mini preview in the sidebar to View/Zoom the PDF.
-
-Notes:
-- Document summaries are NOT in meeting-minutes format.
-- Q&A is history-aware for each document.
-- For scanned PDFs, enable OCR (see Troubleshooting).
-
-
-9) HISTORY
-----------
-Sidebar "History" provides:
-- open existing session
+13) HISTORY
+-----------
+Transcript History sidebar:
+- open an older transcript session
 - rename session
 - delete session
 
-History stores:
-- transcript
-- summary
-- processed file metadata
+Document History sidebar:
+- open an older document
+- refresh list
+- clear list
 
 
-10) DOCUMENT HISTORY
---------------------
-Sidebar "Documents" provides:
-- open existing document
-- mini preview for PDFs
-
-
-11) EXPORT
+14) EXPORT
 ----------
-- Export Transcript: downloads transcript as .doc
-- Export Summary: downloads summary as .doc
+- Export Transcript -> downloads transcript as .doc
+- Export Summary -> downloads summary as .doc
 
 
-12) COMMON ISSUES
+15) CHAT MEMORY TEST
+--------------------
+To test plain chatbot history awareness:
+
+1. Ask:
+   My name is Rahul and I work in marketing.
+
+2. Then ask:
+   What is my name and which team do I work in?
+
+Expected behavior:
+- the assistant should remember Rahul and marketing from the previous turn
+
+
+16) DATE/TIME TEST
+------------------
+Examples:
+- what day is today
+- what is today's date
+- what time is it
+
+These should return runtime-aware answers instead of guessed dates.
+
+
+17) MATH TEST
+-------------
+Examples:
+- what is 2+2
+- calculate 25% of 80
+- factor x^2 - 1
+- solve x^2 - 5*x + 6 = 0
+
+
+18) COMMON ISSUES
 -----------------
-Issue: "MongoDB connection refused"
+Issue:
+MongoDB connection refused
 Fix:
-- Ensure MongoDB is running locally, or set MONGODB_URI.
+- start MongoDB
+- or set MONGODB_URI
 
-Issue: "document too large" during PDF processing
+Issue:
+Ollama-backed chat / summary / RAG not responding
 Fix:
-- This is resolved by chunk storage in document_chunks collection. Ensure you are on the latest version and MongoDB is running.
+- ensure Ollama is running
+- verify OLLAMA_URL
+- verify the configured model exists
 
-Issue: "NLLB model not found offline"
+Issue:
+NLLB model not found offline
 Fix:
-- Set NLLB_MODEL_PATH to local model folder
-- Ensure folder includes config/tokenizer/model weights
+- set NLLB_MODEL_PATH
+- or place the model in expected local folders
 
-Issue: Diarization model not loading
+Issue:
+Diarization model not loading
 Fix:
-- Set HUGGINGFACE_TOKEN with a valid token
+- set HUGGINGFACE_TOKEN
 
-Issue: Summary not generated with Ollama backend
+Issue:
+Live transcription not working
 Fix:
-- Ensure Ollama service is running
-- Verify OLLAMA_URL and SUMMARY_MODEL
+- allow microphone access
+- check MediaRecorder browser support
 
-Issue: Live transcription not working
+Issue:
+Scanned PDF returns no text
 Fix:
-- Allow microphone access in browser
-- Check browser supports MediaRecorder
-
-Issue: Scanned PDF returns no text
-Fix:
-- Enable OCR with DOCUMENT_OCR=1
-- Install pdf2image, pytesseract, and system tesseract
+- enable OCR with DOCUMENT_OCR=1
+- install pdf2image, pytesseract, and system Tesseract

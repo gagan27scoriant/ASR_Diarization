@@ -1,304 +1,442 @@
-ASR STUDIO - COMPLETE TECHNICAL DOCUMENTATION
-=============================================
+AI KNOWLEDGE STUDIO - COMPLETE TECHNICAL DOCUMENTATION
+======================================================
 
 1. OVERVIEW
 -----------
-ASR Studio is a Flask application for speech-to-text and document intelligence workflows with:
-- media ingestion (audio/video)
-- transcription (faster-whisper)
-- speaker diarization (pyannote)
-- speaker mapping and smoothing
-- summary generation (Ollama or BART)
-- translation (NLLB)
+AI Knowledge Studio is a Flask application for:
+- audio/video transcription
+- speaker diarization
 - live chunk transcription
-- session history persistence (MongoDB)
-- document ingestion + RAG Q&A (MongoDB)
+- transcript summarization
+- document ingestion and document Q&A
+- transcript Q&A
+- transcript semantic search
+- translation
+- text-to-speech
+- query-first agent routing
+- plain chatbot interaction with short-term history
+- deterministic runtime date/time and math responses
+
+The current system is best described as:
+- query-first
+- tool-routed
+- partially agentic
+
+It is not yet a fully autonomous multi-step planning agent for every request, but it already exposes a unified agent query path and tool registry.
 
 
-2. RUNTIME FLOW
+2. STARTUP FLOW
 ---------------
 Startup sequence:
-1. Flask app created.
-2. Workspace folders ensured:
-   audio/, videos/, outputs/, documents/, recordings/
-3. ASR model loads (preferred ASR_MODEL_SIZE; fallback to "medium").
-4. Diarization pipeline loads.
-5. MongoDB init + indexes.
-6. HTTP routes are served.
-
-Primary media flow (/process):
-1. Accept uploaded media or path payload.
-2. If video, extract audio.
-3. Ensure WAV + workspace copy.
-4. Try Demucs enhancement (if enabled); fallback to original on error.
-5. Transcribe audio segments with timestamps and words.
-6. Run diarization.
-7. Map words/segments to speakers.
-8. Persist session history to MongoDB.
-9. Return transcript + metadata.
-
-Document flow (/process_document):
-1. Accept uploaded document (.pdf/.docx/.txt).
-2. Extract text (PDF -> pypdf; optional OCR for scanned PDFs).
-3. Summarize document (non-meeting format).
-4. Chunk text (recursive splitter) + embed with sentence-transformers.
-5. Store document metadata in document_store and chunks in document_chunks.
-6. Return document summary + document_id for RAG Q&A.
-
-RAG Q&A flow (/api/document/ask):
-1. Retrieve top-k chunks by cosine similarity.
-2. Build prompt with context + conversation history.
-3. Generate answer via Ollama.
-4. Persist chat history for the document.
+1. Flask app is created.
+2. Workspace folders are ensured.
+3. MongoDB init runs.
+4. ASR model loads.
+5. Diarization pipeline loads.
+6. Routes are registered.
+7. Web UI is served.
 
 
-3. PROJECT STRUCTURE
+3. PRIMARY RUNTIME FLOWS
+------------------------
+3.1 Plain chat flow
+- User types a query without uploaded file / transcript / document context.
+- Frontend sends query to `POST /api/agent/query`.
+- Router selects `chat_response`.
+- `chat_response` passes recent `chat_history` into the LLM layer.
+- Deterministic date/time and math handling run before the LLM fallback.
+- Backend returns updated `history`.
+- Frontend stores that history in `currentAgentChat`.
+
+3.2 Upload + query flow
+- User stages a file in the UI.
+- No processing starts yet.
+- User sends a query.
+- Frontend sends file + query to `POST /api/agent/chat`.
+- Backend detects media vs document upload.
+- File is processed according to the query-driven agent path.
+
+3.3 Transcript workflow
+- media is processed
+- transcript is generated
+- speaker diarization runs
+- transcript session is stored
+- transcript can be summarized, searched, or used for transcript Q&A
+
+3.4 Document workflow
+- document text is extracted
+- summary is generated
+- text is chunked and embedded
+- chunks are stored
+- document Q&A uses retrieval + generation
+
+
+4. PROJECT STRUCTURE
 --------------------
 main.py
-- Flask app + all routes
+- Flask app
+- route definitions
+- permission checks
+- unified agent endpoints
+
+app/agent_router.py
+- query-first planning
+- tool selection
+- route result packaging
+
+app/agent_tools.py
+- tool registry
+- tool metadata
+- tool validation
+- tool execution wrappers
+
+app/agent_llm.py
+- plain chatbot fallback
+- deterministic date/time responses
+- deterministic math responses using SymPy
+- conversation-history-aware chat prompt
+- planner LLM helper
+
+app/agent_service.py
+- uploaded file handling for query-driven agent flow
 
 app/asr.py
-- faster-whisper model loading
-- transcription logic with retry scoring strategy
-- live chunk transcription
+- ASR loading and transcription logic
 
 app/diarization.py
-- pyannote pipeline loading
-- diarization execution and optional waveform preload
+- diarization pipeline loading and execution
 
 app/mapper.py
-- speaker mapping algorithm
-- overlap scoring, nearest fallback, smoothing, merge logic
+- speaker mapping / smoothing logic
 
 app/media_utils.py
-- media conversion, extraction, Demucs enhancement
-- document text extraction (PDF/DOCX/TXT)
-
-app/summarize.py
-- summary backend integration (Ollama/BART)
-- meeting-minutes for transcripts
-- plain summaries for documents
-
-app/translation.py
-- NLLB loading (offline-first)
-- translation API methods and language code resolution
+- media conversion / extraction / document text extraction helpers
 
 app/processing_service.py
 - orchestration for media/document processing
-- persistence helpers
 
-app/history_store.py
-- session history CRUD (MongoDB)
+app/summarize.py
+- summary generation via Ollama or BART
 
-app/document_store.py
-- document metadata CRUD (MongoDB)
+app/translation.py
+- NLLB translation loading and execution
 
-app/document_chunks.py
-- document chunk storage (MongoDB)
+app/tts.py
+- gTTS synthesis
+
+app/history_rag.py
+- transcript-session RAG Q&A
 
 app/document_rag.py
-- chunking, embeddings, retrieval, history-aware Q&A
+- document chunk retrieval + history-aware Q&A
 
 app/semantic_search.py
-- semantic search for transcript history
+- transcript semantic search
 
-app/db.py
-- MongoDB connection and index creation
+app/history_store.py
+- transcript history persistence
 
-templates/index.html + static/js/index.js + static/css/index.css
-- web UI
-- recording controls
-- translation dropdown auto-translation behavior
-- history rendering
-- export actions
-- document Q&A and preview
+app/document_store.py
+- document metadata persistence
 
-scripts/download_nllb_model.py
-- utility script to download NLLB locally and generate env file
+app/document_chunks.py
+- document chunk persistence
+
+templates/index.html
+static/js/index.js
+static/css/index.css
+- docked assistant UI
+- staged upload flow
+- plain chat rendering
+- transcript/document workflow rendering
 
 
-4. API ROUTES
+5. AGENT DESIGN
+---------------
+Current tool registry includes:
+- `chat_response`
+- `process_media`
+- `summarize_transcript`
+- `translate_text`
+- `answer_document`
+- `answer_history`
+- `search_history`
+- `text_to_speech`
+
+Routing behavior:
+- explicit tool in payload is respected first
+- otherwise planner / heuristic routing is used
+- plain chat queries resolve to `chat_response`
+- transcript/document context can shift the route to the matching RAG tools
+
+Important limitation:
+- the current router is still mostly single-tool-first routing
+- there is limited chaining only in selected cases such as summary + translate
+
+
+6. PLAIN CHAT MEMORY
+--------------------
+The normal chatbot now keeps recent conversation history in the frontend.
+
+Frontend:
+- `currentAgentChat` stores the current chat thread
+- recent turns are sent in `payload.chat_history`
+
+Backend:
+- `chat_response_tool()` appends the current turn and returns updated history
+- `chat_with_agent()` includes `Conversation History` in the LLM prompt
+
+Scope:
+- memory is session-local in the current browser session
+- it is reset when transcript/document workflows become active
+- it is not yet persisted as a long-term standalone chat history collection
+
+
+7. DETERMINISTIC UTILITY LAYER
+------------------------------
+The normal chatbot has a pre-LLM deterministic layer for:
+
+7.1 Date / time
+- current day
+- current date
+- current time
+- combined date-and-time phrasing
+
+This is implemented from runtime code using:
+- `datetime`
+- `zoneinfo`
+
+7.2 Math
+- arithmetic
+- percentages
+- simplification
+- factoring
+- basic solving
+
+This is implemented with:
+- `sympy`
+
+If a question matches the deterministic utility layer, the LLM is bypassed.
+
+
+8. API ROUTES
 -------------
-GET /
-- returns web UI (index.html)
+Main routes:
 
-GET /audio/<filename>
-GET /videos/<filename>
-GET /documents/<filename>
-- static file serving for previews/playback
+GET /
+- web UI
 
 POST /process
-Input:
-- multipart/form-data: audio_file=<file>
-  OR
-- JSON: {"file_path":"...", "filename":"..."}
-Output:
-- {
-    "session_id": str,
-    "transcript": [ {speaker,start,end,text}, ... ],
-    "summary": str,
-    "processed_file": str,
-    "before_audio_file": str,
-    "after_audio_file": str,
-    "source_video": str
-  }
+- classic media processing endpoint
 
 POST /transcribe_chunk
-Input:
-- multipart/form-data: audio_chunk=<blob>
-Output:
-- {"text": "chunk transcription"}
+- live chunk transcription
 
 POST /summarize_text
-Input JSON:
-- content (required)
-- meeting_title (required)
-- meeting_date (required)
-- meeting_place (required)
-- session_id (optional, for persistence)
-Output:
-- {"summary": "..."}
+- classic summary endpoint
 
 POST /process_document
-Input form-data:
-- document_file (required)
-Output:
-- {
-    "summary": str,
-    "document_filename": str,
-    "document_type": str,
-    "document_text": str,
-    "document_id": str,
-    "chunk_count": int
-  }
-
-POST /api/document/ask
-Input JSON:
-- document_id (required)
-- question (required)
-- top_k (optional)
-Output:
-- {"answer": "...", "sources": [...], "history": [...]}
-
-GET /api/documents
-Output:
-- {"documents": [document_entry, ...]}
-
-GET /api/documents/<doc_id>
-Output:
-- {"document_id":..., "filename":..., "document_type":..., "text_preview":..., "summary":..., "chat_history":...}
+- classic document processing endpoint
 
 POST /translate
-Input JSON:
-- target_lang (required)
-- source_lang (optional)
-- text (string) OR texts (array of strings)
-Output for text:
-- {"text": "...", "target_lang":"...", "source_lang":"..."}
-Output for texts:
-- {"texts":[...], "target_lang":"...", "source_lang":"..."}
+- translation endpoint
+
+POST /api/document/ask
+- document RAG Q&A
+
+POST /api/history/ask
+- transcript-history RAG Q&A
+
+GET /api/documents
+- list documents
+
+GET /api/documents/<doc_id>
+- open document item
+
+GET /api/agent/tools
+- list agent tools
+
+POST /api/agent/query
+- query-first endpoint for plain chat or tool routing
+
+POST /api/agent/chat
+- unified uploaded-file + query endpoint
 
 GET /history
-Output:
-- {"history": [history_entry, ...]}
+- list transcript history
 
 GET /history/<session_id>
-Output:
-- full session payload with transcript + summary
+- fetch one transcript session
 
 POST /history/<session_id>/transcript
-Input JSON:
-- transcript (optional list)
-- summary (optional string)
-Output:
-- {"ok": true}
+- save transcript / summary
 
 PATCH /history/<session_id>
-Input JSON:
-- title (required)
-Output:
-- {"ok": true, "title": "..."}
+- rename transcript history item
 
 DELETE /history/<session_id>
-Output:
-- {"ok": true}
+- delete transcript history item
 
 
-5. DATA SCHEMAS (MongoDB)
+9. IMPORTANT PAYLOADS
+---------------------
+9.1 Plain chat
+POST /api/agent/query
+
+{
+  "query": "What day is today?",
+  "chat_history": [
+    {"role": "user", "content": "My name is Rahul."},
+    {"role": "assistant", "content": "Nice to meet you, Rahul."}
+  ]
+}
+
+9.2 Transcript Q&A
+{
+  "query": "What did the client say about deadlines?",
+  "session_id": "<session_id>",
+  "question": "What did the client say about deadlines?"
+}
+
+9.3 Document Q&A
+{
+  "query": "What is the conclusion?",
+  "document_id": "<document_id>",
+  "question": "What is the conclusion?"
+}
+
+9.4 Upload + query
+Multipart form-data:
+- file=<uploaded file>
+- query="transcribe and summarize this meeting"
+
+
+10. UI BEHAVIOR
+---------------
+Current UI behavior:
+- docked agent area near the bottom
+- welcome message is docked with the agent bar
+- welcome disappears after the first submitted query
+- plain chat messages are rendered in left/right row layout
+- upload is staged before processing
+- non-chat tool workflows can hide the dock until New Session
+
+
+11. DATA STORES
+---------------
+MongoDB collections used in the app include:
+- `history`
+- `document_store`
+- `document_chunks`
+- auth-related collections from `app/auth.py`
+
+Transcript history stores:
+- transcript
+- summary
+- processed file metadata
+- Q&A history
+- owner
+
+Document store holds:
+- document metadata
+- summary
+- preview text
+- chat history
+- owner
+
+Document chunks hold:
+- chunk text
+- chunk index
+- embeddings
+
+
+12. ENVIRONMENT VARIABLES
 -------------------------
-Collections:
-- history
-- document_store
-- document_chunks
-
-History (history):
-- session_id
-- title
-- processed_file
-- before_audio_file
-- after_audio_file
-- source_video
-- transcript: list of segments {speaker, start, end, text}
-- summary
-- owner
-- created_at, updated_at
-
-Document metadata (document_store):
-- document_id
-- filename
-- document_type
-- text_preview
-- summary
-- chunk_count
-- chat_history
-- owner
-- created_at, updated_at
-
-Document chunks (document_chunks):
-- document_id
-- index
-- text
-- embedding
-
-
-6. ENVIRONMENT VARIABLES
-------------------------
-Flask:
-- FLASK_DEBUG (default: 1)
-- FLASK_USE_RELOADER (default: 0)
-
-MongoDB:
-- MONGODB_URI (default: mongodb://localhost:27017)
-- MONGODB_DB (default: asr_studio)
+Core:
+- `MONGODB_URI`
+- `MONGODB_DB`
 
 ASR:
-- ASR_MODEL_SIZE (default: medium)
+- `ASR_MODEL_SIZE`
 
 Diarization:
-- HUGGINGFACE_TOKEN
+- `HUGGINGFACE_TOKEN`
 
-Summarization:
-- SUMMARY_BACKEND (ollama | bart)
-- SUMMARY_MODEL (ollama model name, default: mistral)
-- OLLAMA_URL (default: http://localhost:11434/api/generate)
+Summarization / agent chat / RAG:
+- `OLLAMA_URL`
+- `SUMMARY_BACKEND`
+- `SUMMARY_MODEL`
+- `RAG_MODEL`
+- `AGENT_MODEL`
+- `AGENT_TIMEOUT_SECONDS`
 
-Document OCR:
-- DOCUMENT_OCR (1/true/yes/on to enable OCR for PDFs)
-- DOCUMENT_OCR_LANGS (default: eng)
+Date/time grounding:
+- `AGENT_TIMEZONE`
 
 RAG:
-- RAG_MODEL (default: mistral)
-- DOC_CHUNK_SIZE (default: 2000)
-- DOC_CHUNK_OVERLAP (default: 80)
-- DOC_RETRIEVE_TOP_K (default: 5)
+- `DOC_CHUNK_SIZE`
+- `DOC_CHUNK_OVERLAP`
+- `DOC_RETRIEVE_TOP_K`
+- `HISTORY_RETRIEVE_TOP_K`
 
-Translation (NLLB):
-- NLLB_MODEL_PATH (optional)
+OCR:
+- `DOCUMENT_OCR`
+- `DOCUMENT_OCR_LANGS`
+
+Translation:
+- `NLLB_MODEL_PATH`
 
 
-7. TROUBLESHOOTING
-------------------
-- MongoDB connection refused: start MongoDB or set MONGODB_URI.
-- Document too large errors: resolved by chunk storage in document_chunks. Ensure MongoDB is running and indexes are initialized.
-- Scanned PDFs return no text: enable OCR and install dependencies.
-- Ollama summary/Q&A not responding: verify OLLAMA_URL and model availability.
+13. DEPENDENCIES OF NOTE
+------------------------
+- `flask`
+- `requests`
+- `pymongo`
+- `faster-whisper`
+- `pyannote.audio`
+- `transformers`
+- `sentence-transformers`
+- `gTTS`
+- `sympy`
+
+
+14. TROUBLESHOOTING
+-------------------
+Chatbot gives guessed date/time answers
+- deterministic handling should answer these before the LLM
+- verify latest code is running
+- verify server restart after code changes
+
+Plain chat forgets earlier turns
+- verify frontend is sending `chat_history`
+- verify backend returns `history`
+- note that memory is only within the current browser session
+
+Ollama-backed replies fail
+- verify Ollama is running
+- verify `OLLAMA_URL`
+- verify model availability
+
+Document Q&A returns weak answers
+- verify document text extraction succeeded
+- verify embeddings/chunking completed
+
+Translation not working
+- verify local NLLB model is available
+- verify language codes and offline model path
+
+TTS not working
+- verify `gTTS` is installed
+- note that gTTS usually needs internet access
+
+MongoDB issues
+- verify MongoDB service
+- verify connection string
+
+
+15. CURRENT KNOWN LIMITATIONS
+-----------------------------
+- plain chatbot history is not yet persisted server-side as a standalone long-term chat store
+- agent routing is still mostly single-tool-first, not full autonomous planning for every request
+- gTTS depends on runtime connectivity
+- some utility answers are deterministic, but not every general knowledge task is grounded

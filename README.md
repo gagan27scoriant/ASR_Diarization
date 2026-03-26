@@ -1,41 +1,65 @@
-# AI Knowledge Studio 🧠✨
+# AI Knowledge Studio
 
-AI Knowledge Studio 🧠✨ is a Flask-based speech + document intelligence platform for:
-- audio/video transcription with diarization
+AI Knowledge Studio is a Flask-based speech, document, and query-first assistant workspace. It supports:
+
+- audio/video transcription with speaker diarization
 - live meeting chunk transcription
-- meeting summary generation
-- document ingestion + RAG Q&A
-- multilingual translation with local/offline NLLB
-- session history and document history
+- transcript and meeting summarization
+- document upload, summarization, and RAG Q&A
+- translation with local/offline NLLB
+- text-to-speech with gTTS
+- query-driven agent routing
+- sidebar history for transcript sessions and documents
+- plain chatbot mode with conversation history
+- deterministic utility handling for date/time and math-style queries
+
+## Current Product Behavior
+
+The app now has two main interaction styles:
+
+1. Plain chat mode
+   - If you type a query without uploading a file or opening a transcript/document context, the assistant behaves like a normal chatbot.
+   - Plain chat is history-aware within the current browser session.
+   - Simple date/time questions are answered from runtime code instead of model guessing.
+   - Many math questions are solved deterministically with `sympy`.
+
+2. Agent / tool mode
+   - If your query requires app workflows such as processing media, summarizing, translating, document Q&A, transcript Q&A, search, or text-to-speech, the agent router selects the matching tool.
+   - If you attach a file, the app waits for your query first, then processes the file according to your instruction.
 
 ## Features
 
 - Upload audio or video and get timestamped transcript with speakers.
-- Run live meeting transcription with start/pause/stop controls.
-- Upload documents (`.pdf`, `.docx`, `.txt`) to extract text, summarize, and ask questions.
-- RAG Q&A over documents with history-aware responses.
-- Auto-translate transcript, summary, and document text from the UI language selector.
-- Persist history in MongoDB (sessions + documents) with list, open, rename, delete.
-- Export transcript and summary as `.doc` files from the UI.
+- Start, pause, and stop live meeting capture.
+- Upload PDF, DOCX, or TXT documents and ask questions about them.
+- Generate structured meeting summaries for transcripts.
+- Generate concise summaries for documents.
+- Translate transcript text, summaries, and document-derived text.
+- Convert supported text content into speech.
+- Use transcript semantic search / keyword-like search.
+- Reopen, rename, and delete transcript history.
+- Reopen and manage document history.
+- Export transcript and summary as `.doc`.
 
 ## Tech Stack
 
 - Backend: Flask
-- Database: MongoDB (history + document store)
+- Database: MongoDB
 - ASR: `faster-whisper`
 - Diarization: `pyannote.audio`
-- Translation: NLLB (`transformers`, `sentencepiece`)
+- Summarization / chat / RAG generation: Ollama-backed local model flow
+- Translation: NLLB via `transformers`
 - Text-to-speech: gTTS
-- Summarization: Ollama (default) or local BART
-- Document tools: `pypdf`, `python-docx`, optional OCR (`pdf2image`, `pytesseract`)
-- RAG embeddings: `sentence-transformers`
+- Embeddings / retrieval: `sentence-transformers`
+- Deterministic math: `sympy`
 
 ## Requirements
 
-- Python 3.10+ (project is currently used with Conda envs)
-- MongoDB running locally (or set `MONGODB_URI`)
-- FFmpeg installed on system path
-- Optional NVIDIA GPU for faster ASR/translation/diarization
+- Python 3.10+
+- MongoDB running locally, or set `MONGODB_URI`
+- FFmpeg installed and available on PATH
+- Ollama running locally if you use LLM-backed chat / summary / RAG flows
+- Optional NVIDIA GPU for faster ASR / diarization / translation
 - Hugging Face token for diarization model download (`HUGGINGFACE_TOKEN`)
 
 Install dependencies:
@@ -56,32 +80,106 @@ Open:
 http://127.0.0.1:5000
 ```
 
-## Document Q&A (RAG)
+## Main User Flow
 
-- Upload a PDF/DOCX/TXT and the app will:
-  - extract text
-  - split into chunks (recursive splitter)
-  - embed and store chunks in MongoDB
-  - enable document Q&A in the UI
+### Plain Chat
 
-Document history appears in the sidebar with a mini PDF preview. Use View/Zoom in the sidebar to open the PDF.
+- Type into the docked agent/chat bar.
+- The assistant responds in chat mode.
+- Follow-up chat turns reuse recent chat history in the current session.
 
-### RAG Environment Variables
+### Upload + Query
 
-- `RAG_MODEL` (default: `mistral`) – model used by Ollama for Q&A
-- `DOC_CHUNK_SIZE` (default: `2000`)
-- `DOC_CHUNK_OVERLAP` (default: `80`)
-- `DOC_RETRIEVE_TOP_K` (default: `5`)
+- Attach a file from the chat bar.
+- File upload is staged first.
+- The app does not process immediately.
+- Type your instruction, then send.
+- The agent selects the matching workflow based on the query.
 
-## Translation Model (NLLB)
+Examples:
 
-The app prefers local/offline model folders first:
-1. `NLLB_MODEL_PATH` (if set)
-2. `./nllb_model` (if present)
+- `transcribe and diarize this recording`
+- `summarize this meeting and highlight action items`
+- `ask this document for the conclusion`
+- `translate the summary to Hindi`
+- `convert this answer to speech`
+
+## Agent Endpoints
+
+- `GET /api/agent/tools`
+  - lists the currently exposed tools
+
+- `POST /api/agent/query`
+  - query-first endpoint for chat or tool routing
+  - accepts JSON
+
+- `POST /api/agent/chat`
+  - unified endpoint for uploaded file + query flow
+  - accepts multipart form-data when uploading a file
+  - falls back to the same query route when no file is included
+
+## Other Main API Endpoints
+
+- `POST /process`
+- `POST /transcribe_chunk`
+- `POST /summarize_text`
+- `POST /process_document`
+- `POST /api/document/ask`
+- `POST /api/history/ask`
+- `GET /api/documents`
+- `GET /api/documents/<doc_id>`
+- `POST /translate`
+- `GET /history`
+- `GET /history/<session_id>`
+- `POST /history/<session_id>/transcript`
+- `PATCH /history/<session_id>`
+- `DELETE /history/<session_id>`
+
+## Agent Tools Currently Exposed
+
+The router can currently select from tools such as:
+
+- `chat_response`
+- `process_media`
+- `summarize_transcript`
+- `translate_text`
+- `answer_document`
+- `answer_history`
+- `search_history`
+- `text_to_speech`
+
+Important note:
+- the backend is tool-routed and query-first
+- but it is still mostly single-tool selection plus a few chained cases
+- it is not yet a full autonomous multi-step planning agent for every request
+
+## Chatbot Memory and Deterministic Utilities
+
+Plain chatbot mode currently supports:
+
+- short-term conversation memory in the current UI session
+- deterministic answers for common date/time questions
+- deterministic handling for many math queries
+
+Examples:
+
+- `wt day is today`
+- `what is today's date`
+- `what time is it`
+- `what is 2+2`
+- `calculate 25% of 80`
+- `solve x^2 - 5*x + 6 = 0`
+
+## Translation Model
+
+The app prefers local/offline NLLB model folders in this order:
+
+1. `NLLB_MODEL_PATH`
+2. `./nllb_model`
 3. `./models/nllb-200-distilled-600M`
-4. Hugging Face cache snapshot (offline)
+4. Hugging Face cache snapshot if available offline
 
-Optional downloader script:
+Optional downloader:
 
 ```bash
 python scripts/download_nllb_model.py --output-dir models/nllb-200-distilled-600M --write-env-file .env.nllb
@@ -93,81 +191,50 @@ Then:
 set -a; source .env.nllb; set +a
 ```
 
-## Main API Endpoints
+## Text-to-Speech Note
 
-- `POST /process` - Process uploaded or path-based media file.
-- `POST /transcribe_chunk` - Live chunk transcription.
-- `POST /summarize_text` - Summarize transcript text.
-- `POST /process_document` - Upload and summarize document + RAG ingestion.
-- `POST /api/document/ask` - Ask a question about a document.
-- `GET /api/documents` - List document history.
-- `GET /api/documents/<doc_id>` - Open a document history item.
-- `POST /translate` - Translate `text` or `texts`.
-- `GET /api/agent/tools` - List the tools exposed to the agent router.
-- `POST /api/agent/query` - Query-first endpoint that selects a tool based on intent and context.
-- `POST /api/agent/chat` - Unified agent endpoint for uploaded files plus query-driven execution.
-- `GET /history` - List session history.
-- `GET /history/<session_id>` - Fetch one session.
-- `POST /history/<session_id>/transcript` - Save transcript/summary.
-- `PATCH /history/<session_id>` - Rename history entry.
-- `DELETE /history/<session_id>` - Delete history entry.
+- gTTS is exposed through the agent/tool path
+- generated speech files are written into `audio/`
+- gTTS typically requires internet access at runtime
 
 ## Important Folders
 
-- `audio/` - uploaded and processed audio files
-- `videos/` - uploaded videos
-- `documents/` - uploaded docs
-- `recordings/` - temporary live chunk files
-- `demucs_outputs/` - Demucs separation output
-- `models/` / `nllb_model/` - local NLLB model folders
+- `audio/`
+- `videos/`
+- `documents/`
+- `recordings/`
+- `demucs_outputs/`
+- `models/`
+- `nllb_model/`
 
-## Agent Query Mode
+## Documentation Files
 
-You can now call the app in a query-first way instead of choosing fixed endpoints yourself. The new agent layer maps your query onto existing tools such as:
-
-- media processing
-- transcript summarization
-- translation
-- transcript Q&A
-- document Q&A
-- transcript semantic search
-- text-to-speech
-
-Example:
-
-```bash
-curl -X POST http://127.0.0.1:5000/api/agent/query \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <token>" \
-  -d '{
-    "query": "summarize this meeting and translate it to Hindi",
-    "content": "Speaker 1: ...",
-    "meeting_title": "Weekly Review",
-    "meeting_date": "2026-03-26",
-    "meeting_place": "Conference Room",
-    "target_lang": "hin_Deva"
-  }'
-```
-
-The route returns:
-
-- the selected tool
-- the execution plan
-- the tool result
-
-## gTTS Note
-
-`gTTS` is now available through the agent as a text-to-speech tool. Generated speech files are saved into `audio/` and can be played back from the UI.
-
-At runtime, `gTTS` typically requires internet access to synthesize speech.
-
-## Configuration
-
-See `COMPLETE_DOCUMENTATION.txt` for the full environment variable reference and endpoint payload schemas.
+- [README.md](/home/scoriant/Documents/Ai-dev/ASR_Diarization/README.md)
+- [USER_MANUAL.txt](/home/scoriant/Documents/Ai-dev/ASR_Diarization/USER_MANUAL.txt)
+- [COMPLETE_DOCUMENTATION.txt](/home/scoriant/Documents/Ai-dev/ASR_Diarization/COMPLETE_DOCUMENTATION.txt)
 
 ## Troubleshooting
 
-- Mongo error `document too large`: resolved by chunk storage in `document_chunks` collection. Ensure Mongo is running.
-- `NLLB model not found offline`: set `NLLB_MODEL_PATH` to a complete local folder containing model weights.
-- Diarization load failures: set valid `HUGGINGFACE_TOKEN`.
-- No summary from Ollama: verify Ollama service and `OLLAMA_URL`.
+- MongoDB connection issues:
+  - ensure MongoDB is running
+  - or set `MONGODB_URI`
+
+- Ollama-backed chat / summary / RAG not responding:
+  - verify Ollama is running
+  - verify `OLLAMA_URL`
+  - verify the configured model exists locally
+
+- NLLB model not found:
+  - set `NLLB_MODEL_PATH`
+  - or place the local model in one of the expected directories
+
+- Diarization model not loading:
+  - set `HUGGINGFACE_TOKEN`
+
+- Live transcription not working:
+  - allow microphone permission in the browser
+  - check that the browser supports `MediaRecorder`
+
+- Scanned PDF returns no text:
+  - enable OCR with `DOCUMENT_OCR=1`
+  - install `pdf2image`, `pytesseract`, and system Tesseract
