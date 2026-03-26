@@ -255,7 +255,7 @@ textarea{
   border: 1px solid #e8dcc7;
   border-radius: 14px;
   background: rgba(255,255,255,0.92);
-  padding: 12px 56px 12px 58px;
+  padding: 22px 56px 22px 58px;
   font-size: 13px;
   line-height: 1.5;
   color: #1f2937;
@@ -276,7 +276,8 @@ textarea{
 .agent-send-btn{
   position:absolute;
   right:10px;
-  bottom:10px;
+  top:50%;
+  transform:translateY(-50%);
   width:32px;
   height:32px;
   border-radius:999px;
@@ -295,7 +296,7 @@ textarea{
 .agent-send-btn:hover{
   background:linear-gradient(180deg, #f9be53 0%, #ea850f 100%);
   box-shadow: 0 10px 20px rgba(217, 119, 6, 0.30);
-  transform: translateY(-1px);
+  transform: translateY(calc(-50% - 1px));
 }
 
 .agent-upload-btn{
@@ -317,7 +318,8 @@ textarea{
 .agent-upload-btn-inline{
   position:absolute;
   left:10px;
-  bottom:10px;
+  top:50%;
+  transform:translateY(-50%);
   width:32px;
   height:32px;
   border-radius:10px;
@@ -326,7 +328,7 @@ textarea{
 .agent-upload-btn:hover{
   background:linear-gradient(180deg, #fff6e7 0%, #ffdca8 100%);
   box-shadow: 0 8px 18px rgba(217, 145, 34, 0.22);
-  transform: translateY(-1px);
+  transform: translateY(calc(-50% - 1px));
 }
 
 .agent-upload-btn.has-file{
@@ -512,6 +514,13 @@ textarea{
   font-size:13px;
   font-weight:900;
   letter-spacing:0.02em;
+  white-space:nowrap;
+}
+.history-header-actions{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:nowrap;
 }
 .history-clear-btn{
   border:1px solid #e5b36a;
@@ -1146,6 +1155,12 @@ textarea{
   cursor:pointer;
   font-size:13px;
   font-weight:600;
+  line-height:1;
+  white-space:nowrap;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
   transition: all .2s ease;
 }
 .icon-nav-btn{

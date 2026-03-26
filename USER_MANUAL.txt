@@ -12,7 +12,6 @@ AI KNOWLEDGE STUDIO - USER MANUAL
 3. Open browser:
    http://127.0.0.1:5000
 
-
 2) WHAT THE APP CAN DO
 ----------------------
 This application supports:

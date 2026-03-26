@@ -43,9 +43,9 @@
         </div>
         <div class="history-header">
             <h1>📄 Documents</h1>
-            <div>
-                <button class="history-clear-btn" id="refreshDocsBtn" type="button" onclick="refreshDocumentHistory()">Refresh</button>
-                <button class="history-clear-btn" id="clearDocsBtn" type="button" onclick="clearAllDocuments()">Clear</button>
+            <div class="history-header-actions">
+                <button class="history-clear-btn" id="refreshDocsBtn" type="button" onclick="refreshDocumentHistory()" title="Refresh Documents" aria-label="Refresh Documents">🔄</button>
+                <button class="history-clear-btn" id="clearDocsBtn" type="button" onclick="clearAllDocuments()" title="Clear Documents" aria-label="Clear Documents">🗑</button>
             </div>
         </div>
         <div id="documentHistoryList" class="history-list docs">
