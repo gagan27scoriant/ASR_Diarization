@@ -35,14 +35,14 @@
         <button class="sidebar-btn btn-export hidden" id="exportSummaryBtn" onclick="exportSummary()">Export Summary</button>
         <button class="sidebar-btn hidden" id="impersonateBtn" onclick="handleImpersonate()">Switch User</button>
         <div class="history-header">
-            <h1>History</h1>
+            <h1>🕘 History</h1>
             <button class="history-clear-btn" id="clearHistoryBtn" type="button" onclick="clearAllHistory()">Clear History</button>
         </div>
         <div id="historyList" class="history-list">
             <div class="history-empty">No history yet</div>
         </div>
         <div class="history-header">
-            <h1>Documents</h1>
+            <h1>📄 Documents</h1>
             <div>
                 <button class="history-clear-btn" id="refreshDocsBtn" type="button" onclick="refreshDocumentHistory()">Refresh</button>
                 <button class="history-clear-btn" id="clearDocsBtn" type="button" onclick="clearAllDocuments()">Clear</button>
@@ -74,11 +74,20 @@
             <button class="nav-btn hidden" id="stopBtn" onclick="stopRecording()">Stop</button>
             <button class="nav-btn sum-nav-btn" id="sumBtn" onclick="showSummary()">✨ Summarize</button>
             <button class="nav-btn keyword-nav-btn hidden" id="keywordBtn" onclick="showKeywordSearch()" title="Keyword Spotting">🔎</button>
-            <button class="nav-btn new-chat-btn" onclick="location.reload()">New Session</button>
-            <button class="nav-btn admin-btn" id="adminBtn" onclick="showAdminPanel()">Admin</button>
-            <button class="nav-btn theme-toggle-btn" id="themeToggleBtn" type="button" onclick="toggleTheme()">Dark Theme</button>
+            <button class="nav-btn new-chat-btn" type="button" onclick="location.reload()" title="New Session" aria-label="New Session">New Session</button>
+            <button class="nav-btn admin-btn" id="adminBtn" onclick="showAdminPanel()">👥 Admin</button>
+            <button class="nav-btn icon-nav-btn theme-toggle-btn" id="themeToggleBtn" type="button" onclick="toggleTheme()" title="Dark Theme" aria-label="Switch theme">
+                <span class="theme-icon theme-icon-dark" aria-hidden="true">🌙</span>
+                <span class="theme-icon theme-icon-light" aria-hidden="true">☀️</span>
+            </button>
             <form method="post" action="/logout" style="margin:0;">
-                <button class="nav-btn" type="submit">Logout</button>
+                <button class="nav-btn icon-nav-btn" type="submit" title="Logout" aria-label="Logout">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M15 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"></path>
+                        <path d="M10 17l5-5-5-5"></path>
+                        <path d="M15 12H4"></path>
+                    </svg>
+                </button>
             </form>
         </div>
     </div>
@@ -112,11 +121,11 @@
               </div>
           </div>
           <div class="agent-quick-actions">
-              <button class="agent-chip" type="button" onclick="primeAgentQuery('Summarize this meeting and highlight action items.')">Meeting Summary</button>
-              <button class="agent-chip" type="button" onclick="primeAgentQuery('Search this transcript for the discussion about deadlines.')">Search Transcript</button>
-              <button class="agent-chip" type="button" onclick="primeAgentQuery('Ask this document for the main conclusion.')">Ask Document</button>
-              <button class="agent-chip" type="button" onclick="primeAgentQuery('Translate the current summary to Hindi.')">Translate Summary</button>
-              <button class="agent-chip" type="button" onclick="primeAgentQuery('Convert the current summary to speech.')">Speak Summary</button>
+              <button class="agent-chip" type="button" onclick="primeAgentQuery('Summarize this meeting and highlight action items.')">📝 Meeting Summary</button>
+              <button class="agent-chip" type="button" onclick="primeAgentQuery('Search this transcript for the discussion about deadlines.')">🔎 Search Transcript</button>
+              <button class="agent-chip" type="button" onclick="primeAgentQuery('Ask this document for the main conclusion.')">📄 Ask Document</button>
+              <button class="agent-chip" type="button" onclick="primeAgentQuery('Translate the current summary to Hindi.')">🌐 Translate Summary</button>
+              <button class="agent-chip" type="button" onclick="primeAgentQuery('Convert the current summary to speech.')">🔊 Speak Summary</button>
           </div>
         </div>
       </div>

@@ -162,8 +162,9 @@ function applyTheme(theme) {
     document.body.classList.toggle("dark-theme", resolvedTheme === "dark");
     const toggleBtn = document.getElementById("themeToggleBtn");
     if (toggleBtn) {
-        toggleBtn.textContent = resolvedTheme === "dark" ? "Light Theme" : "Dark Theme";
-        toggleBtn.setAttribute("aria-label", resolvedTheme === "dark" ? "Switch to light theme" : "Switch to dark theme");
+        const nextLabel = resolvedTheme === "dark" ? "Switch to light theme" : "Switch to dark theme";
+        toggleBtn.setAttribute("aria-label", nextLabel);
+        toggleBtn.setAttribute("title", nextLabel);
     }
 }
 
@@ -364,16 +365,14 @@ async function renderCurrentContent() {
         rebuildSpeakerState();
         await renderChatDelayed();
         setupRenameSidebar();
-        document.getElementById("sumBtn").style.display = "flex";
     } else if (currentDocumentFilename) {
         renderDocumentResult();
-        document.getElementById("sumBtn").style.display = "none";
     } else {
         await renderChatDelayed();
-        document.getElementById("sumBtn").style.display = "none";
     }
     updateAgentWorkspaceUI();
     updateTranscriptDependentUI();
+    setSummaryButtonState();
 }
 
 function setUploadHeroVisible(visible) {
@@ -393,6 +392,17 @@ function clearChatRows() {
 function setSummaryButtonState() {
     const sumBtn = document.getElementById("sumBtn");
     if (!sumBtn) return;
+    const perms = currentPolicy ? currentPolicy.permissions || [] : [];
+    const hasPermission = perms.includes("summary:generate");
+    const canSummarize = Array.isArray(transcriptData) && transcriptData.length > 0;
+    const shouldShow = hasPermission && canSummarize;
+    sumBtn.style.display = shouldShow ? "flex" : "none";
+    if (!shouldShow) {
+        sumBtn.disabled = true;
+        sumBtn.classList.add("disabled");
+        sumBtn.title = "Summary is available after transcript processing";
+        return;
+    }
     const hasSummary = Boolean((currentSummary || "").trim());
     sumBtn.disabled = hasSummary;
     if (hasSummary) {
@@ -827,10 +837,6 @@ async function loadPolicy() {
     if (clearBtn) {
         clearBtn.style.display = has("history:delete") ? "inline-flex" : "none";
     }
-    const sumBtn = document.getElementById("sumBtn");
-    if (sumBtn) {
-        sumBtn.style.display = has("summary:generate") ? "flex" : "none";
-    }
     const exportTranscriptBtn = document.getElementById("exportTranscriptBtn");
     if (exportTranscriptBtn) {
         exportTranscriptBtn.style.display = has("export:transcript") ? "flex" : "none";
@@ -844,10 +850,10 @@ async function loadPolicy() {
         const isSuper = currentUser && currentUser.role_name === "super_admin";
         const isAdmin = currentUser && currentUser.role_name === "admin";
         if (isSuper) {
-            adminBtn.textContent = "Create Admin/User";
+            adminBtn.textContent = "👥 Create Admin/User";
             adminBtn.style.display = "flex";
         } else if (isAdmin) {
-            adminBtn.textContent = "Create Users";
+            adminBtn.textContent = "👥 Create Users";
             adminBtn.style.display = "flex";
         } else {
             adminBtn.style.display = "none";
@@ -870,6 +876,7 @@ async function loadPolicy() {
     if (currentUser && currentUser.name) {
         renderGreetingCard(currentUser.name);
     }
+    setSummaryButtonState();
 }
 
 async function handleImpersonate() {
@@ -1161,8 +1168,8 @@ async function deleteHistorySession(sessionId) {
             speakerOrderMap = {};
             await renderChatDelayed();
             setupRenameSidebar();
-            document.getElementById("sumBtn").style.display = "none";
             updateTranscriptDependentUI();
+            setSummaryButtonState();
         }
 
         await refreshHistory();
@@ -1206,13 +1213,11 @@ async function clearAllHistory() {
     speakerOrderMap = {};
     await renderChatDelayed();
     setupRenameSidebar();
-    document.getElementById("sumBtn").style.display = "none";
     updateTranscriptDependentUI();
     await refreshHistory();
     await refreshDocumentHistory();
-        setSummaryButtonState();
     updateSidebarMiniPreview();
-        setSummaryButtonState();
+    setSummaryButtonState();
 }
 
 function formatTime(seconds) {
@@ -2672,7 +2677,7 @@ async function showAdminPanel() {
             </div>
             <div class="admin-card" id="departmentPanel" style="display:none;">
                 <div class="admin-card-header">
-                    <h3>Departments</h3>
+                    <h3>🏢 Departments</h3>
                     <button class="admin-section-toggle" type="button" onclick="toggleAdminSection('adminDepartmentsSection', this)">Expand</button>
                 </div>
                 <div class="admin-card-body collapsed" id="adminDepartmentsSection">
@@ -2687,7 +2692,7 @@ async function showAdminPanel() {
             </div>
             <div class="admin-card">
                 <div class="admin-card-header">
-                    <h3>Users</h3>
+                    <h3>👥 Users</h3>
                     <button class="admin-section-toggle" type="button" onclick="toggleAdminSection('adminUsersSection', this)">Expand</button>
                 </div>
                 <div class="admin-card-body collapsed" id="adminUsersSection">
@@ -2696,7 +2701,7 @@ async function showAdminPanel() {
             </div>
             <div class="admin-card">
                 <div class="admin-card-header">
-                    <h3>Audit Log</h3>
+                    <h3>🧾 Audit Log</h3>
                     <button class="admin-section-toggle" type="button" onclick="toggleAdminSection('adminAuditSection', this)">Expand</button>
                 </div>
                 <div class="admin-card-body collapsed" id="adminAuditSection">

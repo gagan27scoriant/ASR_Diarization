@@ -1055,6 +1055,14 @@ textarea{
   font-weight:600;
   transition: all .2s ease;
 }
+.icon-nav-btn{
+  width:40px;
+  height:40px;
+  padding:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
 .nav-btn:hover{ background:var(--accent); border-color:var(--accent); color:#fff; }
 .new-chat-btn{ color:#333; }
 .sum-nav-btn{ display:none; background:#111827; color:#fff; border-color:#111827; }
@@ -1064,6 +1072,9 @@ textarea{
   color:#fff;
   border-color:#111827;
 }
+.theme-icon-light{ display:none; }
+body.dark-theme .theme-icon-dark{ display:none; }
+body.dark-theme .theme-icon-light{ display:block; }
 .start-meeting-btn{
   background:var(--accent);
   border-color:var(--accent);
