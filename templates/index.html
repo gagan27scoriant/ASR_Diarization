@@ -12,7 +12,7 @@
 
 <div id="loadingOverlay">
     <div class="spinner"></div>
-    <div class="loading-text">GENERATING TRANSCRIPTION...</div>
+    <div class="loading-text">GENERATING....!</div>
 </div>
 
 <div class="sidebar" id="sidebar">
@@ -82,19 +82,36 @@
         </div>
     </div>
     <div id="chat">
-      <div class="upload-hero">
-        <h2 style="font-family:'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;"></h2>
-        <p></p>
-        <div class="drop-zone-card" id="dropZoneCard" onclick="openFilePicker()">
-            <div class="drop-zone-icon">🎙</div>
-            <div class="drop-zone-title"></div>
-            <div class="drop-zone-subtitle"><button class="browse-inline-btn" type="button" onclick="event.stopPropagation(); openFilePicker();">Browse File</button></div>
-            <div class="drop-zone-support">Supports: VIDEO / AUDIO / DOCUMENTS / PDF / PPT / IMAGES .. and Many More</div>
+      <div class="agent-bar">
+        <div class="agent-bar-header">
+            <div>
+                <div class="agent-bar-title">Agent Workspace</div>
+                <div class="agent-bar-subtitle">Work in natural language. Ask, upload, summarize, translate, search, or turn results into speech from one place.</div>
+            </div>
         </div>
-      </div>
-      <div class="message-row">
-        <div class="avatar" style="background: #f59e0b">AI</div>
-        <div class="content">Upload a recording or start a meeting to generate transcripts and summaries.</div>
+        <div class="agent-bar-controls">
+            <div class="agent-input-shell">
+                <textarea id="agentQueryInput" class="agent-query-input" rows="2" placeholder="Ask the agent what to do. Examples: 'summarize this meeting', 'ask this document about the conclusion', 'transcribe and diarize this recording'."></textarea>
+                <button class="agent-upload-btn agent-upload-btn-inline" type="button" onclick="openFilePicker()" title="Attach File" aria-label="Attach File">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.44 11.05l-8.49 8.49a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.82-2.82l8.49-8.48"/>
+                    </svg>
+                </button>
+                <button class="agent-send-btn" type="button" onclick="submitAgentQuery()" title="Send Query" aria-label="Send Query">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 19V5"></path>
+                        <path d="M5 12l7-7 7 7"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="agent-quick-actions">
+            <button class="agent-chip" type="button" onclick="primeAgentQuery('Summarize this meeting and highlight action items.')">Meeting Summary</button>
+            <button class="agent-chip" type="button" onclick="primeAgentQuery('Search this transcript for the discussion about deadlines.')">Search Transcript</button>
+            <button class="agent-chip" type="button" onclick="primeAgentQuery('Ask this document for the main conclusion.')">Ask Document</button>
+            <button class="agent-chip" type="button" onclick="primeAgentQuery('Translate the current summary to Hindi.')">Translate Summary</button>
+            <button class="agent-chip" type="button" onclick="primeAgentQuery('Convert the current summary to speech.')">Speak Summary</button>
+        </div>
       </div>
     </div>
     <input type="file" id="audioFile" accept=".wav,.mp3,.aac,.aiff,.wma,.amr,.opus,.webm,.ogg,.m4a,.mp4,.mkv,.avi,.mov,.wmv,.mpeg,.3gp,.pdf,.docx,.txt,.png,.jpg,.jpeg,.tif,.tiff,.bmp" hidden>

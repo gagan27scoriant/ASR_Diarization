@@ -40,6 +40,8 @@ let recordingMimeType = "audio/webm";
 let liveListeningCardEl = null;
 let segmentGroupMap = [];
 let transcriptRowEls = [];
+let lastAgentPlan = [];
+let pendingSelectedFile = null;
 
 const TRANSLATION_LANGUAGE_GROUPS = {
     indian: [
@@ -151,6 +153,17 @@ const finalizeBtn = document.getElementById("finalizeBtn");
 const exportTranscriptBtn = document.getElementById("exportTranscriptBtn");
 const exportSummaryBtn = document.getElementById("exportSummaryBtn");
 const translationTargetSelect = document.getElementById("translationTarget");
+const agentQueryInput = document.getElementById("agentQueryInput");
+
+function getAgentBarEl() {
+    return document.querySelector(".agent-bar");
+}
+
+function setAgentBarVisible(visible) {
+    const agentBar = getAgentBarEl();
+    if (!agentBar) return;
+    agentBar.classList.toggle("hidden", !visible);
+}
 
 audioFileInput.addEventListener("change", () => {
     if (audioFileInput.files && audioFileInput.files.length > 0 && !isRecording) {
@@ -160,6 +173,85 @@ audioFileInput.addEventListener("change", () => {
 
 function openFilePicker() {
     audioFileInput.click();
+}
+
+function getAgentQueryText(clearAfterRead = false) {
+    if (!agentQueryInput) return "";
+    const value = String(agentQueryInput.value || "").trim();
+    if (clearAfterRead) {
+        agentQueryInput.value = "";
+    }
+    return value;
+}
+
+function setAgentQueryText(value) {
+    if (!agentQueryInput) return;
+    agentQueryInput.value = String(value || "");
+}
+
+function updatePendingUploadUI() {
+    const uploadButtons = document.querySelectorAll(".agent-upload-btn");
+    uploadButtons.forEach((btn) => {
+        btn.classList.toggle("has-file", Boolean(pendingSelectedFile));
+        const label = pendingSelectedFile ? `Attached: ${pendingSelectedFile.name}` : "Attach File";
+        btn.title = label;
+        btn.setAttribute("aria-label", label);
+    });
+}
+
+function stageSelectedFile(file, silentMode = false) {
+    if (!file) return;
+    if (!isAudioFile(file.name) && !isVideoFile(file.name) && !isDocumentFile(file.name)) {
+        if (!silentMode) {
+            alert("Unsupported file. Use audio/video or documents (.pdf/.docx/.txt).");
+        }
+        return;
+    }
+    pendingSelectedFile = file;
+    lastAudioFile = file.name;
+    updatePendingUploadUI();
+    if (!silentMode) {
+        appendAgentResponseCard(
+            "File Attached",
+            `${file.name}\nNow type your query and press the send arrow to start processing.`,
+            "#8a5b00"
+        );
+    }
+}
+
+function primeAgentQuery(value) {
+    setAgentQueryText(value || "");
+    if (agentQueryInput) {
+        agentQueryInput.focus();
+        agentQueryInput.setSelectionRange(agentQueryInput.value.length, agentQueryInput.value.length);
+    }
+}
+
+function updateAgentWorkspaceUI() {
+    const contextPill = document.getElementById("agentContextPill");
+    const hintText = document.getElementById("agentHintText");
+    if (!contextPill || !hintText) return;
+
+    if (currentDocumentId && currentDocumentFilename) {
+        contextPill.textContent = `Document: ${truncateText(currentDocumentFilename, 34)}`;
+        hintText.textContent = "Ask the current document for conclusions, sections, numbers, or convert its summary to speech.";
+        return;
+    }
+
+    if (currentSessionId && Array.isArray(transcriptData) && transcriptData.length > 0) {
+        contextPill.textContent = `Transcript: ${transcriptData.length} segments ready`;
+        hintText.textContent = "Ask follow-up questions, search topics, summarize the meeting, translate, or generate spoken output.";
+        return;
+    }
+
+    if ((currentSummary || "").trim()) {
+        contextPill.textContent = "Summary ready";
+        hintText.textContent = "You can translate the summary, convert it to speech, or ask for a shorter action-item version.";
+        return;
+    }
+
+    contextPill.textContent = "No active context";
+    hintText.textContent = "Tip: type a goal first, then upload a file or query the current transcript/document.";
 }
 
 async function parseJsonSafe(response) {
@@ -243,6 +335,7 @@ async function renderCurrentContent() {
         await renderChatDelayed();
         document.getElementById("sumBtn").style.display = "none";
     }
+    updateAgentWorkspaceUI();
     updateTranscriptDependentUI();
 }
 
@@ -526,7 +619,7 @@ async function startRecording() {
                 lastModified: Date.now(),
             });
 
-            await processSelectedFile(liveFile, true);
+            stageSelectedFile(liveFile, true);
         };
 
         mediaRecorder.start(1000);
@@ -1114,7 +1207,7 @@ function isDocumentFile(name) {
     return ["pdf", "docx", "txt", "png", "jpg", "jpeg", "tif", "tiff", "bmp"].includes(ext);
 }
 
-async function processSelectedFile(selectedFile, silentMode = false) {
+async function processSelectedFile(selectedFile, silentMode = false, explicitQuery = "") {
     if (!selectedFile) return;
     lastAudioFile = selectedFile.name;
     
@@ -1122,49 +1215,21 @@ async function processSelectedFile(selectedFile, silentMode = false) {
     document.getElementById("loadingOverlay").style.display = "flex";
 
     try {
-        if (selectedFile && isDocumentFile(selectedFile.name)) {
-            const formData = new FormData();
-            formData.append("document_file", selectedFile);
-
-            const response = await fetch("/process_document", {
-                method: "POST",
-                body: formData
-            });
-
-            const result = await response.json();
-            if (!response.ok) {
-                throw new Error(result.error || "Document processing failed");
-            }
-
-            transcriptData = [];
-            groupedTranscriptCache = [];
-            currentSummary = result.summary || "";
-            currentProcessedAudio = "";
-            currentProcessedVideo = "";
-            currentBeforeAudio = "";
-            currentAfterAudio = "";
-            currentDocumentFilename = result.document_filename || "";
-            currentDocumentType = (result.document_type || "").toLowerCase();
-            currentDocumentId = result.document_id || "";
-            currentDocumentChat = result.chat_history || [];
-            currentTranscriptChat = [];
-            currentDocumentText = result.document_text || "";
-            setSourceTranscript([]);
-            setSourceSummary(currentSummary);
-            setSourceDocumentText(currentDocumentText);
-            await applySelectedLanguageToAllTexts(false);
-            await refreshDocumentHistory();
-        setSummaryButtonState();
-            return;
-        }
-
-        if (selectedFile && !isAudioFile(selectedFile.name) && !isVideoFile(selectedFile.name)) {
+        if (selectedFile && !isAudioFile(selectedFile.name) && !isVideoFile(selectedFile.name) && !isDocumentFile(selectedFile.name)) {
             throw new Error("Unsupported file. Use audio/video or documents (.pdf/.docx/.txt).");
         }
 
         const formData = new FormData();
-        formData.append("audio_file", selectedFile);
-        const response = await fetch("/process", {
+        formData.append("file", selectedFile);
+        formData.append(
+            "query",
+            explicitQuery || (
+                isDocumentFile(selectedFile.name)
+                    ? "Ingest this document, summarize it, and prepare it for question answering."
+                    : "Transcribe this media, diarize speakers, and prepare it for follow-up questions."
+            )
+        );
+        const response = await fetch("/api/agent/chat", {
             method: "POST",
             body: formData
         });
@@ -1172,32 +1237,16 @@ async function processSelectedFile(selectedFile, silentMode = false) {
         const result = await response.json();
 
         if (!response.ok) {
-            throw new Error(result.error || "Audio processing failed");
+            throw new Error(result.error || "Agent processing failed");
         }
-        
-        transcriptData = result.transcript;
-        currentSummary = result.summary;
-        currentSessionId = result.session_id || "";
-        currentDocumentFilename = "";
-        currentDocumentType = "";
-        currentDocumentText = "";
-        currentDocumentId = "";
-        currentDocumentChat = [];
-        currentTranscriptChat = [];
-        currentProcessedVideo = result.source_video || "";
-        currentBeforeAudio = result.before_audio_file || result.processed_file || "";
-        currentAfterAudio = result.after_audio_file || result.processed_file || "";
-        if (currentAfterAudio) {
-            lastAudioFile = currentAfterAudio;
-            currentProcessedAudio = currentAfterAudio;
+
+        await handleAgentResponse(result, { source: "upload" });
+        setAgentBarVisible(false);
+        pendingSelectedFile = null;
+        updatePendingUploadUI();
+        if (audioFileInput) {
+            audioFileInput.value = "";
         }
-        setSourceTranscript(transcriptData);
-        setSourceSummary(currentSummary);
-        setSourceDocumentText("");
-        await applySelectedLanguageToAllTexts(false);
-        await refreshHistory();
-        await refreshDocumentHistory();
-        setSummaryButtonState();
     } catch (e) { 
         document.getElementById("loadingOverlay").style.display = "none";
         if (!silentMode) {
@@ -1212,10 +1261,7 @@ async function processAudio(silentMode = false) {
         return;
     }
     const selectedFile = audioFileInput.files && audioFileInput.files.length > 0 ? audioFileInput.files[0] : null;
-    await processSelectedFile(selectedFile, silentMode);
-    if (audioFileInput) {
-        audioFileInput.value = "";
-    }
+    stageSelectedFile(selectedFile, silentMode);
 }
 
 async function renderChatDelayed() {
@@ -1366,9 +1412,10 @@ function renderTranscriptQAPanel() {
     row.className = "message-row transcription";
     row.id = "transcriptQaPanel";
     row.innerHTML = `
-        <div class="avatar" style="background:#6366f1">Q&A</div>
-        <div class="content doc-qa-content" style="border-left: 4px solid #6366f1; background: rgba(99, 102, 241, 0.10);">
-            <span class="doc-qa-title">Ask questions about this transcript</span>
+        <div class="avatar" style="background:#f59e0b">AG</div>
+        <div class="content doc-qa-content" style="border-left: 4px solid #d97706;">
+            <span class="doc-qa-title">Agent Q&A</span>
+            <div class="doc-qa-subtitle">Ask follow-up questions about this transcript in the same agent style.</div>
             <div class="doc-qa-messages" id="transcriptQaMessages"></div>
             <div class="doc-qa-input-row">
                 <textarea id="transcriptQaInput" placeholder="Ask a question about this transcript..." rows="2"></textarea>
@@ -1421,6 +1468,7 @@ function renderTranscriptChatHistory() {
                 <div class="doc-qa-actions">
                     <button type="button" class="doc-qa-action-btn" data-action="copy" data-index="${idx}" title="Copy answer">Copy</button>
                     <button type="button" class="doc-qa-action-btn" data-action="translate" data-index="${idx}" title="Translate answer">Translate</button>
+                    <button type="button" class="doc-qa-action-btn" data-action="speak" data-index="${idx}" title="Convert answer to speech">Speak</button>
                 </div>
             `
             : "";
@@ -1454,6 +1502,8 @@ function renderTranscriptChatHistory() {
                 copyTranscriptAnswerByIndex(idx);
             } else if (action === "translate") {
                 translateTranscriptAnswerByIndex(idx);
+            } else if (action === "speak") {
+                speakTranscriptAnswerByIndex(idx);
             }
         });
     });
@@ -1511,6 +1561,26 @@ async function translateTranscriptAnswerByIndex(index) {
     }
 }
 
+async function speakTranscriptAnswerByIndex(index) {
+    const item = Array.isArray(currentTranscriptChat) ? currentTranscriptChat[index] : null;
+    if (!item || item.role !== "assistant") return;
+    const text = String(item.content || "").trim();
+    if (!text) return;
+
+    const targetLang = translationTargetSelect ? (translationTargetSelect.value || "").trim() : "";
+    try {
+        const result = await agentQueryJSON({
+            tool: "text_to_speech",
+            query: "convert this answer to speech",
+            text,
+            tts_lang: targetLang || "en"
+        });
+        await handleAgentResponse(result, { source: "tts" });
+    } catch (e) {
+        alert(e.message || "Text-to-speech failed.");
+    }
+}
+
 async function askTranscriptQuestion() {
     const input = document.getElementById("transcriptQaInput");
     const sendBtn = document.getElementById("transcriptQaSend");
@@ -1531,28 +1601,13 @@ async function askTranscriptQuestion() {
     sendBtn.disabled = true;
     sendBtn.textContent = "Thinking...";
     try {
-        const response = await fetch("/api/history/ask", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                session_id: currentSessionId,
-                question,
-                top_k: 5
-            })
+        const result = await agentQueryJSON({
+            query: question,
+            session_id: currentSessionId,
+            question,
+            top_k: 5
         });
-        const result = await response.json();
-        if (!response.ok) {
-            throw new Error(result.error || "Failed to answer question");
-        }
-        currentTranscriptChat = result.history || currentTranscriptChat;
-        const sources = result.sources || [];
-        if (currentTranscriptChat.length) {
-            const lastIdx = currentTranscriptChat.length - 1;
-            if (currentTranscriptChat[lastIdx].role === "assistant") {
-                currentTranscriptChat[lastIdx].sources = sources;
-            }
-        }
-        renderTranscriptChatHistory();
+        await handleAgentResponse(result, { source: "transcript_qa" });
     } catch (e) {
         currentTranscriptChat.push({ role: "assistant", content: e.message || "Failed to answer." });
         renderTranscriptChatHistory();
@@ -1652,16 +1707,13 @@ async function runSemanticSearch() {
         return;
     }
     try {
-        const response = await fetch("/api/search", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ session_id: currentSessionId, query, top_k: 6 }),
+        const result = await agentQueryJSON({
+            tool: "search_history",
+            query,
+            session_id: currentSessionId,
+            top_k: 6
         });
-        const result = await response.json();
-        if (!response.ok) {
-            throw new Error(result.error || "Search failed");
-        }
-        const results = result.results || [];
+        const results = (((result || {}).result) || {}).results || [];
         if (!results.length) {
             resultsEl.innerHTML = "<div class='search-empty'>No matches found.</div>";
             if (countEl) countEl.textContent = "0 matches";
@@ -1746,9 +1798,10 @@ function renderDocumentQAPanel() {
     row.className = "message-row transcription";
     row.id = "documentQaPanel";
     row.innerHTML = `
-        <div class="avatar" style="background:#0ea5e9">Q&A</div>
-        <div class="content doc-qa-content" style="border-left: 4px solid #0ea5e9; background: rgba(14, 165, 233, 0.10);">
-            <span class="doc-qa-title">Ask questions about this document</span>
+        <div class="avatar" style="background:#f59e0b">AG</div>
+        <div class="content doc-qa-content" style="border-left: 4px solid #d97706;">
+            <span class="doc-qa-title">Agent Q&A</span>
+            <div class="doc-qa-subtitle">Ask questions about this document with the same agent workspace theme.</div>
             <div class="doc-qa-messages" id="docQaMessages"></div>
             <div class="doc-qa-chunk-preview hidden" id="docChunkPreview">
                 <div class="doc-qa-chunk-header">
@@ -1879,6 +1932,7 @@ function renderDocumentChatHistory() {
                 <div class="doc-qa-actions">
                     <button type="button" class="doc-qa-action-btn" data-action="copy" data-index="${idx}" title="Copy answer">Copy</button>
                     <button type="button" class="doc-qa-action-btn" data-action="translate" data-index="${idx}" title="Translate answer">Translate</button>
+                    <button type="button" class="doc-qa-action-btn" data-action="speak" data-index="${idx}" title="Convert answer to speech">Speak</button>
                 </div>
             `
             : "";
@@ -1912,6 +1966,8 @@ function renderDocumentChatHistory() {
                 copyDocumentAnswerByIndex(idx);
             } else if (action === "translate") {
                 translateDocumentAnswerByIndex(idx);
+            } else if (action === "speak") {
+                speakDocumentAnswerByIndex(idx);
             }
         });
     });
@@ -1987,6 +2043,26 @@ async function translateDocumentAnswerByIndex(index) {
     }
 }
 
+async function speakDocumentAnswerByIndex(index) {
+    const item = Array.isArray(currentDocumentChat) ? currentDocumentChat[index] : null;
+    if (!item || item.role !== "assistant") return;
+    const text = String(item.content || "").trim();
+    if (!text) return;
+
+    const targetLang = translationTargetSelect ? (translationTargetSelect.value || "").trim() : "";
+    try {
+        const result = await agentQueryJSON({
+            tool: "text_to_speech",
+            query: "convert this answer to speech",
+            text,
+            tts_lang: targetLang || "en"
+        });
+        await handleAgentResponse(result, { source: "tts" });
+    } catch (e) {
+        alert(e.message || "Text-to-speech failed.");
+    }
+}
+
 async function askDocumentQuestion() {
     const input = document.getElementById("docQaInput");
     const sendBtn = document.getElementById("docQaSend");
@@ -2006,28 +2082,13 @@ async function askDocumentQuestion() {
     sendBtn.disabled = true;
     sendBtn.textContent = "Thinking...";
     try {
-        const response = await fetch("/api/document/ask", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                document_id: currentDocumentId,
-                question,
-                top_k: 5
-            })
+        const result = await agentQueryJSON({
+            query: question,
+            document_id: currentDocumentId,
+            question,
+            top_k: 5
         });
-        const result = await response.json();
-        if (!response.ok) {
-            throw new Error(result.error || "Failed to answer question");
-        }
-        currentDocumentChat = result.history || currentDocumentChat;
-        const sources = result.sources || [];
-        if (currentDocumentChat.length) {
-            const lastIdx = currentDocumentChat.length - 1;
-            if (currentDocumentChat[lastIdx].role === "assistant") {
-                currentDocumentChat[lastIdx].sources = sources;
-            }
-        }
-        renderDocumentChatHistory();
+        await handleAgentResponse(result, { source: "document_qa" });
     } catch (e) {
         currentDocumentChat.push({ role: "assistant", content: e.message || "Failed to answer." });
         renderDocumentChatHistory();
@@ -2166,16 +2227,12 @@ function requestTargetLanguage() {
 }
 
 async function translateViaAPI(payload) {
-    const response = await fetch("/translate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+    const result = await agentQueryJSON({
+        tool: "translate_text",
+        query: "translate this content",
+        ...payload
     });
-    const result = await response.json();
-    if (!response.ok) {
-        throw new Error(result.error || "Translation failed");
-    }
-    return result;
+    return (result && result.result) || {};
 }
 
 async function applySelectedLanguageToAllTexts(showErrors = true) {
@@ -2340,6 +2397,13 @@ function renderSummaryCard(summaryText, targetCard = null) {
     const formatted = formattedLines.join("<br>");
 
     const summaryMarkup = `
+        <div class="translate-sum-icon" onclick="speakSummary()" title="Generate Speech" style="right:118px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M15.5 8.5a5 5 0 0 1 0 7"></path>
+                <path d="M19 5a10 10 0 0 1 0 14"></path>
+            </svg>
+        </div>
         <div class="translate-sum-icon" onclick="translateSummary()" title="Translate Summary">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M5 8h14"></path>
@@ -2402,13 +2466,14 @@ function renderSummaryCard(summaryText, targetCard = null) {
 function renderGreetingCard(name) {
     const chat = document.getElementById("chat");
     if (!chat) return;
+    if (chat.querySelector(".agent-greeting-row")) return;
     const row = document.createElement("div");
-    row.className = "message-row transcription";
+    row.className = "message-row transcription agent-greeting-row";
     row.innerHTML = `
         <div class="avatar" style="background: #f59e0b">AI</div>
         <div class="content">Hello ${escapeHTMLText(name || "there")}, welcome to the AI Knowledge Studio 🧠✨.</div>
     `;
-    chat.insertBefore(row, chat.querySelector(".message-row"));
+    chat.insertBefore(row, chat.firstChild);
 }
 
 async function fetchAdminUsers() {
@@ -2892,36 +2957,20 @@ async function showSummary() {
 
     try {
         const content = buildExportTranscriptText();
-        const response = await fetch("/summarize_text", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                content: content,
-                session_id: currentSessionId,
-                meeting_title: meetingDetails.meeting_title,
-                meeting_date: meetingDetails.meeting_date,
-                meeting_place: meetingDetails.meeting_place
-            })
-        });
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.error || "Summary generation failed");
-        }
-
-        const freshSummary = result.summary || "";
-        setSourceSummary(freshSummary);
-
         const selectedTargetLang = translationTargetSelect ? (translationTargetSelect.value || "").trim() : "";
-        if (selectedTargetLang && freshSummary.trim()) {
-            const translatedSummary = await translateViaAPI({
-                text: freshSummary,
-                target_lang: selectedTargetLang
-            });
-            currentSummary = translatedSummary.text || freshSummary;
-        } else {
-            currentSummary = freshSummary;
-        }
+        const result = await agentQueryJSON({
+            query: selectedTargetLang ? "summarize this meeting and translate it" : "summarize this meeting",
+            content: content,
+            session_id: currentSessionId,
+            meeting_title: meetingDetails.meeting_title,
+            meeting_date: meetingDetails.meeting_date,
+            meeting_place: meetingDetails.meeting_place,
+            target_lang: selectedTargetLang || undefined
+        });
+
+        const freshSummary = ((((result || {}).result) || {}).summary) || "";
+        setSourceSummary(freshSummary);
+        currentSummary = ((((result || {}).result) || {}).translated_summary) || freshSummary;
         renderSummaryCard(currentSummary, pendingCard);
         setSummaryButtonState();
         await refreshHistory();
@@ -2938,11 +2987,21 @@ async function showSummary() {
 loadPolicy().then(() => {
     refreshHistory();
     refreshDocumentHistory();
+    updateAgentWorkspaceUI();
 });
 initTranslationLanguageDropdown();
 initDropZone();
 updateTranscriptDependentUI();
 setUploadHeroVisible(true);
+updateAgentWorkspaceUI();
+if (agentQueryInput) {
+    agentQueryInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            submitAgentQuery();
+        }
+    });
+}
 
 
 function deleteSummary() {
@@ -3092,4 +3151,258 @@ function exportSummary() {
     link.href = URL.createObjectURL(blob);
     link.download = `${lastAudioFile.split('.')[0] || 'ASR_Export'}_summary.doc`;
     link.click();
+}
+
+async function agentQueryJSON(payload) {
+    const response = await fetch("/api/agent/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload || {})
+    });
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || "Agent request failed");
+    }
+    return result;
+}
+
+function appendAgentResponseCard(title, text, accent = "#d97706") {
+    const chat = document.getElementById("chat");
+    if (!chat) return;
+    const row = document.createElement("div");
+    row.className = "message-row transcription";
+    row.innerHTML = `
+        <div class="avatar" style="background:${accent}">AG</div>
+        <div class="content agent-response-card" style="border-left: 4px solid ${accent}; background: rgba(245, 158, 11, 0.10);">
+            <div class="agent-response-title">${escapeHTMLText(title || "Agent Response")}</div>
+            <div class="agent-response-text">${escapeHTMLText(text || "")}</div>
+        </div>
+    `;
+    chat.appendChild(row);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+async function handleAgentResponse(agentResult, options = {}) {
+    const result = (agentResult && agentResult.result) || {};
+    lastAgentPlan = Array.isArray(agentResult && agentResult.plan) ? agentResult.plan : [];
+
+    if (result.answer && options.source === "transcript_qa") {
+        currentTranscriptChat = result.history || currentTranscriptChat;
+        const sources = result.sources || [];
+        if (currentTranscriptChat.length) {
+            const lastIdx = currentTranscriptChat.length - 1;
+            if (currentTranscriptChat[lastIdx].role === "assistant") {
+                currentTranscriptChat[lastIdx].sources = sources;
+            }
+        }
+        renderTranscriptChatHistory();
+        return;
+    }
+
+    if (result.answer && options.source === "document_qa") {
+        currentDocumentChat = result.history || currentDocumentChat;
+        const sources = result.sources || [];
+        if (currentDocumentChat.length) {
+            const lastIdx = currentDocumentChat.length - 1;
+            if (currentDocumentChat[lastIdx].role === "assistant") {
+                currentDocumentChat[lastIdx].sources = sources;
+            }
+        }
+        renderDocumentChatHistory();
+        return;
+    }
+
+    if (result.document_id || result.document_filename) {
+        transcriptData = [];
+        groupedTranscriptCache = [];
+        currentSummary = result.summary || "";
+        currentProcessedAudio = "";
+        currentProcessedVideo = "";
+        currentBeforeAudio = "";
+        currentAfterAudio = "";
+        currentDocumentFilename = result.document_filename || "";
+        currentDocumentType = (result.document_type || "").toLowerCase();
+        currentDocumentId = result.document_id || "";
+        currentDocumentChat = result.chat_history || [];
+        currentTranscriptChat = [];
+        currentDocumentText = result.document_text || result.text_preview || "";
+        setSourceTranscript([]);
+        setSourceSummary(currentSummary);
+        setSourceDocumentText(currentDocumentText);
+        await applySelectedLanguageToAllTexts(false);
+        await refreshDocumentHistory();
+        setSummaryButtonState();
+        if (result.answer && options.source !== "document_qa") {
+            appendAgentResponseCard("Document Answer", result.answer, "#0ea5e9");
+        }
+        return;
+    }
+
+    if (Array.isArray(result.transcript) || result.session_id) {
+        transcriptData = result.transcript || [];
+        currentSummary = result.summary || "";
+        currentSessionId = result.session_id || currentSessionId;
+        currentDocumentFilename = "";
+        currentDocumentType = "";
+        currentDocumentText = "";
+        currentDocumentId = "";
+        currentDocumentChat = [];
+        currentTranscriptChat = result.history || result.qa_history || [];
+        currentProcessedVideo = result.source_video || "";
+        currentBeforeAudio = result.before_audio_file || result.processed_file || "";
+        currentAfterAudio = result.after_audio_file || result.processed_file || "";
+        if (currentAfterAudio) {
+            lastAudioFile = currentAfterAudio;
+            currentProcessedAudio = currentAfterAudio;
+        }
+        setSourceTranscript(transcriptData);
+        setSourceSummary(currentSummary);
+        setSourceDocumentText("");
+        await applySelectedLanguageToAllTexts(false);
+        await refreshHistory();
+        await refreshDocumentHistory();
+        setSummaryButtonState();
+        if (result.answer && options.source === "transcript_qa") {
+            currentTranscriptChat = result.history || currentTranscriptChat;
+            const sources = result.sources || [];
+            if (currentTranscriptChat.length) {
+                const lastIdx = currentTranscriptChat.length - 1;
+                if (currentTranscriptChat[lastIdx].role === "assistant") {
+                    currentTranscriptChat[lastIdx].sources = sources;
+                }
+            }
+            renderTranscriptChatHistory();
+        } else if (result.answer) {
+            appendAgentResponseCard("Transcript Answer", result.answer, "#6366f1");
+        }
+        return;
+    }
+
+    if (result.summary || result.translated_summary) {
+        const sourceSummaryText = result.summary || "";
+        setSourceSummary(sourceSummaryText);
+        currentSummary = result.translated_summary || result.summary || "";
+        renderSummaryCard(currentSummary);
+        setSummaryButtonState();
+        return;
+    }
+
+    if (result.text || (Array.isArray(result.texts) && result.texts.length)) {
+        appendAgentResponseCard("Translation", result.text || result.texts.join("\n"), "#0f766e");
+        return;
+    }
+
+    if (result.audio_file || result.audio_url) {
+        appendGeneratedAudioCard("Generated Speech", result.audio_file || result.audio_url, result.audio_url || "");
+        return;
+    }
+
+    if (Array.isArray(result.results) && result.results.length) {
+        appendAgentResponseCard("Search Results", result.results.map((item) => item.text || "").join("\n\n"), "#334155");
+    }
+}
+
+function buildAgentContextPayload(queryText) {
+    const payload = { query: queryText };
+    if (/\b(text to speech|tts|speak|voice|read aloud)\b/i.test(queryText || "")) {
+        if ((currentSummary || "").trim()) {
+            payload.text = currentSummary;
+        } else if ((currentDocumentText || "").trim()) {
+            payload.text = currentDocumentText;
+        } else if (Array.isArray(transcriptData) && transcriptData.length > 0) {
+            payload.text = buildExportTranscriptText();
+        }
+    }
+    if (Array.isArray(transcriptData) && transcriptData.length > 0) {
+        payload.content = buildExportTranscriptText();
+    }
+    if (currentDocumentId) {
+        payload.document_id = currentDocumentId;
+        payload.question = queryText;
+    } else if (currentSessionId) {
+        payload.session_id = currentSessionId;
+        payload.question = queryText;
+    }
+
+    const targetLang = translationTargetSelect ? (translationTargetSelect.value || "").trim() : "";
+    if (targetLang && /\btranslate\b/i.test(queryText || "")) {
+        payload.target_lang = targetLang;
+    }
+    return payload;
+}
+
+async function submitAgentQuery() {
+    const queryText = getAgentQueryText(false);
+    if (pendingSelectedFile) {
+        if (!queryText) {
+            alert("Add your query first, then press the send arrow.");
+            return;
+        }
+        getAgentQueryText(true);
+        await processSelectedFile(pendingSelectedFile, false, queryText);
+        return;
+    }
+
+    if (!queryText) return;
+    getAgentQueryText(true);
+
+    document.getElementById("loadingOverlay").style.display = "flex";
+    try {
+        const result = await agentQueryJSON(buildAgentContextPayload(queryText));
+        await handleAgentResponse(result, { source: "agent_bar" });
+        const resultPayload = (result && result.result) || {};
+        if (!resultPayload.answer && !resultPayload.summary && !resultPayload.text && !(Array.isArray(resultPayload.transcript) && resultPayload.transcript.length)) {
+            appendAgentResponseCard(
+                "Agent Plan",
+                (lastAgentPlan || []).map((step) => `${step.tool}: ${step.reason}`).join("\n") || "Task completed."
+            );
+        }
+        setAgentBarVisible(false);
+    } catch (e) {
+        appendAgentResponseCard("Agent Error", e.message || "Agent request failed", "#b91c1c");
+    } finally {
+        document.getElementById("loadingOverlay").style.display = "none";
+    }
+}
+
+function appendGeneratedAudioCard(title, audioFile, audioUrl = "") {
+    const chat = document.getElementById("chat");
+    if (!chat) return;
+    const src = audioUrl || `/audio/${encodeURIComponent(audioFile || "")}`;
+    const row = document.createElement("div");
+    row.className = "message-row transcription";
+    row.innerHTML = `
+        <div class="avatar" style="background:#0f766e">TTS</div>
+        <div class="content agent-response-card" style="border-left: 4px solid #0f766e; background: rgba(15, 118, 110, 0.10);">
+            <div class="agent-response-title">${escapeHTMLText(title || "Generated Speech")}</div>
+            <audio controls preload="metadata" style="width:100%; margin-top:8px;">
+                <source src="${src}" type="audio/mpeg">
+                Your browser does not support audio playback.
+            </audio>
+            <div class="agent-response-text" style="margin-top:8px;">${escapeHTMLText(audioFile || "")}</div>
+        </div>
+    `;
+    chat.appendChild(row);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+async function speakSummary() {
+    const text = String(currentSummary || "").trim();
+    if (!text) {
+        alert("Summary is not available yet.");
+        return;
+    }
+
+    const targetLang = translationTargetSelect ? (translationTargetSelect.value || "").trim() : "";
+    try {
+        const result = await agentQueryJSON({
+            tool: "text_to_speech",
+            query: "convert this summary to speech",
+            text,
+            tts_lang: targetLang || "en"
+        });
+        await handleAgentResponse(result, { source: "tts" });
+    } catch (e) {
+        alert(e.message || "Text-to-speech failed.");
+    }
 }

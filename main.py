@@ -62,6 +62,9 @@ from app.document_rag import answer_document_question, ingest_document_text
 from app.history_rag import answer_history_question
 from app.semantic_search import search_history_segments
 from app.translation import get_translator
+from app.agent_router import plan_agent_query, run_agent_query
+from app.agent_tools import list_tools
+from app.agent_service import handle_uploaded_file
 
 
 warnings.filterwarnings(
@@ -581,6 +584,144 @@ def api_history_ask():
         return jsonify({"error": str(e)}), 500
     log_activity(user["id"], "history:ask", {"session_id": session_id})
     return jsonify(result)
+
+
+@app.route("/api/agent/tools", methods=["GET"])
+def api_agent_tools():
+    return jsonify({"tools": list_tools()})
+
+
+@app.route("/api/agent/query", methods=["POST"])
+def api_agent_query():
+    payload = request.get_json(silent=True) or {}
+    route = plan_agent_query(payload)
+    if not route.get("ok"):
+        return jsonify(route), 400
+
+    permission = route.get("required_permission") or ""
+    if " + " in permission:
+        for single_permission in [p.strip() for p in permission.split("+") if p.strip()]:
+            forbidden = _require_permission(single_permission)
+            if forbidden:
+                return forbidden
+    else:
+        forbidden = _require_permission(permission)
+        if forbidden:
+            return forbidden
+
+    user = _current_user()
+    session_id = (payload.get("session_id") or "").strip()
+    document_id = (payload.get("document_id") or "").strip()
+
+    if session_id:
+        record = read_history_item(session_id) or {}
+        if not record:
+            return jsonify({"error": "History not found"}), 404
+        if not _history_visible(record, user):
+            return jsonify({"error": "Forbidden"}), 403
+
+    if document_id:
+        record = read_document(document_id) or {}
+        if not record:
+            return jsonify({"error": "Document not found"}), 404
+        if not _document_visible(record, user):
+            return jsonify({"error": "Forbidden"}), 403
+
+    try:
+        result = run_agent_query(
+            payload,
+            {
+                "asr_model": asr_model,
+                "diarization_pipeline": diarization_pipeline,
+                "owner": user,
+            },
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        print("❌ Agent Query Error:", e)
+        return jsonify({"error": str(e)}), 500
+
+    log_activity(
+        user["id"],
+        "agent:query",
+        {
+            "tool": result.get("selected_tool"),
+            "session_id": session_id,
+            "document_id": document_id,
+        },
+    )
+    return jsonify(result)
+
+
+@app.route("/api/agent/chat", methods=["POST"])
+def api_agent_chat():
+    payload = request.form.to_dict() if request.files else (request.get_json(silent=True) or {})
+    query = (payload.get("query") or "").strip()
+    uploaded_file = request.files.get("file") or request.files.get("audio_file") or request.files.get("document_file")
+
+    if uploaded_file and uploaded_file.filename:
+        user = _current_user()
+        filename = secure_filename(uploaded_file.filename.strip())
+        if not filename:
+            return jsonify({"error": "Invalid uploaded filename"}), 400
+        forbidden = _require_permission("process:document" if is_supported_document(filename) else "process:media")
+        if forbidden:
+            return forbidden
+
+        try:
+            if is_supported_document(filename):
+                result = handle_uploaded_file(
+                    uploaded_file,
+                    query,
+                    payload,
+                    {
+                        "owner": user,
+                        "is_supported_document": is_supported_document,
+                        "update_document": update_document,
+                        "asr_model": asr_model,
+                        "diarization_pipeline": diarization_pipeline,
+                        "source_path": "",
+                    },
+                )
+            else:
+                source_path, resolved_name = resolve_uploaded_or_path_media(uploaded_file, None)
+                result = handle_uploaded_file(
+                    uploaded_file,
+                    query,
+                    payload,
+                    {
+                        "owner": user,
+                        "is_supported_document": is_supported_document,
+                        "update_document": update_document,
+                        "asr_model": asr_model,
+                        "diarization_pipeline": diarization_pipeline,
+                        "source_path": source_path,
+                    },
+                )
+                if resolved_name and resolved_name != filename:
+                    result.setdefault("result", {})["uploaded_filename"] = resolved_name
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except FileNotFoundError as e:
+            return jsonify({"error": str(e)}), 404
+        except Exception as e:
+            print("❌ Agent Upload Error:", e)
+            return jsonify({"error": str(e)}), 500
+
+        log_activity(
+            user["id"],
+            "agent:chat",
+            {
+                "tool": result.get("selected_tool"),
+                "filename": filename,
+                "session_id": (result.get("result") or {}).get("session_id"),
+                "document_id": (result.get("result") or {}).get("document_id"),
+            },
+        )
+        return jsonify(result)
+
+    return api_agent_query()
 
 
 @app.route("/api/documents", methods=["GET"])

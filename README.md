@@ -25,6 +25,7 @@ AI Knowledge Studio 🧠✨ is a Flask-based speech + document intelligence plat
 - ASR: `faster-whisper`
 - Diarization: `pyannote.audio`
 - Translation: NLLB (`transformers`, `sentencepiece`)
+- Text-to-speech: gTTS
 - Summarization: Ollama (default) or local BART
 - Document tools: `pypdf`, `python-docx`, optional OCR (`pdf2image`, `pytesseract`)
 - RAG embeddings: `sentence-transformers`
@@ -102,6 +103,9 @@ set -a; source .env.nllb; set +a
 - `GET /api/documents` - List document history.
 - `GET /api/documents/<doc_id>` - Open a document history item.
 - `POST /translate` - Translate `text` or `texts`.
+- `GET /api/agent/tools` - List the tools exposed to the agent router.
+- `POST /api/agent/query` - Query-first endpoint that selects a tool based on intent and context.
+- `POST /api/agent/chat` - Unified agent endpoint for uploaded files plus query-driven execution.
 - `GET /history` - List session history.
 - `GET /history/<session_id>` - Fetch one session.
 - `POST /history/<session_id>/transcript` - Save transcript/summary.
@@ -116,6 +120,46 @@ set -a; source .env.nllb; set +a
 - `recordings/` - temporary live chunk files
 - `demucs_outputs/` - Demucs separation output
 - `models/` / `nllb_model/` - local NLLB model folders
+
+## Agent Query Mode
+
+You can now call the app in a query-first way instead of choosing fixed endpoints yourself. The new agent layer maps your query onto existing tools such as:
+
+- media processing
+- transcript summarization
+- translation
+- transcript Q&A
+- document Q&A
+- transcript semantic search
+- text-to-speech
+
+Example:
+
+```bash
+curl -X POST http://127.0.0.1:5000/api/agent/query \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "query": "summarize this meeting and translate it to Hindi",
+    "content": "Speaker 1: ...",
+    "meeting_title": "Weekly Review",
+    "meeting_date": "2026-03-26",
+    "meeting_place": "Conference Room",
+    "target_lang": "hin_Deva"
+  }'
+```
+
+The route returns:
+
+- the selected tool
+- the execution plan
+- the tool result
+
+## gTTS Note
+
+`gTTS` is now available through the agent as a text-to-speech tool. Generated speech files are saved into `audio/` and can be played back from the UI.
+
+At runtime, `gTTS` typically requires internet access to synthesize speech.
 
 ## Configuration
 
