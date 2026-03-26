@@ -156,13 +156,19 @@ const translationTargetSelect = document.getElementById("translationTarget");
 const agentQueryInput = document.getElementById("agentQueryInput");
 
 function getAgentBarEl() {
-    return document.querySelector(".agent-bar");
+    return document.querySelector(".agent-dock");
 }
 
 function setAgentBarVisible(visible) {
     const agentBar = getAgentBarEl();
     if (!agentBar) return;
     agentBar.classList.toggle("hidden", !visible);
+}
+
+function setWelcomeVisible(visible) {
+    const row = document.getElementById("agentWelcomeRow");
+    if (!row) return;
+    row.classList.toggle("hidden", !visible);
 }
 
 audioFileInput.addEventListener("change", () => {
@@ -2464,16 +2470,12 @@ function renderSummaryCard(summaryText, targetCard = null) {
 }
 
 function renderGreetingCard(name) {
-    const chat = document.getElementById("chat");
-    if (!chat) return;
-    if (chat.querySelector(".agent-greeting-row")) return;
-    const row = document.createElement("div");
-    row.className = "message-row transcription agent-greeting-row";
-    row.innerHTML = `
-        <div class="avatar" style="background: #f59e0b">AI</div>
-        <div class="content">Hello ${escapeHTMLText(name || "there")}, welcome to the AI Knowledge Studio 🧠✨.</div>
-    `;
-    chat.insertBefore(row, chat.firstChild);
+    const row = document.getElementById("agentWelcomeRow");
+    if (!row) return;
+    const content = row.querySelector(".content");
+    if (!content) return;
+    content.textContent = `Hello ${name || "there"}, welcome to the AI Knowledge Studio 🧠✨.`;
+    setWelcomeVisible(true);
 }
 
 async function fetchAdminUsers() {
@@ -3359,12 +3361,14 @@ async function submitAgentQuery() {
             return;
         }
         getAgentQueryText(true);
+        setWelcomeVisible(false);
         await processSelectedFile(pendingSelectedFile, false, queryText);
         return;
     }
 
     if (!queryText) return;
     getAgentQueryText(true);
+    setWelcomeVisible(false);
     const payload = buildAgentContextPayload(queryText);
     const isPlainChatMode = Boolean(
         !pendingSelectedFile &&

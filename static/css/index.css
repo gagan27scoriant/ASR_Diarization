@@ -189,9 +189,18 @@ textarea{
   font-family: var(--font-sans);
 }
 
-.agent-bar{
+.agent-dock{
   width:min(1100px, 100%);
-  margin: 18px auto 10px;
+  margin:auto auto 0;
+  order:2;
+  position:sticky;
+  bottom:0;
+  z-index:5;
+}
+
+.agent-bar{
+  width:100%;
+  margin:18px auto 0;
   padding: 16px;
   border: 1px solid #eadfcd;
   border-radius: 18px;
@@ -200,7 +209,7 @@ textarea{
   box-shadow: 0 10px 24px rgba(17, 24, 39, 0.06);
 }
 
-.agent-bar.hidden{
+.agent-dock.hidden{
   display:none;
 }
 
@@ -998,7 +1007,9 @@ textarea{
 #chat{
   flex:1;
   overflow:auto;
-  padding:150px 34px 40px;
+  display:flex;
+  flex-direction:column;
+  padding:150px 34px 28px;
 }
 #chat,
 #chat *{
@@ -1086,8 +1097,21 @@ textarea{
   font-weight:500;
 }
 
-.message-row{ display:flex; margin:14px auto 0; width:min(1100px,100%); }
+.message-row{
+  display:flex;
+  margin:14px auto 0;
+  width:min(1100px,100%);
+  order:1;
+}
 .agent-greeting-row{ margin-top:0; }
+.docked-welcome{
+  width:100%;
+  margin-top:0;
+}
+.docked-welcome.hidden{
+  display:none;
+}
+.upload-hero{ order:1; }
 .chat-bubble-row{
   width:min(1100px,100%);
   display:flex;
