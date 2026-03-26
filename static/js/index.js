@@ -3166,6 +3166,21 @@ async function agentQueryJSON(payload) {
     return result;
 }
 
+function appendChatBubble(role, text) {
+    const chat = document.getElementById("chat");
+    if (!chat) return;
+    const safeRole = role === "user" ? "user" : "assistant";
+    const badge = safeRole === "user" ? "YOU" : "AI";
+    const row = document.createElement("div");
+    row.className = `message-row transcription chat-bubble-row ${safeRole}`;
+    row.innerHTML = `
+        <div class="avatar chat-bubble-avatar">${badge}</div>
+        <div class="content chat-bubble-content">${escapeHTMLText(text || "")}</div>
+    `;
+    chat.appendChild(row);
+    chat.scrollTop = chat.scrollHeight;
+}
+
 function appendAgentResponseCard(title, text, accent = "#d97706") {
     const chat = document.getElementById("chat");
     if (!chat) return;
@@ -3185,6 +3200,11 @@ function appendAgentResponseCard(title, text, accent = "#d97706") {
 async function handleAgentResponse(agentResult, options = {}) {
     const result = (agentResult && agentResult.result) || {};
     lastAgentPlan = Array.isArray(agentResult && agentResult.plan) ? agentResult.plan : [];
+
+    if (result.answer && (agentResult && agentResult.selected_tool) === "chat_response") {
+        appendChatBubble("assistant", result.answer);
+        return;
+    }
 
     if (result.answer && options.source === "transcript_qa") {
         currentTranscriptChat = result.history || currentTranscriptChat;
@@ -3345,10 +3365,25 @@ async function submitAgentQuery() {
 
     if (!queryText) return;
     getAgentQueryText(true);
+    const payload = buildAgentContextPayload(queryText);
+    const isPlainChatMode = Boolean(
+        !pendingSelectedFile &&
+        !payload.session_id &&
+        !payload.document_id &&
+        !payload.content &&
+        !payload.text &&
+        !payload.target_lang
+    );
 
-    document.getElementById("loadingOverlay").style.display = "flex";
+    if (isPlainChatMode) {
+        appendChatBubble("user", queryText);
+    }
+
+    if (!isPlainChatMode) {
+        document.getElementById("loadingOverlay").style.display = "flex";
+    }
     try {
-        const result = await agentQueryJSON(buildAgentContextPayload(queryText));
+        const result = await agentQueryJSON(payload);
         await handleAgentResponse(result, { source: "agent_bar" });
         const resultPayload = (result && result.result) || {};
         if (!resultPayload.answer && !resultPayload.summary && !resultPayload.text && !(Array.isArray(resultPayload.transcript) && resultPayload.transcript.length)) {
@@ -3357,11 +3392,19 @@ async function submitAgentQuery() {
                 (lastAgentPlan || []).map((step) => `${step.tool}: ${step.reason}`).join("\n") || "Task completed."
             );
         }
-        setAgentBarVisible(false);
+        if ((result && result.selected_tool) !== "chat_response") {
+            setAgentBarVisible(false);
+        }
     } catch (e) {
-        appendAgentResponseCard("Agent Error", e.message || "Agent request failed", "#b91c1c");
+        if (isPlainChatMode) {
+            appendChatBubble("assistant", e.message || "Agent request failed");
+        } else {
+            appendAgentResponseCard("Agent Error", e.message || "Agent request failed", "#b91c1c");
+        }
     } finally {
-        document.getElementById("loadingOverlay").style.display = "none";
+        if (!isPlainChatMode) {
+            document.getElementById("loadingOverlay").style.display = "none";
+        }
     }
 }
 

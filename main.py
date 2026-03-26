@@ -159,6 +159,8 @@ def enforce_login():
 
 
 def _require_permission(permission: str):
+    if not permission:
+        return None
     role = (_current_user() or {}).get("role_name", ROLE_USER)
     if not has_permission(role, permission):
         return jsonify({"error": "Forbidden"}), 403

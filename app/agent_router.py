@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.agent_llm import infer_agent_action
 from app.agent_tools import TOOLS, AgentTool, get_tool, validate_tool_payload
 
 
@@ -69,6 +70,19 @@ def _choose_primary_tool(query: str, payload: dict[str, Any]) -> AgentTool | Non
     return None
 
 
+def _merge_planner_arguments(payload: dict[str, Any], arguments: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(payload or {})
+    for key in ("question", "text", "target_lang", "tts_lang"):
+        value = arguments.get(key)
+        if value is None:
+            continue
+        if isinstance(value, str) and not value.strip():
+            continue
+        if not merged.get(key):
+            merged[key] = value
+    return merged
+
+
 def _build_plan(tool: AgentTool, payload: dict[str, Any]) -> list[dict[str, Any]]:
     query = _norm(payload.get("query") or "")
     plan: list[dict[str, Any]] = [{"tool": tool.name, "reason": f"Primary match for query intent: '{query or tool.name}'"}]
@@ -81,15 +95,38 @@ def _build_plan(tool: AgentTool, payload: dict[str, Any]) -> list[dict[str, Any]
 
 def plan_agent_query(payload: dict[str, Any]) -> dict[str, Any]:
     query = _norm(payload.get("query") or "")
-    tool = _choose_primary_tool(query, payload)
+    planning_payload = dict(payload or {})
+    planner_result: dict[str, Any] | None = None
+
+    try:
+        planner_result = infer_agent_action(query, planning_payload, list(TOOLS.keys()))
+    except Exception:
+        planner_result = None
+
+    if planner_result and planner_result.get("mode") == "tool":
+        planning_payload = _merge_planner_arguments(planning_payload, planner_result.get("arguments") or {})
+        tool = get_tool(planner_result.get("tool") or "")
+    elif planner_result and planner_result.get("mode") == "chat":
+        tool = TOOLS["chat_response"]
+    else:
+        tool = _choose_primary_tool(query, planning_payload)
+
+    if not tool and not any(
+        planning_payload.get(key) for key in ("file_path", "session_id", "document_id", "content", "text")
+    ) and query:
+        tool = TOOLS["chat_response"]
+
     if not tool:
         return {
             "ok": False,
             "error": "No matching tool found for the query. Provide tool explicitly or include query/context such as session_id, document_id, or target_lang.",
         }
 
-    plan = _build_plan(tool, payload)
-    missing = validate_tool_payload(tool, payload)
+    plan = _build_plan(tool, planning_payload)
+    if planner_result and planner_result.get("reason"):
+        plan[0]["reason"] = planner_result["reason"]
+
+    missing = validate_tool_payload(tool, planning_payload)
     if missing:
         return {
             "ok": False,
@@ -101,7 +138,7 @@ def plan_agent_query(payload: dict[str, Any]) -> dict[str, Any]:
         }
 
     required_permission = tool.required_permission
-    if tool.name == "summarize_transcript" and payload.get("target_lang") and "translate" in query:
+    if tool.name == "summarize_transcript" and planning_payload.get("target_lang") and "translate" in query:
         required_permission = "summary:generate + translate:run"
 
     return {
@@ -109,6 +146,7 @@ def plan_agent_query(payload: dict[str, Any]) -> dict[str, Any]:
         "tool": tool.name,
         "required_permission": required_permission,
         "plan": plan,
+        "resolved_payload": planning_payload,
     }
 
 
@@ -117,15 +155,16 @@ def run_agent_query(payload: dict[str, Any], deps: dict[str, Any]) -> dict[str, 
     if not route.get("ok"):
         return route
 
+    resolved_payload = route.get("resolved_payload") or payload
     tool = TOOLS[route["tool"]]
-    result = tool.handler(payload, deps)
+    result = tool.handler(resolved_payload, deps)
 
-    if route["tool"] == "summarize_transcript" and payload.get("target_lang") and "translate" in _norm(payload.get("query") or ""):
+    if route["tool"] == "summarize_transcript" and resolved_payload.get("target_lang") and "translate" in _norm(resolved_payload.get("query") or ""):
         translated = TOOLS["translate_text"].handler(
             {
                 "text": result.get("summary") or "",
-                "target_lang": payload.get("target_lang"),
-                "source_lang": payload.get("source_lang") or "eng_Latn",
+                "target_lang": resolved_payload.get("target_lang"),
+                "source_lang": resolved_payload.get("source_lang") or "eng_Latn",
             },
             deps,
         )

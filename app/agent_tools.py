@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable
 
+from app.agent_llm import chat_with_agent
 from app.document_rag import answer_document_question
 from app.history_rag import answer_history_question
 from app.processing_service import process_media_pipeline, summarize_and_persist
@@ -112,7 +113,23 @@ def text_to_speech_tool(payload: dict[str, Any], deps: dict[str, Any]) -> dict[s
     )
 
 
+def chat_response_tool(payload: dict[str, Any], deps: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "answer": chat_with_agent(
+            (payload.get("query") or payload.get("question") or "").strip(),
+            payload,
+        )
+    }
+
+
 TOOLS: dict[str, AgentTool] = {
+    "chat_response": AgentTool(
+        name="chat_response",
+        description="Respond like a normal chatbot when no external tool is required.",
+        required_permission="",
+        required_fields=("query",),
+        handler=chat_response_tool,
+    ),
     "summarize_transcript": AgentTool(
         name="summarize_transcript",
         description="Generate a structured summary from transcript text.",

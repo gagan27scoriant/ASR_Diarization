@@ -1088,6 +1088,49 @@ textarea{
 
 .message-row{ display:flex; margin:14px auto 0; width:min(1100px,100%); }
 .agent-greeting-row{ margin-top:0; }
+.chat-bubble-row{
+  width:min(1100px,100%);
+  display:flex;
+  align-items:flex-start;
+}
+.chat-bubble-row.user{
+  justify-content:flex-end;
+  flex-direction:row-reverse;
+}
+.chat-bubble-row.assistant{
+  justify-content:flex-start;
+}
+.chat-bubble-avatar{
+  width:40px;
+  height:40px;
+  border-radius:10px;
+  flex-shrink:0;
+}
+.chat-bubble-content{
+  flex:1;
+  max-width:calc(100% - 52px);
+  white-space:pre-wrap;
+}
+.chat-bubble-row.assistant .chat-bubble-avatar{
+  background:#f59e0b;
+  color:#ffffff;
+}
+.chat-bubble-row.assistant .chat-bubble-content{
+  background:#ffffff;
+  border:1px solid #e5e5e5;
+  color:#1f2937;
+}
+.chat-bubble-row.user .chat-bubble-avatar{
+  background:linear-gradient(180deg, #f8b43a 0%, #d97706 100%);
+  color:#ffffff;
+  margin-right:0;
+  margin-left:12px;
+}
+.chat-bubble-row.user .chat-bubble-content{
+  background:linear-gradient(180deg, #fff8ea 0%, #ffe7bf 100%);
+  border:1px solid #eadfcd;
+  color:#8a5b00;
+}
 .avatar{
   width:40px;height:40px;border-radius:10px;
   color:#fff;font-weight:700;
