@@ -734,12 +734,16 @@ function renderHistoryList() {
     list.innerHTML = historyEntries.map((entry) => {
         const activeClass = entry.session_id === currentSessionId ? "active" : "";
         const title = truncateText(entry.title || entry.processed_file || entry.session_id);
-        const meta = `${entry.segments || 0} segments • ${formatHistoryLabel(entry.updated_at)}`;
+        const meta = formatHistoryLabel(entry.updated_at);
         return `
             <div class="history-item ${activeClass}" title="${escapeHTMLText(entry.title || entry.session_id)}">
                 <button class="history-open-btn" onclick="openHistorySession('${entry.session_id}')">
-                    <span class="history-title">${escapeHTMLText(title)}</span>
-                    <span class="history-meta">${escapeHTMLText(meta)}</span>
+                    <span class="history-copy">
+                        <span class="history-title-row">
+                            <span class="history-title">${escapeHTMLText(title)}</span>
+                        </span>
+                        <span class="history-meta">${escapeHTMLText(meta)}</span>
+                    </span>
                 </button>
                 <div class="history-actions">
                     ${canRename ? `<button class="history-action-btn" onclick="renameHistorySession('${entry.session_id}')" title="Rename">✎</button>` : ""}
@@ -765,12 +769,19 @@ function renderDocumentHistory() {
     list.innerHTML = documentEntries.map((entry) => {
         const activeClass = entry.document_id === currentDocumentId ? "active" : "";
         const title = truncateText(entry.filename || entry.document_id);
-        const meta = `${entry.chunk_count || 0} chunks • ${formatHistoryLabel(entry.updated_at)}`;
+        const chunkCount = Number(entry.chunk_count || 0);
+        const meta = formatHistoryLabel(entry.updated_at);
         return `
             <div class="history-item ${activeClass}" title="${escapeHTMLText(entry.filename || entry.document_id)}">
                 <button class="history-open-btn" onclick="openDocumentEntry('${entry.document_id}')">
-                    <span class="history-title">${escapeHTMLText(title)}</span>
-                    <span class="history-meta">${escapeHTMLText(meta)}</span>
+                    <span class="history-icon history-icon-doc" aria-hidden="true">📄</span>
+                    <span class="history-copy">
+                        <span class="history-title-row">
+                            <span class="history-title">${escapeHTMLText(title)}</span>
+                            <span class="history-badge">${chunkCount} chunks</span>
+                        </span>
+                        <span class="history-meta">${escapeHTMLText(meta)}</span>
+                    </span>
                 </button>
                 <div class="history-actions">
                     ${canRename ? `<button class="history-action-btn" onclick="renameDocumentEntry('${entry.document_id}')" title="Rename">✎</button>` : ""}
