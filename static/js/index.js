@@ -43,6 +43,7 @@ let segmentGroupMap = [];
 let transcriptRowEls = [];
 let lastAgentPlan = [];
 let pendingSelectedFile = null;
+const THEME_STORAGE_KEY = "aks_theme";
 
 const TRANSLATION_LANGUAGE_GROUPS = {
     indian: [
@@ -155,6 +156,35 @@ const exportTranscriptBtn = document.getElementById("exportTranscriptBtn");
 const exportSummaryBtn = document.getElementById("exportSummaryBtn");
 const translationTargetSelect = document.getElementById("translationTarget");
 const agentQueryInput = document.getElementById("agentQueryInput");
+
+function applyTheme(theme) {
+    const resolvedTheme = theme === "dark" ? "dark" : "light";
+    document.body.classList.toggle("dark-theme", resolvedTheme === "dark");
+    const toggleBtn = document.getElementById("themeToggleBtn");
+    if (toggleBtn) {
+        toggleBtn.textContent = resolvedTheme === "dark" ? "Light Theme" : "Dark Theme";
+        toggleBtn.setAttribute("aria-label", resolvedTheme === "dark" ? "Switch to light theme" : "Switch to dark theme");
+    }
+}
+
+function initializeTheme() {
+    try {
+        const stored = localStorage.getItem(THEME_STORAGE_KEY) || "light";
+        applyTheme(stored);
+    } catch (_e) {
+        applyTheme("light");
+    }
+}
+
+function toggleTheme() {
+    const nextTheme = document.body.classList.contains("dark-theme") ? "light" : "dark";
+    applyTheme(nextTheme);
+    try {
+        localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    } catch (_e) {
+        return;
+    }
+}
 
 function getAgentBarEl() {
     return document.querySelector(".agent-dock");
@@ -3020,6 +3050,8 @@ async function showSummary() {
         isSummaryLoading = false;
     }
 }
+
+initializeTheme();
 
 loadPolicy().then(() => {
     refreshHistory();
