@@ -10,12 +10,16 @@ SUMMARY_BACKEND = os.getenv("SUMMARY_BACKEND", "ollama").lower()
 SUMMARY_MODEL = os.getenv("SUMMARY_MODEL", "mistral")
 SUMMARY_TIMEOUT_SECONDS = int(os.getenv("SUMMARY_TIMEOUT_SECONDS", "10800"))
 
-# Load BART only if selected
+# Load BART lazily when needed (for fallback or explicit bart backend).
 tokenizer = None
 model = None
-if SUMMARY_BACKEND == "bart":
-    tokenizer = BartTokenizer.from_pretrained(MODEL_NAME)
-    model = BartForConditionalGeneration.from_pretrained(MODEL_NAME)
+
+
+def _ensure_bart_loaded():
+    global tokenizer, model
+    if tokenizer is None or model is None:
+        tokenizer = BartTokenizer.from_pretrained(MODEL_NAME)
+        model = BartForConditionalGeneration.from_pretrained(MODEL_NAME)
 
 
 def _build_prompt(
@@ -111,6 +115,7 @@ def _summarize_with_bart(
     meeting_date: str,
     meeting_place: str
 ) -> str:
+    _ensure_bart_loaded()
     # Step 1: Preprocess transcript
     transcript_text = transcript_text.replace("\n", " ").strip()
 
@@ -180,6 +185,7 @@ THANK YOU
 
 
 def _summarize_document_with_bart(document_text: str) -> str:
+    _ensure_bart_loaded()
     document_text = (document_text or "").replace("\n", " ").strip()
     if not document_text:
         return "No text to summarize."
@@ -225,14 +231,24 @@ def summarize_text(transcript_text, meeting_title, meeting_date, meeting_place):
             raw = _summarize_with_ollama(
                 transcript_text, meeting_title, meeting_date, meeting_place
             )
-            return _strip_transcript_section(raw)
+            cleaned = _strip_transcript_section(raw)
+            if cleaned:
+                return cleaned
+            raise RuntimeError("Empty summary from ollama")
         raw = _summarize_with_bart(
             transcript_text, meeting_title, meeting_date, meeting_place
         )
         return _strip_transcript_section(raw)
     except Exception as e:
         print("Summarization error:", e)
-        return "Summary generation failed."
+        try:
+            raw = _summarize_with_bart(
+                transcript_text, meeting_title, meeting_date, meeting_place
+            )
+            return _strip_transcript_section(raw)
+        except Exception as bart_err:
+            print("BART fallback error:", bart_err)
+            return "Summary generation failed."
 
 
 def summarize_document_text(document_text: str) -> str:
@@ -240,8 +256,15 @@ def summarize_document_text(document_text: str) -> str:
         return "No text to summarize."
     try:
         if SUMMARY_BACKEND == "ollama":
-            return _summarize_document_with_ollama(document_text)
+            raw = _summarize_document_with_ollama(document_text)
+            if raw:
+                return raw
+            raise RuntimeError("Empty summary from ollama")
         return _summarize_document_with_bart(document_text)
     except Exception as e:
         print("Document summarization error:", e)
-        return "Summary generation failed."
+        try:
+            return _summarize_document_with_bart(document_text)
+        except Exception as bart_err:
+            print("BART document fallback error:", bart_err)
+            return "Summary generation failed."

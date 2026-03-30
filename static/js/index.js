@@ -64,6 +64,67 @@ function normalizeTranscriptSpeakers(segments) {
     }));
 }
 
+function openSpeakerRename(speakerLabel) {
+    const normalized = String(speakerLabel || "").trim();
+    if (!normalized) return;
+    const rows = document.querySelectorAll(`.message-row.transcription[data-speaker="${CSS.escape(normalized)}"]`);
+    rows.forEach((row) => {
+        const nameEl = row.querySelector(".speaker-name");
+        if (!nameEl || nameEl.dataset.editing === "1") return;
+        nameEl.dataset.editing = "1";
+        const current = nameEl.textContent || normalized;
+        nameEl.innerHTML = `<input class="speaker-rename-input" type="text" value="${escapeHTMLText(current)}">`;
+        const input = nameEl.querySelector("input");
+        if (!input) return;
+        input.focus();
+        input.select();
+
+        const commit = async () => {
+            const next = (input.value || "").trim();
+            if (!next || next === normalized) {
+                nameEl.textContent = normalized;
+                nameEl.dataset.editing = "0";
+                return;
+            }
+            await renameSpeakerInline(normalized, next);
+        };
+
+        input.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                commit();
+            } else if (e.key === "Escape") {
+                nameEl.textContent = normalized;
+                nameEl.dataset.editing = "0";
+            }
+        });
+        input.addEventListener("blur", commit);
+    });
+}
+
+async function renameSpeakerInline(fromLabel, toLabel) {
+    const from = String(fromLabel || "").trim();
+    const to = String(toLabel || "").trim();
+    if (!from || !to || from === to) return;
+
+    const color = speakerColors[from];
+    transcriptData = transcriptData.map(seg => ({ ...seg, speaker: seg.speaker === from ? to : seg.speaker }));
+    sourceTranscriptData = sourceTranscriptData.map(seg => ({ ...seg, speaker: seg.speaker === from ? to : seg.speaker }));
+
+    if (color) {
+        delete speakerColors[from];
+        speakerColors[to] = color;
+    }
+
+    speakerNameMap[from] = to;
+    uniqueSpeakers = new Set(transcriptData.map(seg => seg.speaker));
+
+    currentSummary = "";
+    setSourceSummary("");
+    await applySelectedLanguageToAllTexts(false);
+    await persistSessionTranscript();
+}
+
 const TRANSLATION_LANGUAGE_GROUPS = {
     indian: [
         { label: "Assamese", code: "asm_Beng" },
@@ -170,7 +231,6 @@ const audioFileInput = document.getElementById("audioFile");
 const recordBtn = document.getElementById("recordBtn");
 const pauseBtn = document.getElementById("pauseBtn");
 const stopBtn = document.getElementById("stopBtn");
-const finalizeBtn = document.getElementById("finalizeBtn");
 const exportTranscriptBtn = document.getElementById("exportTranscriptBtn");
 const exportSummaryBtn = document.getElementById("exportSummaryBtn");
 const translationTargetSelect = document.getElementById("translationTarget");
@@ -384,7 +444,6 @@ async function renderCurrentContent() {
     if (Array.isArray(transcriptData) && transcriptData.length > 0) {
         rebuildSpeakerState();
         await renderChatDelayed();
-        setupRenameSidebar();
     } else if (currentDocumentFilename) {
         renderDocumentResult();
     } else {
@@ -438,10 +497,9 @@ function updateTranscriptDependentUI() {
     const hasTranscript = Array.isArray(transcriptData) && transcriptData.length > 0;
     const isExpanded = sidebar.classList.contains("expanded");
     const sideHeading = document.getElementById("sideHeading");
-    const renameBox = document.getElementById("renameBox");
     const keywordBtn = document.getElementById("keywordBtn");
 
-    [finalizeBtn, exportTranscriptBtn, exportSummaryBtn].forEach((btn) => {
+    [exportTranscriptBtn, exportSummaryBtn].forEach((btn) => {
         if (!btn) return;
         btn.classList.toggle("hidden", !hasTranscript);
     });
@@ -449,9 +507,6 @@ function updateTranscriptDependentUI() {
 
     if (sideHeading) {
         sideHeading.style.display = hasTranscript && isExpanded ? "block" : "none";
-    }
-    if (!hasTranscript && renameBox) {
-        renameBox.innerHTML = "";
     }
     setSummaryButtonState();
 }
@@ -976,6 +1031,7 @@ async function openHistorySession(sessionId) {
             throw new Error(result.error || "Failed to open history");
         }
 
+        setAgentBarVisible(false);
         currentSessionId = result.session_id || sessionId;
         transcriptData = normalizeTranscriptSpeakers(result.transcript || []);
         currentSummary = result.summary || "";
@@ -1469,6 +1525,7 @@ async function renderChatDelayed() {
         const row = document.createElement("div");
         row.className = "message-row transcription";
         row.dataset.groupIndex = String(i);
+        row.dataset.speaker = group.speaker;
         const colorSet = speakerColors[group.speaker];
         const ts = `[${formatTime(group.start || 0)} - ${formatTime(group.end || 0)}]`;
         
@@ -1478,7 +1535,7 @@ async function renderChatDelayed() {
                 ? group.texts.map(t => `• ${t}`).join('<br>')
                 : group.texts[0]);
 
-        row.innerHTML = `<div class="avatar" style="background: ${colorSet.main}">${group.speaker[0]}</div><div class="content" style="border-left: 4px solid ${colorSet.main}; background: ${colorSet.glow}"><div class="translate-transcript-icon" onclick="translateTranscriptByIndex(${i})" title="Translate Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8h14"></path><path d="M5 12h8"></path><path d="M13 19l4-8 4 8"></path><path d="M14.5 16h5"></path></svg></div><div class="copy-transcript-icon" onclick="copyTranscriptByIndex(${i})" title="Copy Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></div><div class="listen-transcript-icon" onclick="speakTranscriptByIndex(${i})" title="Listen to Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M19 5a10 10 0 0 1 0 14"></path></svg></div><span style="font-size:10px; font-weight:900; color:${colorSet.main}; text-transform:uppercase;">${group.speaker}</span><br>${combinedText}<span style="display:block; font-size:10px; color:var(--muted); margin-top:5px; font-weight:600;">${ts}</span></div>`;
+        row.innerHTML = `<div class="avatar" style="background: ${colorSet.main}">${group.speaker[0]}</div><div class="content" style="border-left: 4px solid ${colorSet.main}; background: ${colorSet.glow}"><div class="translate-transcript-icon" onclick="translateTranscriptByIndex(${i})" title="Translate Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8h14"></path><path d="M5 12h8"></path><path d="M13 19l4-8 4 8"></path><path d="M14.5 16h5"></path></svg></div><div class="copy-transcript-icon" onclick="copyTranscriptByIndex(${i})" title="Copy Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></div><div class="listen-transcript-icon" onclick="speakTranscriptByIndex(${i})" title="Listen to Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M19 5a10 10 0 0 1 0 14"></path></svg></div><span class="speaker-name" style="font-size:10px; font-weight:900; color:${colorSet.main}; text-transform:uppercase;">${group.speaker}</span><button class="speaker-rename-btn" data-speaker="${escapeHTMLText(group.speaker)}" onclick="openSpeakerRename(this.dataset.speaker)" title="Rename Speaker">✎</button><br>${combinedText}<span style="display:block; font-size:10px; color:var(--muted); margin-top:5px; font-weight:600;">${ts}</span></div>`;
         chat.appendChild(row);
         transcriptRowEls[i] = row;
     }
@@ -2164,45 +2221,7 @@ async function askDocumentQuestion() {
     }
 }
 
-function setupRenameSidebar() {
-    const box = document.getElementById("renameBox");
-    box.innerHTML = "";
-    
-    const sortedSpeakers = Array.from(uniqueSpeakers).sort((a, b) => {
-        return speakerOrderMap[a] - speakerOrderMap[b];
-    });
-    
-    sortedSpeakers.forEach(s => {
-        const div = document.createElement("div");
-        div.className = "rename-item";
-        const speakerNo = (speakerOrderMap[s] ?? 0) + 1;
-        div.innerHTML = `<input type="text" id="name_${s}" placeholder="Enter speaker ${speakerNo} Name">`;
-        box.appendChild(div);
-    });
-    updateTranscriptDependentUI();
-}
-
-async function applyNames() {
-    let nameMap = {};
-    let newSpeakerColors = {};
-    uniqueSpeakers.forEach(s => {
-        const inputEl = document.getElementById("name_" + s);
-        const val = inputEl ? inputEl.value.trim() : "";
-        const final = val || s;
-        nameMap[s] = final;
-        newSpeakerColors[final] = speakerColors[s];
-        speakerNameMap[s] = final;
-    });
-    transcriptData = transcriptData.map(seg => ({ ...seg, speaker: nameMap[seg.speaker] }));
-    sourceTranscriptData = sourceTranscriptData.map(seg => ({ ...seg, speaker: nameMap[seg.speaker] }));
-    speakerColors = newSpeakerColors;
-    uniqueSpeakers = new Set(Object.values(nameMap));
-
-    currentSummary = "";
-    setSourceSummary("");
-    await applySelectedLanguageToAllTexts(false);
-    await persistSessionTranscript();
-}
+// Sidebar-based speaker renaming removed (inline rename is used now).
 
 async function persistSessionTranscript() {
     if (!currentSessionId) return;
