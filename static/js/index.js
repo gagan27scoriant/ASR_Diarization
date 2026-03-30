@@ -45,6 +45,61 @@ let lastAgentPlan = [];
 let pendingSelectedFile = null;
 let lastAgentPrompt = "";
 const THEME_STORAGE_KEY = "aks_theme";
+const SKIP_LOGOUT_RELOAD_KEY = "skip_logout_reload";
+
+function logoutOnHardReload() {
+    if (sessionStorage.getItem(SKIP_LOGOUT_RELOAD_KEY) === "1") {
+        sessionStorage.removeItem(SKIP_LOGOUT_RELOAD_KEY);
+        return;
+    }
+    let navType = "";
+    const entries = (performance && performance.getEntriesByType)
+        ? performance.getEntriesByType("navigation")
+        : [];
+    if (entries && entries.length) {
+        navType = entries[0].type || "";
+    } else if (performance && performance.navigation) {
+        navType = performance.navigation.type === 1 ? "reload" : "";
+    }
+    if (navType === "reload") {
+        window.location.href = "/logout";
+    }
+}
+
+logoutOnHardReload();
+
+function newSessionHome() {
+    sessionStorage.setItem(SKIP_LOGOUT_RELOAD_KEY, "1");
+    location.reload();
+}
+
+async function resetToHomeScreen() {
+    currentSessionId = "";
+    transcriptData = [];
+    currentSummary = "";
+    currentProcessedAudio = "";
+    currentProcessedVideo = "";
+    currentBeforeAudio = "";
+    currentAfterAudio = "";
+    currentDocumentFilename = "";
+    currentDocumentType = "";
+    currentDocumentText = "";
+    currentDocumentId = "";
+    currentDocumentChat = [];
+    currentTranscriptChat = [];
+    currentAgentChat = [];
+    groupedTranscriptCache = [];
+    setSourceTranscript([]);
+    setSourceSummary("");
+    setSourceDocumentText("");
+    uniqueSpeakers.clear();
+    speakerNameMap = {};
+    speakerOrderMap = {};
+    await renderCurrentContent();
+    updateTranscriptDependentUI();
+    updateSidebarMiniPreview();
+    setSummaryButtonState();
+}
 
 function normalizeSpeakerLabel(label) {
     const raw = String(label || "").trim();
@@ -1272,14 +1327,8 @@ async function clearAllHistory() {
     if (!ok) return;
 
     const ids = historyEntries.map((x) => x.session_id).filter(Boolean);
-    for (const sessionId of ids) {
-        try {
-            await fetch(`/history/${encodeURIComponent(sessionId)}`, { method: "DELETE" });
-        } catch (_e) {
-            // Continue deleting remaining items.
-        }
-    }
 
+    // Optimistically clear UI right away.
     currentSessionId = "";
     transcriptData = [];
     currentSummary = "";
@@ -1302,10 +1351,17 @@ async function clearAllHistory() {
     await renderChatDelayed();
     setupRenameSidebar();
     updateTranscriptDependentUI();
-    await refreshHistory();
-    await refreshDocumentHistory();
     updateSidebarMiniPreview();
     setSummaryButtonState();
+
+    // Delete in parallel; then refresh lists.
+    const deletes = ids.map((sessionId) =>
+        fetch(`/history/${encodeURIComponent(sessionId)}`, { method: "DELETE" })
+            .catch(() => null)
+    );
+    await Promise.allSettled(deletes);
+    await refreshHistory();
+    await refreshDocumentHistory();
 }
 
 function formatTime(seconds) {
@@ -1688,9 +1744,6 @@ function ensureTranscriptPromptSeeded(promptText) {
     }
 }
 
-function isSummaryPrompt(text) {
-    return /\b(summar|summary|minutes|recap|meeting notes|mom)\b/i.test(String(text || ""));
-}
 
 function focusTranscriptSegment(segmentIndex) {
     if (!Array.isArray(transcriptRowEls) || !segmentGroupMap) return;
@@ -1770,13 +1823,20 @@ async function askTranscriptQuestion() {
     sendBtn.disabled = true;
     sendBtn.textContent = "Thinking...";
     try {
-        const result = await agentQueryJSON({
-            query: question,
-            session_id: currentSessionId,
-            question,
-            top_k: 8
+        const response = await fetch("/api/history/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                session_id: currentSessionId,
+                question,
+                top_k: 8
+            })
         });
-        await handleAgentResponse(result, { source: "transcript_qa" });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || "Failed to answer.");
+        }
+        await handleAgentResponse({ result }, { source: "transcript_qa" });
     } catch (e) {
         currentTranscriptChat.push({ role: "assistant", content: e.message || "Failed to answer." });
         renderTranscriptChatHistory();
@@ -3233,6 +3293,10 @@ loadPolicy().then(() => {
     refreshHistory();
     refreshDocumentHistory();
     updateAgentWorkspaceUI();
+    if (sessionStorage.getItem(SKIP_LOGOUT_RELOAD_KEY) === "1") {
+        sessionStorage.removeItem(SKIP_LOGOUT_RELOAD_KEY);
+        resetToHomeScreen();
+    }
 });
 initTranslationLanguageDropdown();
 initDropZone();
@@ -3312,55 +3376,9 @@ async function translateSummary() {
 
 function exportTranscript() {
     if (!transcriptData || transcriptData.length === 0) return;
-
-    // Group consecutive lines by speaker
-    const groupedTranscript = [];
-    let currentGroup = null;
-
-    transcriptData.forEach(seg => {
-        if (currentGroup && currentGroup.speaker === seg.speaker) {
-            currentGroup.texts.push(seg.text);
-            currentGroup.end = seg.end;
-        } else {
-            if (currentGroup) groupedTranscript.push(currentGroup);
-            currentGroup = { speaker: seg.speaker, texts: [seg.text], start: seg.start, end: seg.end };
-        }
-    });
-    if (currentGroup) groupedTranscript.push(currentGroup);
-
-    // Unique speakers for ATTENDEES
-    const uniqueSpeakers = [...new Set(transcriptData.map(seg => seg.speaker.toUpperCase()))];
-
-    // Build content
-    let content = `<p><b>ATTENDEES:</b></p><ul>`;
-    uniqueSpeakers.forEach(speaker => {
-        content += `<li>${speaker}</li>`;
-    });
-    content += `</ul><p><b>TRANSCRIPTS</b></p>`;
-
-    // Build transcript blocks
-    groupedTranscript.forEach(group => {
-        content += `<p><b>${group.speaker.toUpperCase()}</b></p><ul>`;
-        group.texts.forEach(text => {
-            content += `<li>${text}</li>`;
-        });
-        content += `</ul><p><span style="color:red">[${formatTime(group.start || 0)} - ${formatTime(group.end || 0)}]</span></p>`;
-    });
-
-    // Create Word-compatible Blob
-    const preamble = `
-        <html xmlns:o='urn:schemas-microsoft-com:office:office' 
-              xmlns:w='urn:schemas-microsoft-com:office:word' 
-              xmlns='http://www.w3.org/TR/REC-html40'>
-        <head><meta charset='utf-8'><title>ASR Export</title></head>
-        <body>${content}</body></html>
-    `;
-
-    const blob = new Blob([preamble], { type: "application/msword" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `${lastAudioFile.split('.')[0] || 'ASR_Export'}.doc`;
-    link.click();
+    const minutesText = buildMinutesExportText(currentSummary, transcriptData);
+    const baseName = lastAudioFile.split('.')[0] || 'ASR_Export';
+    downloadMinutesPdf(`${baseName}.pdf`, minutesText);
 }
 
 function exportSummary() {
@@ -3368,10 +3386,14 @@ function exportSummary() {
         alert("Summary is not available. Click Summarize first.");
         return;
     }
+    const minutesText = buildMinutesExportText(currentSummary, transcriptData);
+    const baseName = lastAudioFile.split('.')[0] || 'ASR_Export';
+    downloadMinutesPdf(`${baseName}_summary.pdf`, minutesText);
+}
 
-    const updatedSummary = getResolvedSummaryText(currentSummary);
-    const lines = updatedSummary.split("\n");
-
+function minutesTextToHtml(minutesText) {
+    const updated = getResolvedSummaryText(minutesText || "");
+    const lines = updated.split("\n");
     let content = "";
     lines.forEach((line) => {
         const normalized = line.replace(/^\* /, "• ").replace(/^- /, "• ").trim();
@@ -3382,20 +3404,137 @@ function exportSummary() {
         const safe = escapeHTMLText(normalized);
         content += isSummaryHeadingLine(normalized) ? `<p><b>${safe}</b></p>` : `<p>${safe}</p>`;
     });
+    return content;
+}
 
-    const preamble = `
-        <html xmlns:o='urn:schemas-microsoft-com:office:office'
-              xmlns:w='urn:schemas-microsoft-com:office:word'
-              xmlns='http://www.w3.org/TR/REC-html40'>
-        <head><meta charset='utf-8'><title>Summary Export</title></head>
-        <body>${content}</body></html>
-    `;
+function downloadMinutesPdf(filename, minutesText) {
+    const safeName = filename || "ASR_Export.pdf";
+    const text = String(minutesText || "").trim();
+    if (!text) {
+        alert("Nothing to export.");
+        return;
+    }
 
-    const blob = new Blob([preamble], { type: "application/msword" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `${lastAudioFile.split('.')[0] || 'ASR_Export'}_summary.doc`;
-    link.click();
+    if (window.jspdf && window.jspdf.jsPDF) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ unit: "pt", format: "a4" });
+        const margin = 48;
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const maxWidth = pageWidth - margin * 2;
+        let y = margin;
+        const headingFont = 13;
+        const bodyFont = 11;
+        const lineHeight = 16;
+        const bulletIndent = 16;
+
+        const lines = text.split("\n").map((line) => line.trim());
+        lines.forEach((line) => {
+            if (!line) {
+                y += lineHeight;
+                return;
+            }
+            const isHeading = isSummaryHeadingLine(line);
+            const isBullet = line.startsWith("• ");
+            const display = isBullet ? line.replace(/^•\s*/, "") : line;
+            const drawX = isBullet ? margin + bulletIndent : margin;
+
+            doc.setFont("Helvetica", isHeading ? "bold" : "normal");
+            doc.setFontSize(isHeading ? headingFont : bodyFont);
+            const wrapped = doc.splitTextToSize(display, maxWidth - (isBullet ? bulletIndent : 0));
+
+            wrapped.forEach((chunk, idx) => {
+                if (y + lineHeight > pageHeight - margin) {
+                    doc.addPage();
+                    y = margin;
+                }
+                if (idx === 0 && isBullet) {
+                    doc.text("•", margin, y);
+                }
+                doc.text(chunk, drawX, y);
+                y += lineHeight;
+            });
+        });
+        doc.save(safeName);
+        return;
+    }
+
+    const html = minutesTextToHtml(text);
+    const win = window.open("", "_blank");
+    if (!win) {
+        alert("Pop-up blocked. Allow pop-ups to export PDF.");
+        return;
+    }
+    win.document.write(`
+        <html>
+            <head>
+                <title>${escapeHTMLText(safeName)}</title>
+                <style>
+                    body{ font-family: Arial, sans-serif; padding: 24px; }
+                    p{ margin: 6px 0; }
+                </style>
+            </head>
+            <body>${html}</body>
+        </html>
+    `);
+    win.document.close();
+    win.focus();
+    win.print();
+}
+
+function buildMinutesExportText(summaryText, transcriptSegments) {
+    const raw = String(summaryText || "").trim();
+    if (/MINUTES OF A MEETING/i.test(raw)) {
+        return raw;
+    }
+    const titleBase = (lastAudioFile || "Meeting").replace(/\.[^/.]+$/, "");
+    const title = `Discussion on ${titleBase || "Meeting"}`;
+    const attendees = Array.isArray(transcriptSegments)
+        ? [...new Set(transcriptSegments.map(seg => String(seg.speaker || "").trim()).filter(Boolean))]
+        : [];
+    const summaryLines = extractSentenceBullets(raw || transcriptSegments.map(seg => seg.text || "").join(" "), 5);
+    const keyLines = extractSentenceBullets(raw || "", 5, summaryLines.length);
+
+    const introLines = ["• Meeting was held to discuss the transcript."];
+    const attendeeLines = attendees.length ? attendees.map(name => `• ${name}`) : ["• Not Applicable."];
+    const summaryBullets = summaryLines.length ? summaryLines : ["• Not Applicable."];
+    const keyBullets = keyLines.length ? keyLines : ["• Not Applicable."];
+
+    return [
+        "MINUTES OF A MEETING",
+        "",
+        `TITLE : ${title}`,
+        "DATE : [.]",
+        "PLACE : [.]",
+        "",
+        "INTRODUCTION",
+        ...introLines,
+        "",
+        "ATTENDEES",
+        ...attendeeLines,
+        "",
+        "SUMMARY OF THE MEETING",
+        ...summaryBullets,
+        "",
+        "KEY ASPECTS DISCUSSED :",
+        ...keyBullets,
+        "",
+        "ACTION ITEMS AND ASSIGNED TO:",
+        "• Not Applicable.",
+        "",
+        "DEADLINES FOR THE TASKS:",
+        "• Not Applicable.",
+        "",
+        "THANK YOU"
+    ].join("\n");
+}
+
+function extractSentenceBullets(text, maxCount = 5, offset = 0) {
+    const clean = String(text || "").replace(/\s+/g, " ").trim();
+    if (!clean) return [];
+    const sentences = clean.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
+    const sliced = sentences.slice(offset, offset + maxCount);
+    return sliced.map(sentence => `• ${sentence.replace(/^[•\-\*]\s*/, "")}`);
 }
 
 async function agentQueryJSON(payload) {
@@ -3626,7 +3765,6 @@ async function submitAgentQuery() {
     if (payload.session_id && !payload.document_id && !pendingSelectedFile) {
         seedTranscriptQuestion(queryText);
     }
-    const summaryIntent = Boolean(payload.session_id && !payload.document_id && !pendingSelectedFile && isSummaryPrompt(queryText));
     const isTranscriptQuestion = Boolean(
         payload.session_id &&
         !payload.document_id &&
@@ -3654,35 +3792,6 @@ async function submitAgentQuery() {
         document.getElementById("loadingOverlay").style.display = "flex";
     }
     try {
-        if (summaryIntent) {
-            if (currentSummary && currentSummary.trim()) {
-                currentTranscriptChat.push({ role: "assistant", content: currentSummary });
-                renderTranscriptChatHistory();
-                renderSummaryCard(currentSummary);
-                setSummaryButtonState();
-            } else {
-                const summaryResult = await agentQueryJSON({
-                    tool: "summarize_transcript",
-                    query: "summarize this meeting",
-                    content: buildExportTranscriptText(),
-                    session_id: currentSessionId,
-                    meeting_title: "Meeting",
-                    meeting_date: "",
-                    meeting_place: ""
-                });
-                const summaryText = (((summaryResult || {}).result) || {}).summary || "";
-                if (summaryText) {
-                    setSourceSummary(summaryText);
-                    currentSummary = summaryText;
-                    currentTranscriptChat.push({ role: "assistant", content: summaryText });
-                    renderTranscriptChatHistory();
-                    renderSummaryCard(summaryText);
-                    setSummaryButtonState();
-                }
-            }
-            setAgentBarVisible(false);
-            return;
-        }
         if (isTranscriptQuestion) {
             currentTranscriptChat = Array.isArray(currentTranscriptChat) ? currentTranscriptChat : [];
             currentTranscriptChat.push({ role: "user", content: queryText });

@@ -27,11 +27,13 @@
         </button>
     </div>
     <div id="sidebarContent">
-        <h1 id="sideHeading" style="display:none;">Speaker Mapping</h1>
+        <!-- Speaker Mapping heading removed -->
         <!-- Speaker renaming is now inline in the transcript list -->
         <h1>Export Options</h1>
-        <button class="sidebar-btn btn-export hidden" id="exportTranscriptBtn" onclick="exportTranscript()">Export Transcript</button>
-        <button class="sidebar-btn btn-export hidden" id="exportSummaryBtn" onclick="exportSummary()">Export Summary</button>
+        <div class="sidebar-export-row">
+            <button class="sidebar-btn btn-export small-export hidden" id="exportTranscriptBtn" onclick="exportTranscript()" title="Export Transcript">🎙️📄</button>
+            <button class="sidebar-btn btn-export small-export hidden" id="exportSummaryBtn" onclick="exportSummary()" title="Export Summary">📊📤</button>
+        </div>
         <button class="sidebar-btn hidden" id="impersonateBtn" onclick="handleImpersonate()">Switch User</button>
         <div class="history-header">
             <h1>🕘 History</h1>
@@ -73,7 +75,7 @@
             <button class="nav-btn hidden" id="stopBtn" onclick="stopRecording()">Stop</button>
             <button class="nav-btn sum-nav-btn" id="sumBtn" onclick="showSummary()">✨ Summarize</button>
             <button class="nav-btn keyword-nav-btn hidden" id="keywordBtn" onclick="showKeywordSearch()" title="Keyword Spotting">🔎</button>
-            <button class="nav-btn new-chat-btn" type="button" onclick="location.reload()" title="New Session" aria-label="New Session">New Session</button>
+            <button class="nav-btn new-chat-btn" type="button" onclick="newSessionHome()" title="New Session" aria-label="New Session">New Session</button>
             <button class="nav-btn admin-btn" id="adminBtn" onclick="showAdminPanel()">👥 Admin</button>
             <button class="nav-btn icon-nav-btn theme-toggle-btn" id="themeToggleBtn" type="button" onclick="toggleTheme()" title="Dark Theme" aria-label="Switch theme">
                 <span class="theme-icon theme-icon-dark" aria-hidden="true">🌙</span>
@@ -146,6 +148,7 @@
 </aside>
 </div>
 
-<script src="{{ url_for('static', filename='js/index.js') }}"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="{{ url_for('static', filename='js/index.js') }}"></script>
 </body>
 </html>

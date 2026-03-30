@@ -23,7 +23,23 @@ from app.config import (
 def ensure_wav(audio_path: str, filename: str) -> tuple[str, str]:
     ext = os.path.splitext(filename.lower())[1]
     if ext == ".wav":
-        return audio_path, filename
+        safe_base = secure_filename(os.path.splitext(filename)[0]) or "uploaded_audio"
+        mono_filename = f"{safe_base}_mono.wav"
+        mono_path = os.path.join(AUDIO_FOLDER, mono_filename)
+        if os.path.abspath(audio_path) == os.path.abspath(mono_path):
+            return audio_path, filename
+        try:
+            (
+                ffmpeg
+                .input(audio_path)
+                .output(mono_path, acodec="pcm_s16le", ac=1, ar=16000)
+                .overwrite_output()
+                .run(capture_stdout=True, capture_stderr=True)
+            )
+        except ffmpeg.Error as e:
+            details = e.stderr.decode("utf-8", errors="ignore") if e.stderr else str(e)
+            raise RuntimeError(f"Audio conversion failed: {details}")
+        return mono_path, mono_filename
 
     safe_base = secure_filename(os.path.splitext(filename)[0]) or "uploaded_audio"
     wav_filename = f"{safe_base}.wav"
