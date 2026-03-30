@@ -175,6 +175,19 @@ def enhance_audio_with_demucs(audio_path: str, filename: str) -> tuple[str, str]
         details = e.stderr.decode("utf-8", errors="ignore") if e.stderr else str(e)
         raise RuntimeError(f"Demucs output conversion failed: {details}")
 
+    # Remove the non-vocal stem so we don't persist silent/background audio.
+    keep_stems = (os.getenv("DEMUCS_KEEP_STEMS", "") or "").strip().lower() in {"1", "true", "yes", "on"}
+    if not keep_stems:
+        try:
+            non_vocal_glob = os.path.join(output_root, model_name, track_base, "no_vocals.*")
+            for path in glob(non_vocal_glob):
+                try:
+                    os.remove(path)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
     return enhanced_path, enhanced_filename
 
 

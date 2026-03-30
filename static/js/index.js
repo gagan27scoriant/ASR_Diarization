@@ -2337,8 +2337,81 @@ async function requestTextToSpeech(text, label = "Response") {
         });
         await handleAgentResponse(result, { source: "tts" });
     } catch (e) {
-        alert(e.message || "Text-to-speech failed.");
+        const usedFallback = speakWithBrowserTTS(trimmedText, targetLang || "en");
+        if (!usedFallback) {
+            alert(e.message || "Text-to-speech failed.");
+        }
     }
+}
+
+function resolveBrowserTtsLang(langValue) {
+    const raw = String(langValue || "").trim().toLowerCase().replace("-", "_").replace(" ", "");
+    if (!raw) return "en";
+    const map = {
+        "english": "en",
+        "en": "en",
+        "eng_latn": "en",
+        "hindi": "hi",
+        "hi": "hi",
+        "hin_deva": "hi",
+        "tamil": "ta",
+        "ta": "ta",
+        "tam_taml": "ta",
+        "telugu": "te",
+        "te": "te",
+        "tel_telu": "te",
+        "kannada": "kn",
+        "kn": "kn",
+        "kan_knda": "kn",
+        "malayalam": "ml",
+        "ml": "ml",
+        "mal_mlym": "ml",
+        "marathi": "mr",
+        "mr": "mr",
+        "mar_deva": "mr",
+        "gujarati": "gu",
+        "gu": "gu",
+        "guj_gujr": "gu",
+        "bengali": "bn",
+        "bn": "bn",
+        "ben_beng": "bn",
+        "punjabi": "pa",
+        "pa": "pa",
+        "pan_guru": "pa",
+        "urdu": "ur",
+        "ur": "ur",
+        "urd_arab": "ur",
+        "arabic": "ar",
+        "ar": "ar",
+        "ara_arab": "ar",
+        "french": "fr",
+        "fr": "fr",
+        "fra_latn": "fr",
+        "german": "de",
+        "de": "de",
+        "deu_latn": "de",
+        "spanish": "es",
+        "es": "es",
+        "spa_latn": "es",
+        "portuguese": "pt",
+        "pt": "pt",
+        "por_latn": "pt",
+        "russian": "ru",
+        "ru": "ru",
+        "rus_cyrl": "ru",
+    };
+    return map[raw] || raw;
+}
+
+function speakWithBrowserTTS(text, langValue) {
+    if (!("speechSynthesis" in window)) {
+        return false;
+    }
+    const utterance = new SpeechSynthesisUtterance(String(text || "").trim());
+    utterance.lang = resolveBrowserTtsLang(langValue);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+    return true;
 }
 
 async function speakTranscriptByIndex(index) {
