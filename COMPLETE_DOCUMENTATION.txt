@@ -5,14 +5,14 @@ AI KNOWLEDGE STUDIO - COMPLETE TECHNICAL DOCUMENTATION
 -----------
 AI Knowledge Studio is a Flask application for:
 - audio/video transcription
-- speaker diarization
+- speaker diarization (pyannote default, NeMo optional)
 - live chunk transcription
-- transcript summarization
+- transcript summarization (minutes format)
 - document ingestion and document Q&A
 - transcript Q&A
 - transcript semantic search
 - translation
-- text-to-speech
+- text-to-speech (gTTS + browser fallback)
 - query-first agent routing
 - plain chatbot interaction with short-term history
 - deterministic runtime date/time and math responses
@@ -111,6 +111,8 @@ app/mapper.py
 
 app/media_utils.py
 - media conversion / extraction / document text extraction helpers
+- ensures audio is mono 16k for NeMo VAD stability
+- deletes non-vocal Demucs stems by default
 
 app/processing_service.py
 - orchestration for media/document processing
@@ -122,7 +124,8 @@ app/translation.py
 - NLLB translation loading and execution
 
 app/tts.py
-- gTTS synthesis
+- gTTS synthesis (server)
+- browser SpeechSynthesis fallback is used in the UI if gTTS fails
 
 app/history_rag.py
 - transcript-session RAG Q&A
@@ -149,6 +152,7 @@ static/css/index.css
 - staged upload flow
 - plain chat rendering
 - transcript/document workflow rendering
+- dark theme styling
 
 
 5. AGENT DESIGN
@@ -176,7 +180,7 @@ Important limitation:
 
 6. PLAIN CHAT MEMORY
 --------------------
-The normal chatbot now keeps recent conversation history in the frontend.
+The normal chatbot keeps recent conversation history in the frontend.
 
 Frontend:
 - `currentAgentChat` stores the current chat thread
@@ -200,243 +204,68 @@ The normal chatbot has a pre-LLM deterministic layer for:
 - current day
 - current date
 - current time
-- combined date-and-time phrasing
-
-This is implemented from runtime code using:
-- `datetime`
-- `zoneinfo`
 
 7.2 Math
-- arithmetic
-- percentages
-- simplification
-- factoring
-- basic solving
-
-This is implemented with:
-- `sympy`
-
-If a question matches the deterministic utility layer, the LLM is bypassed.
+- parsing arithmetic and basic algebra
+- solving quadratic equations
 
 
-8. API ROUTES
--------------
-Main routes:
+8. DIARIZATION OPTIONS
+----------------------
+Default diarization uses pyannote.
 
-GET /
-- web UI
-
-POST /process
-- classic media processing endpoint
-
-POST /transcribe_chunk
-- live chunk transcription
-
-POST /summarize_text
-- classic summary endpoint
-
-POST /process_document
-- classic document processing endpoint
-
-POST /translate
-- translation endpoint
-
-POST /api/document/ask
-- document RAG Q&A
-
-POST /api/history/ask
-- transcript-history RAG Q&A
-
-GET /api/documents
-- list documents
-
-GET /api/documents/<doc_id>
-- open document item
-
-GET /api/agent/tools
-- list agent tools
-
-POST /api/agent/query
-- query-first endpoint for plain chat or tool routing
-
-POST /api/agent/chat
-- unified uploaded-file + query endpoint
-
-GET /history
-- list transcript history
-
-GET /history/<session_id>
-- fetch one transcript session
-
-POST /history/<session_id>/transcript
-- save transcript / summary
-
-PATCH /history/<session_id>
-- rename transcript history item
-
-DELETE /history/<session_id>
-- delete transcript history item
+Optional NeMo diarization:
+- Configure with `configs/nemo_diarization.yaml`.
+- Requires NeMo dependencies.
+- Uses VAD + embedding + clustering.
 
 
-9. IMPORTANT PAYLOADS
+9. EXPORT FORMAT
+----------------
+- Summary and transcript exports are **PDF**.
+- Exports follow a **Minutes of a Meeting** structure with bold headings and bullet points.
+
+
+10. TEXT-TO-SPEECH
+------------------
+- Server-side TTS uses gTTS.
+- gTTS requires internet access.
+- If gTTS fails, the UI uses browser SpeechSynthesis as fallback.
+
+
+11. UI BEHAVIOR NOTES
 ---------------------
-9.1 Plain chat
-POST /api/agent/query
-
-{
-  "query": "What day is today?",
-  "chat_history": [
-    {"role": "user", "content": "My name is Rahul."},
-    {"role": "assistant", "content": "Nice to meet you, Rahul."}
-  ]
-}
-
-9.2 Transcript Q&A
-{
-  "query": "What did the client say about deadlines?",
-  "session_id": "<session_id>",
-  "question": "What did the client say about deadlines?"
-}
-
-9.3 Document Q&A
-{
-  "query": "What is the conclusion?",
-  "document_id": "<document_id>",
-  "question": "What is the conclusion?"
-}
-
-9.4 Upload + query
-Multipart form-data:
-- file=<uploaded file>
-- query="transcribe and summarize this meeting"
+- New Session refreshes the app and returns to home without logging out.
+- Hard reload (Ctrl+Shift+R) logs out by design.
+- Q&A responses render inside the Q&A panel.
+- Summary button remains dedicated to summary generation.
 
 
-10. UI BEHAVIOR
----------------
-Current UI behavior:
-- docked agent area near the bottom
-- welcome message is docked with the agent bar
-- welcome disappears after the first submitted query
-- plain chat messages are rendered in left/right row layout
-- upload is staged before processing
-- non-chat tool workflows can hide the dock until New Session
-
-
-11. DATA STORES
----------------
-MongoDB collections used in the app include:
-- `history`
-- `document_store`
-- `document_chunks`
-- auth-related collections from `app/auth.py`
-
-Transcript history stores:
-- transcript
-- summary
-- processed file metadata
-- Q&A history
-- owner
-
-Document store holds:
-- document metadata
-- summary
-- preview text
-- chat history
-- owner
-
-Document chunks hold:
-- chunk text
-- chunk index
-- embeddings
-
-
-12. ENVIRONMENT VARIABLES
--------------------------
-Core:
-- `MONGODB_URI`
-- `MONGODB_DB`
-
-ASR:
-- `ASR_MODEL_SIZE`
-
-Diarization:
-- `HUGGINGFACE_TOKEN`
-
-Summarization / agent chat / RAG:
-- `OLLAMA_URL`
-- `SUMMARY_BACKEND`
-- `SUMMARY_MODEL`
-- `RAG_MODEL`
-- `AGENT_MODEL`
-- `AGENT_TIMEOUT_SECONDS`
-
-Date/time grounding:
-- `AGENT_TIMEZONE`
-
-RAG:
-- `DOC_CHUNK_SIZE`
-- `DOC_CHUNK_OVERLAP`
-- `DOC_RETRIEVE_TOP_K`
-- `HISTORY_RETRIEVE_TOP_K`
-
-OCR:
-- `DOCUMENT_OCR`
-- `DOCUMENT_OCR_LANGS`
-
-Translation:
-- `NLLB_MODEL_PATH`
-
-
-13. DEPENDENCIES OF NOTE
-------------------------
-- `flask`
-- `requests`
-- `pymongo`
-- `faster-whisper`
-- `pyannote.audio`
-- `transformers`
-- `sentence-transformers`
-- `gTTS`
-- `sympy`
-
-
-14. TROUBLESHOOTING
+12. TROUBLESHOOTING
 -------------------
-Chatbot gives guessed date/time answers
-- deterministic handling should answer these before the LLM
-- verify latest code is running
-- verify server restart after code changes
+- MongoDB connection issues:
+  - ensure MongoDB is running
+  - or set `MONGODB_URI`
 
-Plain chat forgets earlier turns
-- verify frontend is sending `chat_history`
-- verify backend returns `history`
-- note that memory is only within the current browser session
+- Ollama-backed chat / summary / RAG not responding:
+  - verify Ollama is running
+  - verify `OLLAMA_URL`
+  - verify the configured model exists locally
 
-Ollama-backed replies fail
-- verify Ollama is running
-- verify `OLLAMA_URL`
-- verify model availability
+- NLLB model not found:
+  - set `NLLB_MODEL_PATH`
+  - or place the local model in expected directories
 
-Document Q&A returns weak answers
-- verify document text extraction succeeded
-- verify embeddings/chunking completed
+- Diarization model not loading:
+  - set `HUGGINGFACE_TOKEN`
 
-Translation not working
-- verify local NLLB model is available
-- verify language codes and offline model path
+- NeMo VAD error about tensor dimensions:
+  - ensure audio is mono 16k; the pipeline forces mono conversion
 
-TTS not working
-- verify `gTTS` is installed
-- note that gTTS usually needs internet access
+- Live transcription not working:
+  - allow microphone permission in the browser
+  - check that the browser supports `MediaRecorder`
 
-MongoDB issues
-- verify MongoDB service
-- verify connection string
-
-
-15. CURRENT KNOWN LIMITATIONS
------------------------------
-- plain chatbot history is not yet persisted server-side as a standalone long-term chat store
-- agent routing is still mostly single-tool-first, not full autonomous planning for every request
-- gTTS depends on runtime connectivity
-- some utility answers are deterministic, but not every general knowledge task is grounded
+- Scanned PDF returns no text:
+  - enable OCR with `DOCUMENT_OCR=1`
+  - install `pdf2image`, `pytesseract`, and system Tesseract

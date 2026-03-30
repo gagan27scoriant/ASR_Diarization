@@ -12,13 +12,14 @@ AI KNOWLEDGE STUDIO - USER MANUAL
 3. Open browser:
    http://127.0.0.1:5000
 
+
 2) WHAT THE APP CAN DO
 ----------------------
 This application supports:
 - plain chat in the docked assistant bar
 - audio/video transcription with speaker diarization
 - live meeting transcription
-- transcript summarization
+- transcript summarization (minutes format)
 - document upload and document Q&A
 - transcript Q&A
 - transcript search
@@ -122,16 +123,14 @@ How it works:
 8) TRANSCRIPT Q&A
 -----------------
 Once a transcript session exists, you can:
-- ask questions about the transcript
+- ask questions about the transcript (answers appear inside the Q&A panel)
 - search for relevant parts
-- summarize it
 - translate transcript-derived content
 - convert transcript-derived content to speech
 
 Examples:
 - What did the client say about deadlines?
 - Search this transcript for pricing discussion.
-- Summarize the action items.
 
 
 9) DOCUMENT MODE
@@ -189,6 +188,7 @@ Examples:
 Notes:
 - generated audio is stored in audio/
 - gTTS usually needs internet access
+- if gTTS fails, the browser falls back to SpeechSynthesis
 
 
 13) HISTORY
@@ -203,11 +203,18 @@ Document History sidebar:
 - refresh list
 - clear list
 
+New Session button:
+- refreshes the app and returns to the home screen
+- does not log out
+
+Hard reload (Ctrl+Shift+R):
+- triggers logout by design
+
 
 14) EXPORT
 ----------
-- Export Transcript -> downloads transcript as .doc
-- Export Summary -> downloads summary as .doc
+- Export Transcript -> downloads transcript as **PDF** in minutes format
+- Export Summary -> downloads summary as **PDF** in minutes format
 
 
 15) CHAT MEMORY TEST
@@ -268,6 +275,11 @@ Issue:
 Diarization model not loading
 Fix:
 - set HUGGINGFACE_TOKEN
+
+Issue:
+NeMo diarization VAD tensor error
+Fix:
+- ensure input audio is mono 16k (pipeline forces mono conversion)
 
 Issue:
 Live transcription not working

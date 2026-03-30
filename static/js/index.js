@@ -2916,7 +2916,7 @@ async function showAdminPanel() {
                         <input class="admin-input" id="adminCreateDepartment" placeholder="New Department">
                     </div>
                     <div class="admin-actions">
-                        <button class="admin-btn" onclick="handleCreateDepartment()">Add Department</button>
+                        <button class="admin-btn accent-btn" onclick="handleCreateDepartment()">Add Department</button>
                     </div>
                     <div class="admin-table" id="adminDepartmentsTable"></div>
                 </div>

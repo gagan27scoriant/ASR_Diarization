@@ -7,7 +7,7 @@ AI Knowledge Studio is a Flask-based speech, document, and query-first assistant
 - transcript and meeting summarization
 - document upload, summarization, and RAG Q&A
 - translation with local/offline NLLB
-- text-to-speech with gTTS
+- text-to-speech with gTTS (plus browser fallback)
 - query-driven agent routing
 - sidebar history for transcript sessions and documents
 - plain chatbot mode with conversation history
@@ -15,7 +15,7 @@ AI Knowledge Studio is a Flask-based speech, document, and query-first assistant
 
 ## Current Product Behavior
 
-The app now has two main interaction styles:
+The app has two main interaction styles:
 
 1. Plain chat mode
    - If you type a query without uploading a file or opening a transcript/document context, the assistant behaves like a normal chatbot.
@@ -29,9 +29,9 @@ The app now has two main interaction styles:
 
 ## Features
 
-- Upload audio or video and get timestamped transcript with speakers.
+- Upload audio/video and get timestamped transcripts with speakers.
 - Start, pause, and stop live meeting capture.
-- Upload PDF, DOCX, or TXT documents and ask questions about them.
+- Upload PDF/DOCX/TXT and ask questions about them.
 - Generate structured meeting summaries for transcripts.
 - Generate concise summaries for documents.
 - Translate transcript text, summaries, and document-derived text.
@@ -39,17 +39,17 @@ The app now has two main interaction styles:
 - Use transcript semantic search / keyword-like search.
 - Reopen, rename, and delete transcript history.
 - Reopen and manage document history.
-- Export transcript and summary as `.doc`.
+- Export transcript and summary as **PDF** in the minutes format.
 
 ## Tech Stack
 
 - Backend: Flask
 - Database: MongoDB
 - ASR: `faster-whisper`
-- Diarization: `pyannote.audio`
+- Diarization: `pyannote.audio` (default) or NVIDIA NeMo (optional)
 - Summarization / chat / RAG generation: Ollama-backed local model flow
 - Translation: NLLB via `transformers`
-- Text-to-speech: gTTS
+- Text-to-speech: gTTS (server) + browser SpeechSynthesis fallback
 - Embeddings / retrieval: `sentence-transformers`
 - Deterministic math: `sympy`
 
@@ -196,6 +196,17 @@ set -a; source .env.nllb; set +a
 - gTTS is exposed through the agent/tool path
 - generated speech files are written into `audio/`
 - gTTS typically requires internet access at runtime
+- if gTTS fails, the UI falls back to browser SpeechSynthesis
+
+## Diarization Options
+
+- Default: pyannote diarization.
+- Optional: NVIDIA NeMo diarization (see `configs/nemo_diarization.yaml`).
+
+## Export Format
+
+- Summary and Transcript exports download as **PDF**.
+- The PDF is structured as **Minutes of a Meeting** with headings and bullets.
 
 ## Important Folders
 
@@ -209,9 +220,9 @@ set -a; source .env.nllb; set +a
 
 ## Documentation Files
 
-- [README.md](/home/scoriant/Documents/Ai-dev/ASR_Diarization/README.md)
-- [USER_MANUAL.txt](/home/scoriant/Documents/Ai-dev/ASR_Diarization/USER_MANUAL.txt)
-- [COMPLETE_DOCUMENTATION.txt](/home/scoriant/Documents/Ai-dev/ASR_Diarization/COMPLETE_DOCUMENTATION.txt)
+- `README.md`
+- `USER_MANUAL.txt`
+- `COMPLETE_DOCUMENTATION.txt`
 
 ## Troubleshooting
 
@@ -238,3 +249,6 @@ set -a; source .env.nllb; set +a
 - Scanned PDF returns no text:
   - enable OCR with `DOCUMENT_OCR=1`
   - install `pdf2image`, `pytesseract`, and system Tesseract
+
+- NeMo VAD error about tensor dimensions:
+  - ensure audio is mono 16k; the pipeline now forces mono conversion
