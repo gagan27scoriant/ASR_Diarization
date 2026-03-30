@@ -45,6 +45,25 @@ let lastAgentPlan = [];
 let pendingSelectedFile = null;
 const THEME_STORAGE_KEY = "aks_theme";
 
+function normalizeSpeakerLabel(label) {
+    const raw = String(label || "").trim();
+    if (!raw) return raw;
+    const match = raw.match(/^speaker[_\-\s]?(\d+)$/i);
+    if (!match) return raw;
+    const num = Number(match[1]);
+    if (Number.isNaN(num)) return raw;
+    const padded = String(num).padStart(2, "0");
+    return `SPEAKER_${padded}`;
+}
+
+function normalizeTranscriptSpeakers(segments) {
+    if (!Array.isArray(segments)) return segments;
+    return segments.map(seg => ({
+        ...seg,
+        speaker: normalizeSpeakerLabel(seg.speaker),
+    }));
+}
+
 const TRANSLATION_LANGUAGE_GROUPS = {
     indian: [
         { label: "Assamese", code: "asm_Beng" },
@@ -344,6 +363,7 @@ function cloneTranscriptSegments(segments) {
     if (!Array.isArray(segments)) return [];
     return segments.map((seg) => ({
         ...seg,
+        speaker: normalizeSpeakerLabel(seg && seg.speaker),
         text: String((seg && seg.text) || "")
     }));
 }
@@ -957,7 +977,7 @@ async function openHistorySession(sessionId) {
         }
 
         currentSessionId = result.session_id || sessionId;
-        transcriptData = result.transcript || [];
+        transcriptData = normalizeTranscriptSpeakers(result.transcript || []);
         currentSummary = result.summary || "";
         currentBeforeAudio = result.before_audio_file || result.processed_file || "";
         currentAfterAudio = result.after_audio_file || result.processed_file || "";
@@ -3362,7 +3382,7 @@ async function handleAgentResponse(agentResult, options = {}) {
 
     if (Array.isArray(result.transcript) || result.session_id) {
         setAgentBarVisible(false);
-        transcriptData = result.transcript || [];
+        transcriptData = normalizeTranscriptSpeakers(result.transcript || []);
         currentSummary = result.summary || "";
         currentSessionId = result.session_id || currentSessionId;
         currentDocumentFilename = "";

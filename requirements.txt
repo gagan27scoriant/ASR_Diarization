@@ -29,6 +29,8 @@ sentencepiece>=0.2.0,<1.0.0
 sentence-transformers>=2.7.0,<3.0.0
 sympy>=1.12,<2.0.0
 gTTS>=2.5.1,<3.0.0
+# Optional NeMo diarization backend
+nemo_toolkit[asr]>=2.0.0
 
 
 # pip uninstall pyannote.audio -y
