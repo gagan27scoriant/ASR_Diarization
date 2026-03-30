@@ -43,6 +43,7 @@ let segmentGroupMap = [];
 let transcriptRowEls = [];
 let lastAgentPlan = [];
 let pendingSelectedFile = null;
+let lastAgentPrompt = "";
 const THEME_STORAGE_KEY = "aks_theme";
 
 function normalizeSpeakerLabel(label) {
@@ -1342,6 +1343,7 @@ function isDocumentFile(name) {
 async function processSelectedFile(selectedFile, silentMode = false, explicitQuery = "") {
     if (!selectedFile) return;
     lastAudioFile = selectedFile.name;
+    const uploadPrompt = String(explicitQuery || "").trim();
     
     // Show Loader
     document.getElementById("loadingOverlay").style.display = "flex";
@@ -1373,6 +1375,7 @@ async function processSelectedFile(selectedFile, silentMode = false, explicitQue
         }
 
         await handleAgentResponse(result, { source: "upload" });
+        ensureTranscriptPromptSeeded(uploadPrompt);
         setAgentBarVisible(false);
         pendingSelectedFile = null;
         updatePendingUploadUI();
@@ -1658,6 +1661,37 @@ function renderTranscriptChatHistory() {
     list.scrollTop = list.scrollHeight;
 }
 
+function seedTranscriptQuestion(promptText) {
+    const text = String(promptText || "").trim();
+    if (!text) return;
+    currentTranscriptChat = Array.isArray(currentTranscriptChat) ? currentTranscriptChat : [];
+    const last = currentTranscriptChat.length ? currentTranscriptChat[currentTranscriptChat.length - 1] : null;
+    if (last && last.role === "user" && String(last.content || "").trim() === text) {
+        return;
+    }
+    currentTranscriptChat.push({ role: "user", content: text });
+    if (Array.isArray(transcriptData) && transcriptData.length > 0) {
+        renderTranscriptQAPanel();
+    } else {
+        renderTranscriptChatHistory();
+    }
+}
+
+function ensureTranscriptPromptSeeded(promptText) {
+    const text = String(promptText || "").trim();
+    if (!text) return;
+    if (!Array.isArray(transcriptData) || transcriptData.length === 0) return;
+    const items = Array.isArray(currentTranscriptChat) ? currentTranscriptChat : [];
+    const exists = items.some(item => item && item.role === "user" && String(item.content || "").trim() === text);
+    if (!exists) {
+        seedTranscriptQuestion(text);
+    }
+}
+
+function isSummaryPrompt(text) {
+    return /\b(summar|summary|minutes|recap|meeting notes|mom)\b/i.test(String(text || ""));
+}
+
 function focusTranscriptSegment(segmentIndex) {
     if (!Array.isArray(transcriptRowEls) || !segmentGroupMap) return;
     const groupIndex = segmentGroupMap[segmentIndex];
@@ -1740,7 +1774,7 @@ async function askTranscriptQuestion() {
             query: question,
             session_id: currentSessionId,
             question,
-            top_k: 5
+            top_k: 8
         });
         await handleAgentResponse(result, { source: "transcript_qa" });
     } catch (e) {
@@ -3500,6 +3534,7 @@ function buildAgentContextPayload(queryText) {
 
 async function submitAgentQuery() {
     const queryText = getAgentQueryText(false);
+    lastAgentPrompt = String(queryText || "").trim();
     if (pendingSelectedFile) {
         if (!queryText) {
             alert("Add your query first, then press the send arrow.");
@@ -3515,6 +3550,18 @@ async function submitAgentQuery() {
     getAgentQueryText(true);
     setWelcomeVisible(false);
     const payload = buildAgentContextPayload(queryText);
+    if (payload.session_id && !payload.document_id && !pendingSelectedFile) {
+        seedTranscriptQuestion(queryText);
+    }
+    const summaryIntent = Boolean(payload.session_id && !payload.document_id && !pendingSelectedFile && isSummaryPrompt(queryText));
+    const isTranscriptQuestion = Boolean(
+        payload.session_id &&
+        !payload.document_id &&
+        !pendingSelectedFile &&
+        !payload.file_path &&
+        !payload.target_lang &&
+        (/\?/.test(queryText) || /^(who|what|when|where|why|how)\b/i.test(queryText))
+    );
     const isPlainChatMode = Boolean(
         !pendingSelectedFile &&
         !payload.session_id &&
@@ -3534,17 +3581,67 @@ async function submitAgentQuery() {
         document.getElementById("loadingOverlay").style.display = "flex";
     }
     try {
-        const result = await agentQueryJSON(payload);
-        await handleAgentResponse(result, { source: "agent_bar" });
-        const resultPayload = (result && result.result) || {};
-        if (!resultPayload.answer && !resultPayload.summary && !resultPayload.text && !(Array.isArray(resultPayload.transcript) && resultPayload.transcript.length)) {
-            appendAgentResponseCard(
-                "Agent Plan",
-                (lastAgentPlan || []).map((step) => `${step.tool}: ${step.reason}`).join("\n") || "Task completed."
-            );
-        }
-        if ((result && result.selected_tool) !== "chat_response") {
+        if (summaryIntent) {
+            if (currentSummary && currentSummary.trim()) {
+                currentTranscriptChat.push({ role: "assistant", content: currentSummary });
+                renderTranscriptChatHistory();
+                renderSummaryCard(currentSummary);
+                setSummaryButtonState();
+            } else {
+                const summaryResult = await agentQueryJSON({
+                    tool: "summarize_transcript",
+                    query: "summarize this meeting",
+                    content: buildExportTranscriptText(),
+                    session_id: currentSessionId,
+                    meeting_title: "Meeting",
+                    meeting_date: "",
+                    meeting_place: ""
+                });
+                const summaryText = (((summaryResult || {}).result) || {}).summary || "";
+                if (summaryText) {
+                    setSourceSummary(summaryText);
+                    currentSummary = summaryText;
+                    currentTranscriptChat.push({ role: "assistant", content: summaryText });
+                    renderTranscriptChatHistory();
+                    renderSummaryCard(summaryText);
+                    setSummaryButtonState();
+                }
+            }
             setAgentBarVisible(false);
+            return;
+        }
+        if (isTranscriptQuestion) {
+            currentTranscriptChat = Array.isArray(currentTranscriptChat) ? currentTranscriptChat : [];
+            currentTranscriptChat.push({ role: "user", content: queryText });
+            renderTranscriptChatHistory();
+
+            const response = await fetch("/api/history/ask", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    session_id: payload.session_id,
+                    question: queryText,
+                    top_k: 8
+                })
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || "Failed to answer.");
+            }
+            await handleAgentResponse({ result }, { source: "transcript_qa" });
+        } else {
+            const result = await agentQueryJSON(payload);
+            await handleAgentResponse(result, { source: "agent_bar" });
+            const resultPayload = (result && result.result) || {};
+            if (!resultPayload.answer && !resultPayload.summary && !resultPayload.text && !(Array.isArray(resultPayload.transcript) && resultPayload.transcript.length)) {
+                appendAgentResponseCard(
+                    "Agent Plan",
+                    (lastAgentPlan || []).map((step) => `${step.tool}: ${step.reason}`).join("\n") || "Task completed."
+                );
+            }
+            if ((result && result.selected_tool) !== "chat_response") {
+                setAgentBarVisible(false);
+            }
         }
     } catch (e) {
         if (isPlainChatMode) {

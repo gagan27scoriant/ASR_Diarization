@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from app.document_rag import answer_document_question, ingest_document_text
+from app.history_rag import answer_history_question
+from app.history_store import update_history_chat
 from app.processing_service import process_document_upload, process_media_pipeline, summarize_and_persist
 
 
@@ -31,6 +33,10 @@ def _query_wants_document_answer(query: str, payload: dict[str, Any]) -> bool:
     explicit_question = bool((payload.get("question") or "").strip())
     question_starters = ("ask ", "what ", "who ", "why ", "how ", "when ", "where ", "tell me ", "explain ")
     return explicit_question or q.endswith("?") or any(q.startswith(term) for term in question_starters)
+
+
+def _query_wants_transcript_answer(query: str, payload: dict[str, Any]) -> bool:
+    return _query_wants_document_answer(query, payload)
 
 
 def handle_uploaded_file(
@@ -110,6 +116,25 @@ def handle_uploaded_file(
         "result": media_result,
     }
 
+    question = (payload.get("question") or query or "").strip()
+    if question and media_result.get("session_id"):
+        if _query_wants_transcript_answer(query, payload):
+            answer = answer_history_question(
+                media_result.get("session_id") or "",
+                question,
+                top_k=int(payload.get("top_k") or 5),
+            )
+            response["plan"].append(
+                {"tool": "answer_history", "reason": "Answer the user's first question about the uploaded transcript."}
+            )
+            response["result"]["answer"] = answer.get("answer") or ""
+            response["result"]["sources"] = answer.get("sources") or []
+            response["result"]["history"] = answer.get("history") or []
+        else:
+            seed_history = [{"role": "user", "content": question}]
+            update_history_chat(media_result.get("session_id") or "", seed_history)
+            response["result"]["history"] = seed_history
+
     if _query_wants_summary(query):
         transcript_text = _transcript_to_text(media_result.get("transcript") or [])
         summary = summarize_and_persist(
@@ -123,5 +148,9 @@ def handle_uploaded_file(
             {"tool": "summarize_transcript", "reason": "Generate a summary because the upload query requested it."}
         )
         response["result"]["summary"] = summary
+        if question and media_result.get("session_id"):
+            seeded_history = [{"role": "user", "content": question}, {"role": "assistant", "content": summary}]
+            update_history_chat(media_result.get("session_id") or "", seeded_history)
+            response["result"]["history"] = seeded_history
 
     return response
