@@ -132,6 +132,95 @@ def _merge_same_speaker(items, max_gap=0.22):
     return merged
 
 
+def _build_vad_regions(diar_segments, max_gap=0.2, min_duration=0.05):
+    if not diar_segments:
+        return []
+    regions = []
+    cur = {"start": diar_segments[0]["start"], "end": diar_segments[0]["end"]}
+    for d in diar_segments[1:]:
+        if d["start"] - cur["end"] <= max_gap:
+            cur["end"] = max(cur["end"], d["end"])
+        else:
+            if (cur["end"] - cur["start"]) >= min_duration:
+                regions.append(cur)
+            cur = {"start": d["start"], "end": d["end"]}
+    if (cur["end"] - cur["start"]) >= min_duration:
+        regions.append(cur)
+    return regions
+
+
+def _map_segment_with_vad_chunks(segment, diar_segments, vad_regions):
+    seg_start = float(segment["start"])
+    seg_end = float(segment["end"])
+    words = _words_from_segment(segment)
+    if not words:
+        return []
+
+    # Assign words to VAD regions when possible.
+    assigned = [False] * len(words)
+    chunk_items = []
+    for region in vad_regions:
+        r_start = max(seg_start, region["start"])
+        r_end = min(seg_end, region["end"])
+        if r_end <= r_start:
+            continue
+        chunk_words = []
+        for i, w in enumerate(words):
+            if w["end"] <= r_start or w["start"] >= r_end:
+                continue
+            assigned[i] = True
+            chunk_words.append(w)
+        if not chunk_words:
+            continue
+        c_start = min(w["start"] for w in chunk_words)
+        c_end = max(w["end"] for w in chunk_words)
+        speaker = _speaker_for_span(c_start, c_end, diar_segments)
+        text = " ".join(w["text"] for w in chunk_words).strip()
+        if text:
+            chunk_items.append(
+                {"speaker": speaker, "start": c_start, "end": c_end, "text": text}
+            )
+
+    # Group any unassigned words into contiguous chunks.
+    orphan_words = [w for i, w in enumerate(words) if not assigned[i]]
+    if orphan_words:
+        orphan_words.sort(key=lambda x: x["start"])
+        cur_words = [orphan_words[0]]
+        for w in orphan_words[1:]:
+            if w["start"] - cur_words[-1]["end"] <= 0.15:
+                cur_words.append(w)
+            else:
+                c_start = min(x["start"] for x in cur_words)
+                c_end = max(x["end"] for x in cur_words)
+                speaker = _speaker_for_span(c_start, c_end, diar_segments)
+                text = " ".join(x["text"] for x in cur_words).strip()
+                if text:
+                    chunk_items.append(
+                        {"speaker": speaker, "start": c_start, "end": c_end, "text": text}
+                    )
+                cur_words = [w]
+        if cur_words:
+            c_start = min(x["start"] for x in cur_words)
+            c_end = max(x["end"] for x in cur_words)
+            speaker = _speaker_for_span(c_start, c_end, diar_segments)
+            text = " ".join(x["text"] for x in cur_words).strip()
+            if text:
+                chunk_items.append(
+                    {"speaker": speaker, "start": c_start, "end": c_end, "text": text}
+                )
+
+    if not chunk_items:
+        return []
+
+    chunk_items.sort(key=lambda x: x["start"])
+    chunk_items = _smooth_short_flips(chunk_items, short_duration=0.4)
+    chunk_items = _merge_same_speaker(chunk_items, max_gap=0.18)
+    for m in chunk_items:
+        m["start"] = max(seg_start, m["start"])
+        m["end"] = min(seg_end, m["end"])
+    return [m for m in chunk_items if m["end"] > m["start"] and (m["text"] or "").strip()]
+
+
 def _map_segment_with_words(segment, diar_segments):
     seg_start = float(segment["start"])
     seg_end = float(segment["end"])
@@ -168,7 +257,7 @@ def _map_segment_with_words(segment, diar_segments):
     return [m for m in merged if m["end"] > m["start"] and (m["text"] or "").strip()]
 
 
-def _map_segment_fallback(segment, diar_segments, min_overlap_ratio):
+def _map_segment_fallback(segment, diar_segments, min_overlap_ratio, collar=0.12):
     seg_start = float(segment["start"])
     seg_end = float(segment["end"])
     seg_text = (segment.get("text") or "").strip()
@@ -176,7 +265,7 @@ def _map_segment_fallback(segment, diar_segments, min_overlap_ratio):
     if seg_duration <= 0 or not seg_text:
         return []
 
-    totals = _overlap_by_speaker(seg_start, seg_end, diar_segments, collar=0.1)
+    totals = _overlap_by_speaker(seg_start, seg_end, diar_segments, collar=collar)
     if totals:
         best_speaker, best_overlap = max(totals.items(), key=lambda x: x[1])
         if (best_overlap / seg_duration) >= min_overlap_ratio:
@@ -196,7 +285,7 @@ def _map_segment_fallback(segment, diar_segments, min_overlap_ratio):
     ]
 
 
-def map_speakers(transcription_segments, diarization_output, min_overlap_ratio=0.25):
+def map_speakers(transcription_segments, diarization_output, min_overlap_ratio=0.2):
     final_output = []
 
     diarization = diarization_output.speaker_diarization
@@ -216,9 +305,7 @@ def map_speakers(transcription_segments, diarization_output, min_overlap_ratio=0
         if not text:
             continue
 
-        mapped = _map_segment_with_words(segment, diar_segments)
-        if not mapped:
-            mapped = _map_segment_fallback(segment, diar_segments, min_overlap_ratio)
+        mapped = _map_segment_fallback(segment, diar_segments, min_overlap_ratio, collar=0.12)
         final_output.extend(mapped)
 
     asr_seconds = 0.0
@@ -235,12 +322,14 @@ def map_speakers(transcription_segments, diarization_output, min_overlap_ratio=0
         if end > start:
             mapped_seconds += end - start
 
-    if asr_seconds > 0 and (mapped_seconds / asr_seconds) < 0.8:
+    if asr_seconds > 0 and (mapped_seconds / asr_seconds) < 0.9:
         recovered = []
         for segment in transcription_segments:
-            recovered.extend(_map_segment_fallback(segment, diar_segments, min_overlap_ratio))
+            recovered.extend(
+                _map_segment_fallback(segment, diar_segments, min_overlap_ratio, collar=0.12)
+            )
         final_output = recovered
 
-    final_output = _smooth_short_flips(final_output, short_duration=0.8)
-    final_output = _merge_same_speaker(final_output, max_gap=0.25)
+    final_output = _smooth_short_flips(final_output, short_duration=1.0)
+    final_output = _merge_same_speaker(final_output, max_gap=0.3)
     return final_output

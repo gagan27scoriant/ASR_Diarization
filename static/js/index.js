@@ -1403,10 +1403,22 @@ async function renderChatDelayed() {
         chat.appendChild(audioRow);
     }
 
+    const useExactTranscriptOutput = true;
     const groupedTranscript = [];
     let currentGroup = null;
 
     transcriptData.forEach((seg, segIndex) => {
+        if (useExactTranscriptOutput) {
+            groupedTranscript.push({
+                speaker: seg.speaker,
+                texts: [seg.text],
+                start: seg.start,
+                end: seg.end,
+                segmentIndices: [segIndex]
+            });
+            return;
+        }
+
         if (currentGroup && currentGroup.speaker === seg.speaker) {
             currentGroup.texts.push(seg.text);
             currentGroup.end = seg.end;
@@ -1422,7 +1434,7 @@ async function renderChatDelayed() {
             };
         }
     });
-    if (currentGroup) groupedTranscript.push(currentGroup);
+    if (!useExactTranscriptOutput && currentGroup) groupedTranscript.push(currentGroup);
     groupedTranscriptCache = groupedTranscript;
     segmentGroupMap = new Array(transcriptData.length);
     transcriptRowEls = [];
@@ -1440,9 +1452,11 @@ async function renderChatDelayed() {
         const colorSet = speakerColors[group.speaker];
         const ts = `[${formatTime(group.start || 0)} - ${formatTime(group.end || 0)}]`;
         
-        const combinedText = group.texts.length > 1 
-            ? group.texts.map(t => `• ${t}`).join('<br>') 
-            : group.texts[0];
+        const combinedText = useExactTranscriptOutput
+            ? (group.texts[0] || "")
+            : (group.texts.length > 1
+                ? group.texts.map(t => `• ${t}`).join('<br>')
+                : group.texts[0]);
 
         row.innerHTML = `<div class="avatar" style="background: ${colorSet.main}">${group.speaker[0]}</div><div class="content" style="border-left: 4px solid ${colorSet.main}; background: ${colorSet.glow}"><div class="translate-transcript-icon" onclick="translateTranscriptByIndex(${i})" title="Translate Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8h14"></path><path d="M5 12h8"></path><path d="M13 19l4-8 4 8"></path><path d="M14.5 16h5"></path></svg></div><div class="copy-transcript-icon" onclick="copyTranscriptByIndex(${i})" title="Copy Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></div><div class="listen-transcript-icon" onclick="speakTranscriptByIndex(${i})" title="Listen to Transcript"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M19 5a10 10 0 0 1 0 14"></path></svg></div><span style="font-size:10px; font-weight:900; color:${colorSet.main}; text-transform:uppercase;">${group.speaker}</span><br>${combinedText}<span style="display:block; font-size:10px; color:var(--muted); margin-top:5px; font-weight:600;">${ts}</span></div>`;
         chat.appendChild(row);

@@ -222,6 +222,7 @@ def transcribe(model, audio_path):
             }
         )
 
+
     best = max(candidates, key=lambda x: x["score"])
 
     need_full_retry = (
