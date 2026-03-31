@@ -1,0 +1,9 @@
+Package: asr-venu
+Version: 0.1.0
+Architecture: amd64
+Installed-Size: 9137
+Maintainer: scoriant
+Priority: optional
+Depends: libwebkit2gtk-4.1-0, libgtk-3-0
+Description: (none)
+ (none)

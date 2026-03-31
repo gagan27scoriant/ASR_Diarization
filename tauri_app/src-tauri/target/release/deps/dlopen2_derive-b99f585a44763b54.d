@@ -1,0 +1,9 @@
+/home/scoriant/Documents/Gagan K M/ASR_Diarization/tauri_app/src-tauri/target/release/deps/dlopen2_derive-b99f585a44763b54.d: /home/scoriant/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dlopen2_derive-0.4.3/src/lib.rs /home/scoriant/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dlopen2_derive-0.4.3/src/api.rs /home/scoriant/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dlopen2_derive-0.4.3/src/common.rs /home/scoriant/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dlopen2_derive-0.4.3/src/multi_api.rs /home/scoriant/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dlopen2_derive-0.4.3/src/wrapper.rs
+
+/home/scoriant/Documents/Gagan K M/ASR_Diarization/tauri_app/src-tauri/target/release/deps/libdlopen2_derive-b99f585a44763b54.so: /home/scoriant/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dlopen2_derive-0.4.3/src/lib.rs /home/scoriant/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dlopen2_derive-0.4.3/src/api.rs /home/scoriant/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dlopen2_derive-0.4.3/src/common.rs /home/scoriant/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dlopen2_derive-0.4.3/src/multi_api.rs /home/scoriant/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dlopen2_derive-0.4.3/src/wrapper.rs
+
+/home/scoriant/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dlopen2_derive-0.4.3/src/lib.rs:
+/home/scoriant/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dlopen2_derive-0.4.3/src/api.rs:
+/home/scoriant/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dlopen2_derive-0.4.3/src/common.rs:
+/home/scoriant/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dlopen2_derive-0.4.3/src/multi_api.rs:
+/home/scoriant/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dlopen2_derive-0.4.3/src/wrapper.rs:

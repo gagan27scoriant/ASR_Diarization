@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "ASR Venu",
+  "version": "0.1.0",
+  "identifier": "com.scoriant.asrvenu",
+  "build": {
+    "devUrl": "http://127.0.0.1:5000",
+    "frontendDist": "../src",
+    "beforeDevCommand": "../scripts/tauri_start_flask.sh"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "ASR Venu",
+        "width": 1280,
+        "height": 820,
+        "resizable": true
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/icon-32.png",
+      "icons/icon-128.png",
+      "icons/icon-256.png",
+      "icons/icon.png"
+    ]
+  }
+}

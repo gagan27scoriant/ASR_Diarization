@@ -1,0 +1,8 @@
+[Desktop Entry]
+Categories=
+Exec=asr_venu_tauri
+StartupWMClass=asr_venu_tauri
+Icon=asr_venu_tauri
+Name=ASR Venu
+Terminal=false
+Type=Application
