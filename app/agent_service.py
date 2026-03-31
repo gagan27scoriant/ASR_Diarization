@@ -135,7 +135,7 @@ def handle_uploaded_file(
             update_history_chat(media_result.get("session_id") or "", seed_history)
             response["result"]["history"] = seed_history
 
-    if _query_wants_summary(query):
+    if _query_wants_summary(query) and not _query_wants_transcript_answer(query, payload):
         transcript_text = _transcript_to_text(media_result.get("transcript") or [])
         summary = summarize_and_persist(
             transcript_text,

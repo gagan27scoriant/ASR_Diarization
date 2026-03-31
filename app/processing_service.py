@@ -24,6 +24,7 @@ from app.media_utils import (
     ensure_video_in_workspace,
     ensure_wav,
     enhance_audio_with_demucs,
+    prepend_silence,
     extract_audio_from_video,
     extract_text_from_document,
     resolve_media_source,
@@ -86,6 +87,13 @@ def process_media_pipeline(source_path: str, filename: str, asr_model, diarizati
     except Exception as demucs_err:
         print(f"⚠️ Demucs skipped, using original audio: {demucs_err}")
         audio_path, processed_filename = before_audio_path, before_audio_filename
+
+    pad_seconds = float(os.getenv("ASR_PREPEND_SILENCE_SEC", "0") or 0)
+    if pad_seconds > 0:
+        try:
+            audio_path, processed_filename = prepend_silence(audio_path, processed_filename, pad_seconds)
+        except Exception as pad_err:
+            print(f"⚠️ Audio padding skipped: {pad_err}")
 
     print("\n" + "=" * 50)
     print("Processing:", filename)

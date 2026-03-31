@@ -91,6 +91,22 @@ def transcribe(model, audio_path):
     )
 
     def _run_transcribe(mode="strict"):
+        # Allow environment overrides for thresholds when early audio is being dropped.
+        env_no_speech = os.getenv("ASR_NO_SPEECH_THRESHOLD")
+        env_comp_ratio = os.getenv("ASR_COMPRESSION_RATIO_THRESHOLD")
+        env_logprob = os.getenv("ASR_LOG_PROB_THRESHOLD")
+
+        def _float_or(val, default):
+            if val is None:
+                return default
+            val = str(val).strip()
+            if not val:
+                return default
+            try:
+                return float(val)
+            except Exception:
+                return default
+
         if mode == "strict":
             decode = dict(
                 beam_size=5,
@@ -98,9 +114,9 @@ def transcribe(model, audio_path):
                 temperature=0.0,
                 vad_filter=False,
                 condition_on_previous_text=False if multilingual_mode else True,
-                no_speech_threshold=0.45,
-                compression_ratio_threshold=2.4,
-                log_prob_threshold=-1.2,
+                no_speech_threshold=_float_or(env_no_speech, 0.45),
+                compression_ratio_threshold=_float_or(env_comp_ratio, 2.4),
+                log_prob_threshold=_float_or(env_logprob, -1.2),
             )
         elif mode == "relaxed":
             decode = dict(
@@ -109,9 +125,9 @@ def transcribe(model, audio_path):
                 temperature=[0.0, 0.2, 0.4],
                 vad_filter=False,
                 condition_on_previous_text=False,
-                no_speech_threshold=0.25,
-                compression_ratio_threshold=2.8,
-                log_prob_threshold=-1.8,
+                no_speech_threshold=_float_or(env_no_speech, 0.25),
+                compression_ratio_threshold=_float_or(env_comp_ratio, 2.8),
+                log_prob_threshold=_float_or(env_logprob, -1.8),
             )
         else:
             # Recovery pass for long audio where VAD may trim late segments.
@@ -121,9 +137,9 @@ def transcribe(model, audio_path):
                 temperature=[0.0, 0.2, 0.4],
                 vad_filter=False,
                 condition_on_previous_text=False,
-                no_speech_threshold=1.0,
-                compression_ratio_threshold=3.2,
-                log_prob_threshold=-2.2,
+                no_speech_threshold=_float_or(env_no_speech, 1.0),
+                compression_ratio_threshold=_float_or(env_comp_ratio, 3.2),
+                log_prob_threshold=_float_or(env_logprob, -2.2),
             )
 
         segments, info = model.transcribe(
@@ -186,6 +202,11 @@ def transcribe(model, audio_path):
         f"mode={'english-translate' if task_mode == 'translate' else 'native-transcribe'}"
     )
 
+    early_start_max = float(os.getenv("ASR_EARLY_START_MAX", "1.0") or 1.0)
+    if (os.getenv("ASR_FORCE_EARLY_START", "") or "").strip().lower() in {"1", "true", "yes", "on"}:
+        early_start_max = 0.0
+    first_start = float(first_result[0]["start"]) if first_result else 0.0
+
     need_relaxed_retry = (
         total_dur >= 45.0
         and (
@@ -194,6 +215,7 @@ def transcribe(model, audio_path):
             or first_chars < max(120, int(total_dur * 2.5))
         )
     )
+    need_full_retry = total_dur >= 10.0 and first_result and first_start > early_start_max
     candidates = [
         {
             "name": "pass1",
@@ -222,8 +244,37 @@ def transcribe(model, audio_path):
             }
         )
 
+    if need_full_retry:
+        third_result, third_coverage, _, third_chars, third_span_ratio = _run_transcribe(mode="full")
+        print(
+            f"ASR pass3 (full): segments={len(third_result)}, chars={third_chars}, "
+            f"coverage={third_coverage:.2f}, span={third_span_ratio:.2f}"
+        )
+        candidates.append(
+            {
+                "name": "pass3",
+                "result": third_result,
+                "coverage": third_coverage,
+                "chars": third_chars,
+                "span_ratio": third_span_ratio,
+                "score": _score(third_coverage, third_chars, total_dur, third_span_ratio),
+            }
+        )
+
 
     best = max(candidates, key=lambda x: x["score"])
+    if len(candidates) > 1:
+        # Prefer earlier start if scores are close.
+        def _start_of(item):
+            return float(item["result"][0]["start"]) if item["result"] else float("inf")
+
+        best_start = _start_of(best)
+        for item in candidates:
+            if item is best:
+                continue
+            if item["score"] >= best["score"] * 0.95 and _start_of(item) + 0.5 < best_start:
+                best = item
+                best_start = _start_of(item)
 
     need_full_retry = (
         total_dur >= 45.0
@@ -246,6 +297,21 @@ def transcribe(model, audio_path):
             }
         )
         best = max(candidates, key=lambda x: x["score"])
+
+    # Ensure the timeline always starts at 0.0s.
+    if best["result"]:
+        first = best["result"][0]
+        if float(first.get("start", 0.0)) > 0.0:
+            first["start"] = 0.0
+            # Keep word timestamps aligned with the segment start.
+            words = first.get("words") or []
+            if words:
+                words[0]["start"] = 0.0
+                for w in words:
+                    if w.get("start") is not None:
+                        w["start"] = max(0.0, float(w["start"]))
+                    if w.get("end") is not None:
+                        w["end"] = max(float(w.get("start") or 0.0) + 0.02, float(w["end"]))
 
     print(
         f"ASR selected {best['name']}: coverage={best['coverage']:.2f}, "

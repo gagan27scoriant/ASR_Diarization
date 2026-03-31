@@ -112,6 +112,31 @@ function normalizeSpeakerLabel(label) {
     return `SPEAKER_${padded}`;
 }
 
+function addSpeakerAliases(fromLabel, toLabel) {
+    const base = String(fromLabel || "").trim();
+    const to = String(toLabel || "").trim();
+    if (!base || !to) return;
+
+    const variants = new Set([base]);
+    const match = base.match(/^speaker[_\-\s]?(\d+)$/i);
+    if (match) {
+        const num = match[1];
+        variants.add(`SPEAKER_${num.padStart(2, "0")}`);
+        variants.add(`SPEAKER_${num}`);
+        variants.add(`SPEAKER ${Number(num)}`);
+        variants.add(`Speaker ${Number(num)}`);
+        variants.add(`speaker ${Number(num)}`);
+        variants.add(`Speaker_${num}`);
+        variants.add(`speaker_${num}`);
+        variants.add(`SPEAKER${Number(num)}`);
+        variants.add(`Speaker${Number(num)}`);
+    }
+
+    variants.forEach((v) => {
+        speakerNameMap[v] = to;
+    });
+}
+
 function normalizeTranscriptSpeakers(segments) {
     if (!Array.isArray(segments)) return segments;
     return segments.map(seg => ({
@@ -173,12 +198,15 @@ async function renameSpeakerInline(fromLabel, toLabel) {
     }
 
     speakerNameMap[from] = to;
+    addSpeakerAliases(from, to);
     uniqueSpeakers = new Set(transcriptData.map(seg => seg.speaker));
 
     currentSummary = "";
     setSourceSummary("");
     await applySelectedLanguageToAllTexts(false);
     await persistSessionTranscript();
+    renderTranscriptChatHistory();
+    renderDocumentChatHistory();
 }
 
 const TRANSLATION_LANGUAGE_GROUPS = {
@@ -559,6 +587,9 @@ function updateTranscriptDependentUI() {
         if (!btn) return;
         btn.classList.toggle("hidden", !hasTranscript);
     });
+    if (exportSummaryBtn) {
+        exportSummaryBtn.style.display = "flex";
+    }
     if (keywordBtn) keywordBtn.classList.toggle("hidden", !hasTranscript);
 
     if (sideHeading) {
@@ -1329,6 +1360,8 @@ async function clearAllHistory() {
     const ids = historyEntries.map((x) => x.session_id).filter(Boolean);
 
     // Optimistically clear UI right away.
+    historyEntries = [];
+    renderHistoryList();
     currentSessionId = "";
     transcriptData = [];
     currentSummary = "";
@@ -1659,7 +1692,12 @@ function renderTranscriptChatHistory() {
 
     list.innerHTML = items.map((item, idx) => {
         const role = item.role === "assistant" ? "AI" : "You";
-        const body = escapeHTMLText(item.content || "");
+        let content = item.content || "";
+        content = applySpeakerNamesToText(content);
+        if (item.role === "assistant" && /MINUTES OF A MEETING/i.test(content)) {
+            content = stripSummaryBoilerplate(content);
+        }
+        const body = escapeHTMLText(content);
         const sources = Array.isArray(item.sources) && item.sources.length
             ? `<div class='doc-qa-sources'>` + item.sources.map((s) => {
                 const segIdx = Number(s.segment_index);
@@ -2148,7 +2186,12 @@ function renderDocumentChatHistory() {
     }
     list.innerHTML = items.map((item, idx) => {
         const role = item.role === "assistant" ? "AI" : "You";
-        const body = escapeHTMLText(item.content || "");
+        let content = item.content || "";
+        content = applySpeakerNamesToText(content);
+        if (item.role === "assistant" && /MINUTES OF A MEETING/i.test(content)) {
+            content = stripSummaryBoilerplate(content);
+        }
+        const body = escapeHTMLText(content);
         const sources = Array.isArray(item.sources) && item.sources.length
             ? `<div class='doc-qa-sources'>` + item.sources.map((s) => {
                 const idx = Number(s.index);
@@ -2619,10 +2662,24 @@ function getResolvedSummaryText(summaryText) {
     let updatedSummary = summaryText || "";
     const sortedEntries = Object.entries(speakerNameMap).sort((a, b) => b[0].length - a[0].length);
     for (let [originalSpeaker, finalizedName] of sortedEntries) {
-        const regex = new RegExp('\\b' + originalSpeaker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'gi');
+        const regex = new RegExp('\\b' + escapeRegex(originalSpeaker) + '\\b', 'gi');
         updatedSummary = updatedSummary.replace(regex, finalizedName);
     }
     return updatedSummary;
+}
+
+function escapeRegex(value) {
+    return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function applySpeakerNamesToText(text) {
+    let updated = text || "";
+    const sortedEntries = Object.entries(speakerNameMap).sort((a, b) => b[0].length - a[0].length);
+    for (let [originalSpeaker, finalizedName] of sortedEntries) {
+        const regex = new RegExp('\\b' + escapeRegex(originalSpeaker) + '\\b', 'gi');
+        updated = updated.replace(regex, finalizedName);
+    }
+    return updated;
 }
 
 function escapeHTMLText(text) {
@@ -2648,6 +2705,58 @@ function isSummaryHeadingLine(line) {
         /^THANK YOU$/i
     ];
     return headingPatterns.some((pattern) => pattern.test(value));
+}
+
+function stripSummaryBoilerplate(text) {
+    const lines = (text || "").split(/\r?\n/);
+    const removeHeadings = new Set([
+        "MINUTES OF A MEETING",
+        "INTRODUCTION",
+        "ATTENDEES",
+        "ACTION ITEMS AND ASSIGNED TO:",
+        "ACTION ITEMS AND ASSIGNED TO",
+        "DEADLINES FOR THE TASKS:",
+        "DEADLINES FOR THE TASKS",
+    ]);
+    const removeLinePatterns = [
+        /^AI$/i,
+        /^TITLE\s*:.*/i,
+        /^DATE\s*:.*/i,
+        /^PLACE\s*:.*/i,
+    ];
+
+    let skipSection = false;
+    const output = [];
+
+    for (let i = 0; i < lines.length; i++) {
+        const raw = lines[i];
+        const trimmed = (raw || "").trim();
+
+        if (removeLinePatterns.some((re) => re.test(trimmed))) {
+            continue;
+        }
+
+        if (removeHeadings.has(trimmed.toUpperCase())) {
+            skipSection = trimmed.toUpperCase() !== "MINUTES OF A MEETING";
+            continue;
+        }
+
+        if (skipSection) {
+            if (isSummaryHeadingLine(trimmed)) {
+                skipSection = false;
+                if (!removeHeadings.has(trimmed.toUpperCase()) && !removeLinePatterns.some((re) => re.test(trimmed))) {
+                    output.push(raw);
+                } else {
+                    skipSection = trimmed.toUpperCase() !== "MINUTES OF A MEETING";
+                }
+            }
+            continue;
+        }
+
+        output.push(raw);
+    }
+
+    return output.join("\n").trim();
 }
 
 function renderSummaryCard(summaryText, targetCard = null) {

@@ -60,6 +60,27 @@ def ensure_wav(audio_path: str, filename: str) -> tuple[str, str]:
     return wav_path, wav_filename
 
 
+def prepend_silence(audio_path: str, filename: str, seconds: float) -> tuple[str, str]:
+    if seconds <= 0:
+        return audio_path, filename
+    safe_base = secure_filename(os.path.splitext(filename)[0]) or "audio"
+    padded_filename = f"{safe_base}_pad{int(seconds * 1000)}ms.wav"
+    padded_path = os.path.join(AUDIO_FOLDER, padded_filename)
+    try:
+        (
+            ffmpeg
+            .input(audio_path)
+            .filter("adelay", f"{int(seconds * 1000)}|{int(seconds * 1000)}")
+            .output(padded_path, acodec="pcm_s16le", ac=1, ar=16000)
+            .overwrite_output()
+            .run(capture_stdout=True, capture_stderr=True)
+        )
+    except ffmpeg.Error as e:
+        details = e.stderr.decode("utf-8", errors="ignore") if e.stderr else str(e)
+        raise RuntimeError(f"Audio padding failed: {details}")
+    return padded_path, padded_filename
+
+
 def resolve_media_source(path_or_name: str) -> tuple[str, str]:
     value = (path_or_name or "").strip()
     if not value:
