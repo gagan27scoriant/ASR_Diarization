@@ -608,6 +608,36 @@ function showKeywordSearch() {
     if (input) setTimeout(() => input.focus(), 200);
 }
 
+function triggerKeywordSpotting() {
+    showKeywordSearch();
+    const keywordBtn = document.getElementById("keywordBtn");
+    if (keywordBtn && keywordBtn.classList.contains("hidden")) {
+        keywordBtn.classList.remove("hidden");
+    }
+}
+
+function openTranslationDropdown() {
+    if (!translationTargetSelect) return;
+    translationTargetSelect.focus();
+    translationTargetSelect.click();
+}
+
+async function speakLatestTranscriptAnswer() {
+    const items = Array.isArray(currentTranscriptChat) ? currentTranscriptChat : [];
+    const lastAssistant = [...items].reverse().find((item) => item.role === "assistant");
+    if (!lastAssistant) {
+        alert("No answer available to speak yet.");
+        return;
+    }
+    let text = String(lastAssistant.content || "").trim();
+    if (!text) return;
+    text = applySpeakerNamesToText(text);
+    if (/MINUTES OF A MEETING/i.test(text)) {
+        text = stripSummaryBoilerplate(text);
+    }
+    await requestTextToSpeech(text, "Q&A Answer");
+}
+
 function initDropZone() {
     const dropZone = document.getElementById("dropZoneCard");
     if (!dropZone) return;
@@ -1661,6 +1691,11 @@ function renderTranscriptQAPanel() {
                 <button class="doc-qa-send" id="transcriptQaSend" type="button">Ask</button>
             </div>
             <div class="doc-qa-hint">Answers use semantic transcript search + context.</div>
+            <div class="doc-qa-suggestions">
+                <button class="agent-chip" type="button" onclick="triggerKeywordSpotting()">🔎 Search Transcript</button>
+                <button class="agent-chip" type="button" onclick="openTranslationDropdown()">🌐 Translate</button>
+                <button class="agent-chip" type="button" onclick="speakLatestTranscriptAnswer()">🔊 Speak Answer</button>
+            </div>
         </div>
     `;
     chat.appendChild(row);
@@ -1711,8 +1746,6 @@ function renderTranscriptChatHistory() {
             ? `
                 <div class="doc-qa-actions">
                     <button type="button" class="doc-qa-action-btn" data-action="copy" data-index="${idx}" title="Copy answer">Copy</button>
-                    <button type="button" class="doc-qa-action-btn" data-action="translate" data-index="${idx}" title="Translate answer">Translate</button>
-                    <button type="button" class="doc-qa-action-btn" data-action="speak" data-index="${idx}" title="Convert answer to speech">Speak</button>
                 </div>
             `
             : "";
@@ -2203,8 +2236,6 @@ function renderDocumentChatHistory() {
             ? `
                 <div class="doc-qa-actions">
                     <button type="button" class="doc-qa-action-btn" data-action="copy" data-index="${idx}" title="Copy answer">Copy</button>
-                    <button type="button" class="doc-qa-action-btn" data-action="translate" data-index="${idx}" title="Translate answer">Translate</button>
-                    <button type="button" class="doc-qa-action-btn" data-action="speak" data-index="${idx}" title="Convert answer to speech">Speak</button>
                 </div>
             `
             : "";

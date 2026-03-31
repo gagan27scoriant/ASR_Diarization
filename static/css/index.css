@@ -2353,6 +2353,12 @@ body.dark-theme .sidebar-btn.small-export{
   font-size:11px;
   color:#8b7280;
 }
+.doc-qa-suggestions{
+  margin-top:10px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
 
 .doc-layout{
   display:grid;
