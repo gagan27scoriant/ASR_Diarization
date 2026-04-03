@@ -3694,7 +3694,7 @@ function appendChatBubble(role, text) {
     const chat = document.getElementById("chat");
     if (!chat) return;
     const safeRole = role === "user" ? "user" : "assistant";
-    const badge = safeRole === "user" ? "YOU" : "AI";
+    const badge = safeRole === "user" ? "👤" : "AI";
     const row = document.createElement("div");
     row.className = `message-row transcription chat-bubble-row ${safeRole}`;
     row.innerHTML = `
