@@ -273,20 +273,31 @@ const TRANSLATION_LANGUAGE_GROUPS = {
 };
 
 function toggleSidebar() {
-    document.getElementById("sidebar").classList.toggle("expanded");
+    const sidebarEl = document.getElementById("sidebar");
+    if (!sidebarEl) return;
+    const isExpanded = sidebarEl.classList.toggle("expanded");
+    if (!isExpanded) {
+        sidebarEl.style.width = "";
+        sidebarEl.style.minWidth = "";
+    }
     updateTranscriptDependentUI();
 }
 
 const sidebar = document.getElementById("sidebar");
 const resizer = document.getElementById("resizer");
 resizer.addEventListener("mousedown", (e) => {
+    e.preventDefault();
     document.addEventListener("mousemove", resizeSidebar);
     document.addEventListener("mouseup", stopResize);
 });
 function resizeSidebar(e) {
     if (sidebar.classList.contains("expanded")) {
+        const minWidth = 220;
+        const maxWidth = 380;
         let newWidth = e.clientX;
-        if (newWidth > 150 && newWidth < 500) sidebar.style.width = newWidth + "px";
+        newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+        sidebar.style.width = newWidth + "px";
+        sidebar.style.minWidth = newWidth + "px";
     }
 }
 function stopResize() { document.removeEventListener("mousemove", resizeSidebar); }
@@ -930,6 +941,7 @@ function renderHistoryList() {
         return `
             <div class="history-item ${activeClass}" title="${escapeHTMLText(entry.title || entry.session_id)}">
                 <button class="history-open-btn" onclick="openHistorySession('${entry.session_id}')">
+                    <span class="history-icon" aria-hidden="true">🗒️</span>
                     <span class="history-copy">
                         <span class="history-title-row">
                             <span class="history-title">${escapeHTMLText(title)}</span>
@@ -1000,6 +1012,29 @@ async function refreshHistory() {
         }
     }
 }
+
+function setSidebarTab(tab) {
+    const historyList = document.getElementById("historyList");
+    const docsList = document.getElementById("documentHistoryList");
+    const historyBtn = document.getElementById("historyTabBtn");
+    const docsBtn = document.getElementById("documentsTabBtn");
+    const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+    const clearDocsBtn = document.getElementById("clearDocsBtn");
+    const refreshDocsBtn = document.getElementById("refreshDocsBtn");
+
+    const showHistory = tab !== "documents";
+    if (historyList) historyList.style.display = showHistory ? "flex" : "none";
+    if (docsList) docsList.style.display = showHistory ? "none" : "flex";
+    if (historyBtn) historyBtn.classList.toggle("active", showHistory);
+    if (docsBtn) docsBtn.classList.toggle("active", !showHistory);
+    if (clearHistoryBtn) clearHistoryBtn.style.display = showHistory ? "inline-flex" : "none";
+    if (clearDocsBtn) clearDocsBtn.style.display = showHistory ? "none" : "inline-flex";
+    if (refreshDocsBtn) refreshDocsBtn.style.display = showHistory ? "none" : "inline-flex";
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+    setSidebarTab("history");
+});
 
 async function refreshDocumentHistory() {
     try {

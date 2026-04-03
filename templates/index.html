@@ -29,25 +29,27 @@
     <div id="sidebarContent">
         <!-- Speaker Mapping heading removed -->
         <!-- Speaker renaming is now inline in the transcript list -->
-        <h1>Export Options</h1>
-        <div class="sidebar-export-row">
-            <button class="sidebar-btn btn-export small-export hidden" id="exportTranscriptBtn" onclick="exportTranscript()" title="Export Transcript">🎙️📄</button>
-            <button class="sidebar-btn btn-export small-export hidden" id="exportSummaryBtn" onclick="exportSummary()" title="Export Summary">📊📤</button>
+        <div class="sidebar-section-title">EXPORT OPTIONS</div>
+        <div class="sidebar-export-row export-pills">
+            <button class="sidebar-pill hidden" id="exportTranscriptBtn" onclick="exportTranscript()" title="Export Transcript">🎙️ Transcript</button>
+            <button class="sidebar-pill hidden" id="exportSummaryBtn" onclick="exportSummary()" title="Export Summary">📊 Summary</button>
         </div>
         <button class="sidebar-btn hidden" id="impersonateBtn" onclick="handleImpersonate()">Switch User</button>
-        <div class="history-header">
-            <h1>🕘 History</h1>
-            <button class="history-clear-btn" id="clearHistoryBtn" type="button" onclick="clearAllHistory()">Clear History</button>
+        <div class="sidebar-tabs">
+            <button class="sidebar-tab active" id="historyTabBtn" type="button" onclick="setSidebarTab('history')">
+                <span class="tab-icon">🕘</span> History
+            </button>
+            <button class="sidebar-tab" id="documentsTabBtn" type="button" onclick="setSidebarTab('documents')">
+                <span class="tab-icon">📄</span> Documents
+            </button>
+            <div class="sidebar-tab-actions">
+                <button class="tab-action-btn" id="refreshDocsBtn" type="button" onclick="refreshDocumentHistory()" title="Refresh Documents" aria-label="Refresh Documents">🔄</button>
+                <button class="tab-action-btn" id="clearHistoryBtn" type="button" onclick="clearAllHistory()" title="Clear History" aria-label="Clear History">🗑</button>
+                <button class="tab-action-btn" id="clearDocsBtn" type="button" onclick="clearAllDocuments()" title="Clear Documents" aria-label="Clear Documents">🗑</button>
+            </div>
         </div>
         <div id="historyList" class="history-list">
             <div class="history-empty">No history yet</div>
-        </div>
-        <div class="history-header">
-            <h1>📄 Documents</h1>
-            <div class="history-header-actions">
-                <button class="history-clear-btn" id="refreshDocsBtn" type="button" onclick="refreshDocumentHistory()" title="Refresh Documents" aria-label="Refresh Documents">🔄</button>
-                <button class="history-clear-btn" id="clearDocsBtn" type="button" onclick="clearAllDocuments()" title="Clear Documents" aria-label="Clear Documents">🗑</button>
-            </div>
         </div>
         <div id="documentHistoryList" class="history-list docs">
             <div class="history-empty">No documents yet</div>
