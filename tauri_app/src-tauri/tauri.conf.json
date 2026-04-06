@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.scoriant.asrvenu",
   "build": {
-    "devUrl": "http://127.0.0.1:5000",
+    "devUrl": "http://127.0.0.1:1627",
     "frontendDist": "../src",
     "beforeDevCommand": "../scripts/tauri_start_flask.sh"
   },

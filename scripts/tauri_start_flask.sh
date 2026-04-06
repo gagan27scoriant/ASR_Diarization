@@ -6,6 +6,19 @@ cd "$ROOT_DIR"
 
 PID_FILE="/tmp/asr_venu_flask.pid"
 LOG_FILE="/tmp/asr_venu_flask.log"
+APP_PORT="${APP_PORT:-1627}"
+
+PYTHON_BIN="${PYTHON_BIN:-}"
+if [[ -z "$PYTHON_BIN" && -x "/home/scoriant/miniconda3/bin/python" ]]; then
+  PYTHON_BIN="/home/scoriant/miniconda3/bin/python"
+fi
+if [[ -z "$PYTHON_BIN" ]]; then
+  PYTHON_BIN="python"
+fi
+
+# Keep backend selection explicit for Tauri runs unless user overrides it.
+export DIARIZATION_BACKEND="${DIARIZATION_BACKEND:-auto}"
+export APP_PORT
 
 if [[ -f "$PID_FILE" ]]; then
   EXISTING_PID="$(cat "$PID_FILE" || true)"
@@ -17,17 +30,22 @@ if [[ -f "$PID_FILE" ]]; then
 fi
 
 if [[ ! -f "$PID_FILE" ]]; then
-  nohup python main.py > "$LOG_FILE" 2>&1 &
+  echo "Using Python: $PYTHON_BIN" > "$LOG_FILE"
+  echo "APP_PORT=$APP_PORT" >> "$LOG_FILE"
+  echo "DIARIZATION_BACKEND=$DIARIZATION_BACKEND" >> "$LOG_FILE"
+  nohup "$PYTHON_BIN" main.py >> "$LOG_FILE" 2>&1 &
   echo $! > "$PID_FILE"
   echo "Started Flask (pid=$(cat "$PID_FILE"))."
 fi
 
 python - <<'PY'
+import os
 import time
 import urllib.request
 import urllib.error
 
-url = "http://127.0.0.1:5000/"
+port = int((os.getenv("APP_PORT") or "1627").strip())
+url = f"http://127.0.0.1:{port}/"
 ready_codes = {200, 401, 403}
 
 for _ in range(240):

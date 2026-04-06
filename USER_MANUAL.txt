@@ -10,7 +10,7 @@ AI KNOWLEDGE STUDIO - USER MANUAL
    python main.py
 
 3. Open browser:
-   http://127.0.0.1:5000
+   http://127.0.0.1:1627
 
 
 2) WHAT THE APP CAN DO

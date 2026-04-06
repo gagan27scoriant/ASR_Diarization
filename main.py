@@ -113,6 +113,8 @@ except Exception as asr_err:
 
 print("🚀 Loading diarization model...")
 diarization_pipeline = load_diarization()
+if hasattr(diarization_pipeline, "backend"):
+    print(f"✅ Diarization backend: {getattr(diarization_pipeline, 'backend', 'unknown')}")
 print("✅ Models ready\n")
 
 
@@ -1222,4 +1224,5 @@ def delete_history_item(session_id):
 if __name__ == "__main__":
     debug_mode = os.getenv("FLASK_DEBUG", "1").strip().lower() in {"1", "true", "yes", "on"}
     use_reloader = os.getenv("FLASK_USE_RELOADER", "0").strip().lower() in {"1", "true", "yes", "on"}
-    app.run(host="0.0.0.0", port=5000, debug=debug_mode, use_reloader=use_reloader)
+    app_port = int((os.getenv("APP_PORT") or "1627").strip())
+    app.run(host="0.0.0.0", port=app_port, debug=debug_mode, use_reloader=use_reloader)

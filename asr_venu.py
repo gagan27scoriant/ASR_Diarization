@@ -10,10 +10,12 @@ import webview
 
 from main import app
 
+APP_PORT = int((os.getenv("APP_PORT") or "1627").strip())
+APP_URL = f"http://127.0.0.1:{APP_PORT}"
 
 def _run_server():
     # Avoid reloader in embedded mode
-    app.run(host="127.0.0.1", port=5000, debug=False, use_reloader=False)
+    app.run(host="127.0.0.1", port=APP_PORT, debug=False, use_reloader=False)
 
 
 def _wait_for_server(url: str, timeout: float = 15.0) -> bool:
@@ -38,7 +40,7 @@ def main():
     thread = threading.Thread(target=_run_server, daemon=True)
     thread.start()
 
-    url = "http://127.0.0.1:5000"
+    url = APP_URL
     _wait_for_server(url)
 
     webview.create_window("ASR Venu", url, width=1280, height=800)

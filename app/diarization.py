@@ -126,14 +126,32 @@ def _load_nemo():
 
 
 def load_diarization():
-    backend = (os.getenv("DIARIZATION_BACKEND") or "").strip().lower()
-    if not backend:
-        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-        default_cfg = os.path.join(repo_root, "configs", "nemo_diarization.yaml")
-        backend = "nemo" if os.path.isfile(default_cfg) else "pyannote"
-    if backend == "nemo":
-        return _load_nemo()
-    return _load_pyannote()
+    backend = (os.getenv("DIARIZATION_BACKEND") or "auto").strip().lower()
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    default_cfg = os.path.join(repo_root, "configs", "nemo_diarization.yaml")
+    has_nemo_config = os.path.isfile(default_cfg)
+
+    if backend in {"pyannote", "nemo"}:
+        print(f"Diarization backend requested: {backend}")
+        if backend == "nemo":
+            return _load_nemo()
+        return _load_pyannote()
+
+    # Auto mode: prefer pyannote for general meeting diarization quality,
+    # then fall back to NeMo when available.
+    print("Diarization backend requested: auto")
+    try:
+        handle = _load_pyannote()
+        print("Diarization backend selected: pyannote")
+        return handle
+    except Exception as py_err:
+        print(f"⚠️ Pyannote diarization unavailable: {py_err}")
+        if has_nemo_config:
+            print("↪ Falling back to NeMo diarization")
+            handle = _load_nemo()
+            print("Diarization backend selected: nemo")
+            return handle
+        raise
 
 
 
