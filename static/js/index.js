@@ -2408,13 +2408,20 @@ async function askDocumentQuestion() {
     sendBtn.disabled = true;
     sendBtn.textContent = "Thinking...";
     try {
-        const result = await agentQueryJSON({
-            query: question,
-            document_id: currentDocumentId,
-            question,
-            top_k: 5
+        const response = await fetch("/api/document/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                document_id: currentDocumentId,
+                question,
+                top_k: 5
+            })
         });
-        await handleAgentResponse(result, { source: "document_qa" });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || "Failed to answer.");
+        }
+        await handleAgentResponse({ result }, { source: "document_qa" });
     } catch (e) {
         currentDocumentChat.push({ role: "assistant", content: e.message || "Failed to answer." });
         renderDocumentChatHistory();
@@ -3760,12 +3767,6 @@ async function handleAgentResponse(agentResult, options = {}) {
     const result = (agentResult && agentResult.result) || {};
     lastAgentPlan = Array.isArray(agentResult && agentResult.plan) ? agentResult.plan : [];
 
-    if (result.answer && (agentResult && agentResult.selected_tool) === "chat_response") {
-        currentAgentChat = Array.isArray(result.history) ? result.history : currentAgentChat;
-        appendChatBubble("assistant", result.answer);
-        return;
-    }
-
     if (result.answer && options.source === "transcript_qa") {
         currentTranscriptChat = result.history || currentTranscriptChat;
         const sources = result.sources || [];
@@ -3781,6 +3782,81 @@ async function handleAgentResponse(agentResult, options = {}) {
 
     if (result.answer && options.source === "document_qa") {
         currentDocumentChat = result.history || currentDocumentChat;
+        const sources = result.sources || [];
+        if (currentDocumentChat.length) {
+            const lastIdx = currentDocumentChat.length - 1;
+            if (currentDocumentChat[lastIdx].role === "assistant") {
+                currentDocumentChat[lastIdx].sources = sources;
+            }
+        }
+        renderDocumentChatHistory();
+        return;
+    }
+
+    if (result.answer && (agentResult && agentResult.selected_tool) === "chat_response") {
+        // If a document context is active, keep answers inside document Q&A panel.
+        if (currentDocumentId && options.source !== "document_qa") {
+            currentDocumentChat = Array.isArray(currentDocumentChat) ? currentDocumentChat : [];
+            const prompt = String(lastAgentPrompt || "").trim();
+            const lastItem = currentDocumentChat.length ? currentDocumentChat[currentDocumentChat.length - 1] : null;
+            const needsUserTurn = Boolean(
+                prompt &&
+                (!lastItem || lastItem.role !== "user" || String(lastItem.content || "").trim() !== prompt)
+            );
+            if (needsUserTurn) {
+                currentDocumentChat.push({ role: "user", content: prompt });
+            }
+            currentDocumentChat.push({ role: "assistant", content: result.answer });
+            renderDocumentChatHistory();
+            return;
+        }
+
+        // If a transcript context is active, keep answers inside transcript Q&A panel.
+        if (currentSessionId && options.source !== "transcript_qa") {
+            currentTranscriptChat = Array.isArray(currentTranscriptChat) ? currentTranscriptChat : [];
+            const prompt = String(lastAgentPrompt || "").trim();
+            const lastItem = currentTranscriptChat.length ? currentTranscriptChat[currentTranscriptChat.length - 1] : null;
+            const needsUserTurn = Boolean(
+                prompt &&
+                (!lastItem || lastItem.role !== "user" || String(lastItem.content || "").trim() !== prompt)
+            );
+            if (needsUserTurn) {
+                currentTranscriptChat.push({ role: "user", content: prompt });
+            }
+            currentTranscriptChat.push({ role: "assistant", content: result.answer });
+            renderTranscriptChatHistory();
+            return;
+        }
+
+        currentAgentChat = Array.isArray(result.history) ? result.history : currentAgentChat;
+        appendChatBubble("assistant", result.answer);
+        return;
+    }
+
+    // Keep document answers inside the document Q&A panel even when asked
+    // from the top agent bar while a document context is active.
+    if (
+        result.answer &&
+        currentDocumentId &&
+        !result.session_id &&
+        !Array.isArray(result.transcript)
+    ) {
+        const hasHistory = Array.isArray(result.history) && result.history.length > 0;
+        currentDocumentChat = hasHistory ? result.history : (Array.isArray(currentDocumentChat) ? currentDocumentChat : []);
+
+        if (!hasHistory) {
+            const prompt = String(lastAgentPrompt || "").trim();
+            const lastItem = currentDocumentChat.length ? currentDocumentChat[currentDocumentChat.length - 1] : null;
+            const needsUserTurn = Boolean(
+                prompt &&
+                (!lastItem || lastItem.role !== "user" || String(lastItem.content || "").trim() !== prompt)
+            );
+            if (needsUserTurn) {
+                currentDocumentChat.push({ role: "user", content: prompt });
+            }
+            currentDocumentChat.push({ role: "assistant", content: result.answer });
+        }
+
         const sources = result.sources || [];
         if (currentDocumentChat.length) {
             const lastIdx = currentDocumentChat.length - 1;
@@ -3814,8 +3890,29 @@ async function handleAgentResponse(agentResult, options = {}) {
         await applySelectedLanguageToAllTexts(false);
         await refreshDocumentHistory();
         setSummaryButtonState();
-        if (result.answer && options.source !== "document_qa") {
-            appendAgentResponseCard("Document Answer", result.answer, "#0ea5e9");
+        if (result.answer) {
+            const sources = result.sources || [];
+            const hasHistory = Array.isArray(result.history) && result.history.length > 0;
+            currentDocumentChat = hasHistory ? result.history : (Array.isArray(currentDocumentChat) ? currentDocumentChat : []);
+            if (!hasHistory) {
+                const prompt = String(lastAgentPrompt || "").trim();
+                const lastItem = currentDocumentChat.length ? currentDocumentChat[currentDocumentChat.length - 1] : null;
+                const needsUserTurn = Boolean(
+                    prompt &&
+                    (!lastItem || lastItem.role !== "user" || String(lastItem.content || "").trim() !== prompt)
+                );
+                if (needsUserTurn) {
+                    currentDocumentChat.push({ role: "user", content: prompt });
+                }
+                currentDocumentChat.push({ role: "assistant", content: result.answer });
+            }
+            if (currentDocumentChat.length) {
+                const lastIdx = currentDocumentChat.length - 1;
+                if (currentDocumentChat[lastIdx].role === "assistant") {
+                    currentDocumentChat[lastIdx].sources = sources;
+                }
+            }
+            renderDocumentChatHistory();
         }
         return;
     }
@@ -3948,6 +4045,14 @@ async function submitAgentQuery() {
         !payload.target_lang &&
         (/\?/.test(queryText) || /^(who|what|when|where|why|how)\b/i.test(queryText))
     );
+    const isDocumentQuestion = Boolean(
+        payload.document_id &&
+        !payload.session_id &&
+        !pendingSelectedFile &&
+        !payload.file_path &&
+        !payload.target_lang &&
+        (/\?/.test(queryText) || /^(who|what|when|where|why|how)\b/i.test(queryText))
+    );
     const isPlainChatMode = Boolean(
         !pendingSelectedFile &&
         !payload.session_id &&
@@ -3967,7 +4072,26 @@ async function submitAgentQuery() {
         document.getElementById("loadingOverlay").style.display = "flex";
     }
     try {
-        if (isTranscriptQuestion) {
+        if (isDocumentQuestion) {
+            currentDocumentChat = Array.isArray(currentDocumentChat) ? currentDocumentChat : [];
+            currentDocumentChat.push({ role: "user", content: queryText });
+            renderDocumentChatHistory();
+
+            const response = await fetch("/api/document/ask", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    document_id: payload.document_id,
+                    question: queryText,
+                    top_k: 8
+                })
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || "Failed to answer.");
+            }
+            await handleAgentResponse({ result }, { source: "document_qa" });
+        } else if (isTranscriptQuestion) {
             currentTranscriptChat = Array.isArray(currentTranscriptChat) ? currentTranscriptChat : [];
             currentTranscriptChat.push({ role: "user", content: queryText });
             renderTranscriptChatHistory();

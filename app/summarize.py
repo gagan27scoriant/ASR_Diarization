@@ -9,6 +9,7 @@ OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
 SUMMARY_BACKEND = os.getenv("SUMMARY_BACKEND", "ollama").lower()
 SUMMARY_MODEL = os.getenv("SUMMARY_MODEL", "mistral")
 SUMMARY_TIMEOUT_SECONDS = int(os.getenv("SUMMARY_TIMEOUT_SECONDS", "10800"))
+DOCUMENT_SUMMARY_MAX_CHARS = int(os.getenv("DOCUMENT_SUMMARY_MAX_CHARS", "30000"))
 
 # Load BART lazily when needed (for fallback or explicit bart backend).
 tokenizer = None
@@ -70,6 +71,15 @@ Rules:
 Document:
 {document_text}
 """
+
+
+def _trim_document_for_summary(document_text: str) -> str:
+    text = (document_text or "").strip()
+    if not text:
+        return text
+    if DOCUMENT_SUMMARY_MAX_CHARS > 0 and len(text) > DOCUMENT_SUMMARY_MAX_CHARS:
+        return text[:DOCUMENT_SUMMARY_MAX_CHARS].rstrip()
+    return text
 
 
 def _summarize_with_ollama(
@@ -252,19 +262,20 @@ def summarize_text(transcript_text, meeting_title, meeting_date, meeting_place):
 
 
 def summarize_document_text(document_text: str) -> str:
-    if not (document_text or "").strip():
+    prepared = _trim_document_for_summary(document_text)
+    if not prepared:
         return "No text to summarize."
     try:
         if SUMMARY_BACKEND == "ollama":
-            raw = _summarize_document_with_ollama(document_text)
+            raw = _summarize_document_with_ollama(prepared)
             if raw:
                 return raw
             raise RuntimeError("Empty summary from ollama")
-        return _summarize_document_with_bart(document_text)
+        return _summarize_document_with_bart(prepared)
     except Exception as e:
         print("Document summarization error:", e)
         try:
-            return _summarize_document_with_bart(document_text)
+            return _summarize_document_with_bart(prepared)
         except Exception as bart_err:
             print("BART document fallback error:", bart_err)
             return "Summary generation failed."

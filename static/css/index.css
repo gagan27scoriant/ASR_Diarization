@@ -2163,6 +2163,7 @@ body.dark-theme .sidebar-btn.small-export{
 .doc-qa-content{
   max-width:100% !important;
   width:100%;
+  min-width:0;
   border:1px solid #eadfcd !important;
   border-left:0 !important;
   border-radius:18px;
@@ -2190,8 +2191,9 @@ body.dark-theme .sidebar-btn.small-export{
   border:1px solid #eadfcd;
   border-radius:16px;
   padding:12px;
-  max-height:none;
-  overflow:visible;
+  max-height:420px;
+  overflow-y:auto;
+  overflow-x:hidden;
 }
 .doc-qa-empty{
   font-size:12px;
@@ -2203,6 +2205,9 @@ body.dark-theme .sidebar-btn.small-export{
   margin-bottom:8px;
   border:1px solid #eadfcd;
   background:#fffdf9;
+  min-width:0;
+  max-width:100%;
+  overflow:hidden;
 }
 .doc-qa-message.user{
   border-color:#f3d9a4;
@@ -2224,6 +2229,9 @@ body.dark-theme .sidebar-btn.small-export{
   color:#1f2937;
   margin-top:4px;
   white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  max-width:100%;
 }
 
 .doc-qa-actions{
@@ -2378,6 +2386,7 @@ body.dark-theme .sidebar-btn.small-export{
   flex-direction:column;
   gap:12px;
   width:100%;
+  min-width:0;
   align-items:stretch;
 }
 .doc-layout-left > *{ width:100%; }

@@ -19,7 +19,9 @@ DEFAULT_SEPARATORS = ["\n\n", "\n", ". ", " ", ""]
 DEFAULT_CHUNK_SIZE = int(os.getenv("DOC_CHUNK_SIZE", "2000"))
 DEFAULT_CHUNK_OVERLAP = int(os.getenv("DOC_CHUNK_OVERLAP", "80"))
 DEFAULT_TOP_K = int(os.getenv("DOC_RETRIEVE_TOP_K", "5"))
+DEFAULT_MAX_CHUNKS = int(os.getenv("DOC_MAX_CHUNKS", "120"))
 DEFAULT_TRANSLATE_SEGMENT_SIZE = int(os.getenv("DOC_TRANSLATE_SEGMENT_SIZE", "1200"))
+DEFAULT_TRANSLATE_MAX_SEGMENTS = int(os.getenv("DOC_TRANSLATE_MAX_SEGMENTS", "120"))
 DEFAULT_TRANSLATE_TO_ENGLISH = (os.getenv("DOC_TRANSLATE_TO_ENGLISH", "1") or "").strip().lower() in {
     "1",
     "true",
@@ -67,7 +69,13 @@ def _translate_to_english(text: str) -> tuple[str, dict[str, int], bool]:
         return cleaned, {}, False
 
     translator = get_translator()
+    whole_lang = _normalize_lang_code(_detect_language(cleaned))
+    if whole_lang in {"en", "eng"}:
+        return cleaned, {"en": 1}, False
+
     segments = _recursive_split(cleaned, DEFAULT_TRANSLATE_SEGMENT_SIZE, DEFAULT_SEPARATORS)
+    if DEFAULT_TRANSLATE_MAX_SEGMENTS > 0:
+        segments = segments[:DEFAULT_TRANSLATE_MAX_SEGMENTS]
     translated_segments: list[str] = []
     lang_counts: dict[str, int] = {}
     did_translate = False
@@ -161,7 +169,10 @@ def chunk_text(
     seps = separators or DEFAULT_SEPARATORS
     raw_chunks = _recursive_split(cleaned, size, seps)
     merged = [c.strip() for c in raw_chunks if c and c.strip()]
-    return _apply_overlap(merged, overlap)
+    overlapped = _apply_overlap(merged, overlap)
+    if DEFAULT_MAX_CHUNKS > 0 and len(overlapped) > DEFAULT_MAX_CHUNKS:
+        return overlapped[:DEFAULT_MAX_CHUNKS]
+    return overlapped
 
 
 def _build_prompt(question: str, context: list[str], history: list[dict[str, Any]]) -> str:

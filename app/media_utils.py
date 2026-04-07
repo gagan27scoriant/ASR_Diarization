@@ -19,6 +19,24 @@ from app.config import (
     is_supported_media,
 )
 
+def _env_int(name: str, default: int) -> int:
+    raw = (os.getenv(name) or "").strip()
+    if not raw:
+        return default
+    try:
+        value = int(raw)
+        return value if value > 0 else default
+    except Exception:
+        return default
+
+
+def _truncate_document_text(text: str) -> str:
+    max_chars = _env_int("DOCUMENT_MAX_CHARS", 250000)
+    value = (text or "").strip()
+    if len(value) <= max_chars:
+        return value
+    return value[:max_chars].rstrip()
+
 
 def ensure_wav(audio_path: str, filename: str) -> tuple[str, str]:
     ext = os.path.splitext(filename.lower())[1]
@@ -234,26 +252,36 @@ def extract_text_from_document(file_path: str, filename: str) -> str:
     if ext == ".pdf":
         reader = PdfReader(file_path)
         text_parts = []
-        for page in reader.pages:
-            text_parts.append(page.extract_text() or "")
-        extracted = "\n".join(text_parts).strip()
+        max_pages = _env_int("DOCUMENT_MAX_PDF_PAGES", 120)
+        max_chars = _env_int("DOCUMENT_MAX_CHARS", 250000)
+        current_chars = 0
+        for idx, page in enumerate(reader.pages):
+            if idx >= max_pages:
+                break
+            page_text = page.extract_text() or ""
+            text_parts.append(page_text)
+            current_chars += len(page_text)
+            # Stop early once we have enough text for summary + chunking.
+            if current_chars >= max_chars:
+                break
+        extracted = _truncate_document_text("\n".join(text_parts))
         if extracted:
             return extracted
         if (os.getenv("DOCUMENT_OCR", "") or "").strip().lower() in {"1", "true", "yes", "on"}:
-            return _ocr_pdf(file_path)
+            return _truncate_document_text(_ocr_pdf(file_path))
         return ""
 
     if ext == ".docx":
         doc = DocxDocument(file_path)
         parts = [p.text for p in doc.paragraphs if p.text and p.text.strip()]
-        return "\n".join(parts).strip()
+        return _truncate_document_text("\n".join(parts))
 
     if ext == ".txt":
         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-            return f.read().strip()
+            return _truncate_document_text(f.read())
 
     if ext in {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"}:
-        return _ocr_image(file_path)
+        return _truncate_document_text(_ocr_image(file_path))
 
     if ext not in SUPPORTED_DOCUMENT_EXTENSIONS:
         raise ValueError(DOCUMENT_FORMAT_ERROR)
@@ -280,7 +308,9 @@ def _ocr_pdf(file_path: str) -> str:
         raise RuntimeError("OCR dependencies missing. Install pdf2image and pytesseract, and system tesseract.") from e
 
     langs = _resolve_ocr_langs(pytesseract)
-    pages = convert_from_path(file_path, dpi=300)
+    max_pages = _env_int("DOCUMENT_OCR_MAX_PAGES", 6)
+    dpi = _env_int("DOCUMENT_OCR_DPI", 180)
+    pages = convert_from_path(file_path, dpi=dpi, first_page=1, last_page=max_pages)
     parts = []
     for page in pages:
         parts.append(pytesseract.image_to_string(page, lang=langs))
