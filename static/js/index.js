@@ -1225,6 +1225,7 @@ async function openDocumentEntry(docId) {
             throw new Error(result.error || "Failed to open document");
         }
 
+        setAgentBarVisible(false);
         currentDocumentId = result.document_id || docId;
         currentDocumentFilename = result.filename || "";
         currentDocumentType = (result.document_type || "").toLowerCase();
@@ -2181,7 +2182,8 @@ function updateSidebarMiniPreview() {
     const name = document.getElementById("docMiniName");
     if (!panel || !frame || !name) return;
     if (currentDocumentType === "pdf" && currentDocumentFilename) {
-        frame.src = `/documents/${encodeURIComponent(currentDocumentFilename)}`;
+        const fileUrl = `/documents/${encodeURIComponent(currentDocumentFilename)}`;
+        frame.src = `/static/pdf_viewer.html?mode=mini&file=${encodeURIComponent(fileUrl)}`;
         name.textContent = currentDocumentFilename;
         panel.classList.remove("hidden");
     } else {
@@ -2213,7 +2215,8 @@ function openPdfPanel(zoomLevel = 1.0) {
     const frame = document.getElementById("pdfFrameMain");
     const gutter = document.getElementById("pdfGutter");
     if (!panel || !frame) return;
-    frame.src = `/documents/${encodeURIComponent(currentDocumentFilename)}`;
+    const fileUrl = `/documents/${encodeURIComponent(currentDocumentFilename)}`;
+    frame.src = `/static/pdf_viewer.html?mode=full&file=${encodeURIComponent(fileUrl)}`;
     panel.style.width = "";
     panel.classList.add("open");
     if (gutter) gutter.classList.add("active");
