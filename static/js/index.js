@@ -3781,7 +3781,10 @@ async function handleAgentResponse(agentResult, options = {}) {
     }
 
     if (result.answer && options.source === "document_qa") {
-        currentDocumentChat = result.history || currentDocumentChat;
+        const incomingHistory = (Array.isArray(result.history) && result.history.length > 0)
+            ? result.history
+            : ((Array.isArray(result.chat_history) && result.chat_history.length > 0) ? result.chat_history : null);
+        currentDocumentChat = incomingHistory || currentDocumentChat;
         const sources = result.sources || [];
         if (currentDocumentChat.length) {
             const lastIdx = currentDocumentChat.length - 1;
@@ -3841,8 +3844,11 @@ async function handleAgentResponse(agentResult, options = {}) {
         !result.session_id &&
         !Array.isArray(result.transcript)
     ) {
-        const hasHistory = Array.isArray(result.history) && result.history.length > 0;
-        currentDocumentChat = hasHistory ? result.history : (Array.isArray(currentDocumentChat) ? currentDocumentChat : []);
+        const incomingHistory = (Array.isArray(result.history) && result.history.length > 0)
+            ? result.history
+            : ((Array.isArray(result.chat_history) && result.chat_history.length > 0) ? result.chat_history : null);
+        const hasHistory = Array.isArray(incomingHistory) && incomingHistory.length > 0;
+        currentDocumentChat = hasHistory ? incomingHistory : (Array.isArray(currentDocumentChat) ? currentDocumentChat : []);
 
         if (!hasHistory) {
             const prompt = String(lastAgentPrompt || "").trim();
@@ -3892,8 +3898,11 @@ async function handleAgentResponse(agentResult, options = {}) {
         setSummaryButtonState();
         if (result.answer) {
             const sources = result.sources || [];
-            const hasHistory = Array.isArray(result.history) && result.history.length > 0;
-            currentDocumentChat = hasHistory ? result.history : (Array.isArray(currentDocumentChat) ? currentDocumentChat : []);
+            const incomingHistory = (Array.isArray(result.history) && result.history.length > 0)
+                ? result.history
+                : ((Array.isArray(result.chat_history) && result.chat_history.length > 0) ? result.chat_history : null);
+            const hasHistory = Array.isArray(incomingHistory) && incomingHistory.length > 0;
+            currentDocumentChat = hasHistory ? incomingHistory : (Array.isArray(currentDocumentChat) ? currentDocumentChat : []);
             if (!hasHistory) {
                 const prompt = String(lastAgentPrompt || "").trim();
                 const lastItem = currentDocumentChat.length ? currentDocumentChat[currentDocumentChat.length - 1] : null;

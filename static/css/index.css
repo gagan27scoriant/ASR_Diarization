@@ -2191,9 +2191,8 @@ body.dark-theme .sidebar-btn.small-export{
   border:1px solid #eadfcd;
   border-radius:16px;
   padding:12px;
-  max-height:420px;
-  overflow-y:auto;
-  overflow-x:hidden;
+  max-height:none;
+  overflow:visible;
 }
 .doc-qa-empty{
   font-size:12px;
