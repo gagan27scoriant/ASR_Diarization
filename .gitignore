@@ -27,6 +27,9 @@ ENV/
 *.env
 !.env.example
 
+#datasets
+/datasets/
+
 # IDE and OS files
 .vscode/
 .idea/

@@ -1,4 +1,10 @@
+import json
+import hashlib
 import os
+from pathlib import Path
+import subprocess
+import shutil
+import sys
 import time
 import uuid
 import warnings
@@ -37,6 +43,7 @@ from app.config import (
     AUDIO_FOLDER,
     DOCUMENT_FOLDER,
     DOCUMENT_FORMAT_ERROR,
+    OUTPUT_FOLDER,
     VIDEO_FOLDER,
     ensure_workspace_folders,
     is_supported_document,
@@ -59,11 +66,13 @@ from app.processing_service import (
     summarize_and_persist,
     transcribe_live_audio_chunk,
 )
+from app.summarize import summarize_deepfake_result
 from app.document_rag import answer_document_question, ingest_document_text
 from app.history_rag import answer_history_question
 from app.semantic_search import search_history_segments
 from app.translation import get_translator
 from app.agent_router import plan_agent_query, run_agent_query
+from app.agent_llm import chat_with_agent
 from app.agent_tools import list_tools
 from app.agent_service import handle_uploaded_file
 
@@ -116,6 +125,11 @@ diarization_pipeline = load_diarization()
 if hasattr(diarization_pipeline, "backend"):
     print(f"✅ Diarization backend: {getattr(diarization_pipeline, 'backend', 'unknown')}")
 print("✅ Models ready\n")
+
+DEEPFAKE_ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png"}
+DEEPFAKE_ALLOWED_AUDIO_EXTS = {".wav", ".mp3", ".flac", ".m4a"}
+DEEPFAKE_ALLOWED_VIDEO_EXTS = {".mp4", ".mkv", ".mov", ".avi"}
+DEEPFAKE_ALLOWED_EXTS = DEEPFAKE_ALLOWED_IMAGE_EXTS | DEEPFAKE_ALLOWED_AUDIO_EXTS | DEEPFAKE_ALLOWED_VIDEO_EXTS
 
 
 def _trim_text(value: Any, limit: int = 500) -> str:
@@ -261,6 +275,131 @@ def _can_manage_department(actor: dict, target_department: str) -> bool:
     if _is_admin(actor):
         return (actor.get("department") or "") == (target_department or "")
     return False
+
+
+def _deepfake_detector_root() -> Path | None:
+    """Locate sibling deepfake-detector project without importing it (avoids package name collisions)."""
+    repo_root = Path(__file__).resolve().parent
+    candidate = repo_root.parent / "Deepfake_Detection" / "deepfake-detector"
+    script = candidate / "backend" / "scripts" / "run_inference.py"
+    if script.exists():
+        return candidate
+    return None
+
+
+_DEEPFAKE_PYTHON: str | None = None
+
+
+def _select_deepfake_python() -> str:
+    """
+    Pick a Python interpreter that can run the deepfake-detector CLI.
+
+    The main app often runs in a lean env that may not include the detector stack.
+    We allow overriding via `DEEPFAKE_DETECTOR_PYTHON`, and otherwise auto-probe a few
+    common interpreters and cache the first one that can import the detector essentials.
+    """
+    global _DEEPFAKE_PYTHON
+    override = (os.getenv("DEEPFAKE_DETECTOR_PYTHON") or "").strip()
+    if override:
+        return override
+    if _DEEPFAKE_PYTHON:
+        return _DEEPFAKE_PYTHON
+
+    home = Path.home()
+    seen: set[str] = set()
+    candidates: list[str] = []
+    for cand in (
+        os.getenv("DEEPFAKE_DETECTOR_PYTHON") or "",
+        os.getenv("PYTHON_BIN") or "",
+        sys.executable,
+        shutil.which("python") or "",
+        shutil.which("python3") or "",
+        str(home / "miniconda3" / "bin" / "python"),
+        str(home / "miniconda3" / "bin" / "python3"),
+        str(home / "anaconda3" / "bin" / "python"),
+        str(home / "anaconda3" / "bin" / "python3"),
+        "/usr/bin/python3",
+    ):
+        cand = (cand or "").strip()
+        if not cand or cand in seen or not Path(cand).exists():
+            continue
+        seen.add(cand)
+        candidates.append(cand)
+
+    required_modules = ("cv2", "torch", "torchvision", "librosa", "soundfile")
+    probe = (
+        "import importlib\n"
+        f"mods = {required_modules!r}\n"
+        "missing = []\n"
+        "for mod in mods:\n"
+        "    try:\n"
+        "        importlib.import_module(mod)\n"
+        "    except Exception:\n"
+        "        missing.append(mod)\n"
+        "print('ok' if not missing else 'missing:' + ','.join(missing))\n"
+    )
+    for cand in candidates:
+        try:
+            proc = subprocess.run(
+                [cand, "-c", probe],
+                capture_output=True,
+                text=True,
+                timeout=6,
+            )
+            stdout = (proc.stdout or "").strip()
+            if proc.returncode == 0 and stdout == "ok":
+                _DEEPFAKE_PYTHON = cand
+                return cand
+        except Exception:
+            continue
+
+    raise RuntimeError(
+        "Deepfake detector runtime not available. Set DEEPFAKE_DETECTOR_PYTHON to a Python interpreter "
+        "that has these modules installed: cv2, torch, torchvision, librosa, soundfile."
+    )
+
+
+def _run_deepfake_detector_cli(input_path: Path, timeout_seconds: int = 240) -> dict[str, Any]:
+    deepfake_root = _deepfake_detector_root()
+    if not deepfake_root:
+        raise FileNotFoundError(
+            "Deepfake_detector project not found. Expected ../Deepfake_Detection/deepfake-detector relative to this repo."
+        )
+    script = deepfake_root / "backend" / "scripts" / "run_inference.py"
+    python_bin = _select_deepfake_python()
+    cmd = [python_bin, str(script), str(input_path.resolve())]
+    proc = subprocess.run(
+        cmd,
+        cwd=str(deepfake_root),
+        capture_output=True,
+        text=True,
+        timeout=timeout_seconds,
+    )
+    if proc.returncode != 0:
+        stderr = (proc.stderr or "").strip()
+        tail = stderr[-1200:] if stderr else ""
+        raise RuntimeError(f"Deepfake detector failed (exit {proc.returncode}). {tail}".strip())
+    stdout = (proc.stdout or "").strip()
+    if not stdout:
+        raise RuntimeError("Deepfake detector produced no output.")
+
+    # The CLI may emit logging lines before the final JSON block. Extract the last JSON object.
+    json_text = stdout
+    lines = stdout.splitlines()
+    json_start = None
+    for idx in range(len(lines) - 1, -1, -1):
+        if lines[idx].lstrip().startswith("{"):
+            json_start = idx
+            break
+    if json_start is not None:
+        json_text = "\n".join(lines[json_start:]).strip()
+
+    try:
+        return json.loads(json_text)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Deepfake detector returned invalid JSON: {exc}. Output: {stdout[:400]}"
+        ) from exc
 
 
 def _history_visible(entry: dict, actor: dict) -> bool:
@@ -660,6 +799,55 @@ def api_history_ask():
     return jsonify(result)
 
 
+@app.route("/api/deepfake/ask", methods=["POST"])
+def api_deepfake_ask():
+    forbidden = _require_permission("rag:ask")
+    if forbidden:
+        return forbidden
+
+    payload = request.get_json(silent=True) or {}
+    question = (payload.get("question") or "").strip()
+    filename = (payload.get("filename") or "").strip()
+    modality = (payload.get("modality") or "").strip()
+    content_hash = (payload.get("content_hash") or "").strip()
+    analysis = payload.get("analysis") if isinstance(payload.get("analysis"), dict) else {}
+    chat_history = payload.get("chat_history") if isinstance(payload.get("chat_history"), list) else []
+
+    if not question:
+        return jsonify({"error": "question is required"}), 400
+    if not analysis:
+        return jsonify({"error": "analysis is required"}), 400
+
+    context = (
+        f"Deepfake analysis context\n"
+        f"File: {filename or 'Unknown'}\n"
+        f"Modality: {modality or 'Unknown'}\n"
+        f"Content hash: {content_hash or 'Not available'}\n"
+        f"Analysis result: {json.dumps(analysis, ensure_ascii=True)}"
+    )
+
+    try:
+        answer = chat_with_agent(
+            question,
+            {
+                "content": context,
+                "chat_history": chat_history,
+            },
+        )
+    except Exception as e:
+        print("❌ Deepfake QA Error:", e)
+        return jsonify({"error": str(e)}), 500
+
+    updated_history = list(chat_history)
+    updated_history.append({"role": "user", "content": question})
+    updated_history.append({"role": "assistant", "content": answer})
+    result = {"answer": answer, "history": updated_history[-20:]}
+
+    user = _current_user()
+    log_activity(user["id"], "deepfake:ask", _request_meta(payload=payload, result=result))
+    return jsonify(result)
+
+
 @app.route("/api/agent/tools", methods=["GET"])
 def api_agent_tools():
     return jsonify({"tools": list_tools()})
@@ -787,6 +975,83 @@ def api_agent_chat():
         return jsonify(result)
 
     return api_agent_query()
+
+
+@app.route("/api/deepfake/detect", methods=["POST"])
+def api_deepfake_detect():
+    uploaded_file = request.files.get("file") or request.files.get("audio_file") or request.files.get("document_file")
+    if not uploaded_file or not uploaded_file.filename:
+        return jsonify({"error": "Missing file"}), 400
+
+    original_name = secure_filename(uploaded_file.filename.strip())
+    if not original_name:
+        return jsonify({"error": "Invalid uploaded filename"}), 400
+
+    ext = os.path.splitext(original_name)[1].lower()
+    if ext not in DEEPFAKE_ALLOWED_EXTS:
+        return jsonify(
+            {
+                "error": (
+                    "Unsupported file for deepfake analysis. "
+                    "Use image (.jpg/.jpeg/.png), audio (.wav/.mp3/.flac/.m4a), or video (.mp4/.mkv/.mov/.avi)."
+                )
+            }
+        ), 400
+
+    permission = "process:document" if ext in DEEPFAKE_ALLOWED_IMAGE_EXTS else "process:media"
+    forbidden = _require_permission(permission)
+    if forbidden:
+        return forbidden
+
+    user = _current_user()
+    out_dir = Path(OUTPUT_FOLDER) / "deepfake_uploads"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    temp_name = f"deepfake_{uuid.uuid4().hex}{ext}"
+    temp_path = out_dir / temp_name
+
+    try:
+        uploaded_file.save(str(temp_path))
+        sha256 = hashlib.sha256()
+        with temp_path.open("rb") as f:
+            for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                sha256.update(chunk)
+        content_hash = sha256.hexdigest()
+
+        deepfake_result = _run_deepfake_detector_cli(temp_path)
+        modality = (
+            "Image" if ext in DEEPFAKE_ALLOWED_IMAGE_EXTS
+            else ("Audio" if ext in DEEPFAKE_ALLOWED_AUDIO_EXTS else "Video")
+        )
+        deepfake_summary = summarize_deepfake_result(
+            original_name,
+            modality,
+            content_hash,
+            deepfake_result,
+        )
+        deepfake_result["summary"] = deepfake_summary
+        response_payload = {
+            "result": {
+                "deepfake": deepfake_result,
+                "deepfake_filename": original_name,
+                "deepfake_content_hash": content_hash,
+            }
+        }
+        log_activity(
+            user["id"],
+            "deepfake:detect",
+            _request_meta(payload={"query": "deepfake"}, result=response_payload, uploaded_file=uploaded_file),
+        )
+        return jsonify(response_payload)
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "Deepfake analysis timed out. Try a shorter file."}), 504
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+    finally:
+        if temp_path.exists():
+            try:
+                temp_path.unlink()
+            except Exception:
+                pass
 
 
 @app.route("/api/documents", methods=["GET"])

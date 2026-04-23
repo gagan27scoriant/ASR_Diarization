@@ -1,0 +1,29 @@
+=== ASR Venu launcher ===
+Time: 2026-04-23T13:28:27+05:30
+CWD: /home/scoriant/Documents/Gagan K M/ASR_Diarization
+Python: /home/scoriant/miniconda3/bin/python
+PYWEBVIEW_GUI: qt
+QT_API: pyqt5
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import torch, torchaudio; print("torch", torch.__version__); print("torchaudio", torchaudio.__version__)
+    ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/scoriant/miniconda3/lib/python3.13/site-packages/torchaudio/__init__.py", line 7, in <module>
+    from . import _extension  # noqa  # usort: skip
+    ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/scoriant/miniconda3/lib/python3.13/site-packages/torchaudio/_extension/__init__.py", line 32, in <module>
+    _load_lib("libtorchaudio")
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/scoriant/miniconda3/lib/python3.13/site-packages/torchaudio/_extension/utils.py", line 58, in _load_lib
+    torch.ops.load_library(path)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/scoriant/miniconda3/lib/python3.13/site-packages/torch/_ops.py", line 1478, in load_library
+    ctypes.CDLL(path)
+    ~~~~~~~~~~~^^^^^^
+  File "/home/scoriant/miniconda3/lib/python3.13/ctypes/__init__.py", line 361, in __init__
+    self._handle = self._load_library(name, mode, handle, winmode)
+                   ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/scoriant/miniconda3/lib/python3.13/ctypes/__init__.py", line 401, in _load_library
+    return _dlopen(name, mode)
+OSError: /home/scoriant/miniconda3/lib/python3.13/site-packages/torchaudio/lib/libtorchaudio.so: undefined symbol: aoti_torch_create_device_guard

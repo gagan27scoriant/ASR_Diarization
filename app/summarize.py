@@ -1,5 +1,6 @@
-import re
 import os
+import re
+from typing import Any
 
 import requests
 from transformers import BartForConditionalGeneration, BartTokenizer
@@ -73,6 +74,31 @@ Document:
 """
 
 
+def _build_deepfake_summary_prompt(
+    filename: str,
+    modality: str,
+    content_hash: str,
+    result_payload: dict[str, Any],
+) -> str:
+    return f"""
+You are writing a concise deepfake analysis summary for an AI workspace result card.
+
+File name: {filename}
+Modality: {modality}
+Content hash (SHA-256): {content_hash or "Not available"}
+Detection result JSON: {result_payload}
+
+Write 2 to 4 short sentences in plain English.
+Rules:
+- Briefly explain what was analyzed.
+- State whether the file appears authentic or manipulated based on the result.
+- Mention the most relevant score signals naturally.
+- If the result is uncertain, say it is an estimate.
+- Do not use markdown, headings, or bullet points.
+- Do not mention prompts, JSON, or internal implementation details.
+"""
+
+
 def _trim_document_for_summary(document_text: str) -> str:
     text = (document_text or "").strip()
     if not text:
@@ -105,6 +131,27 @@ def _summarize_with_ollama(
 
 def _summarize_document_with_ollama(document_text: str) -> str:
     prompt = _build_document_prompt(document_text)
+    response = requests.post(
+        OLLAMA_URL,
+        json={
+            "model": SUMMARY_MODEL,
+            "prompt": prompt,
+            "stream": False,
+        },
+        timeout=SUMMARY_TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    result = response.json()
+    return result.get("response", "").strip()
+
+
+def _summarize_deepfake_with_ollama(
+    filename: str,
+    modality: str,
+    content_hash: str,
+    result_payload: dict[str, Any],
+) -> str:
+    prompt = _build_deepfake_summary_prompt(filename, modality, content_hash, result_payload)
     response = requests.post(
         OLLAMA_URL,
         json={
@@ -279,3 +326,57 @@ def summarize_document_text(document_text: str) -> str:
         except Exception as bart_err:
             print("BART document fallback error:", bart_err)
             return "Summary generation failed."
+
+
+def summarize_deepfake_result(
+    filename: str,
+    modality: str,
+    content_hash: str,
+    result_payload: dict[str, Any] | None,
+) -> str:
+    payload = result_payload or {}
+    label = str(payload.get("label") or "UNKNOWN").upper()
+
+    def _to_percent(value: Any) -> str:
+        try:
+            num = float(value)
+        except Exception:
+            return ""
+        if num > 1:
+            num = num / 100.0
+        num = max(0.0, min(1.0, num))
+        return f"{num * 100:.1f}%"
+
+    fallback = [f"The uploaded {modality.lower()} file {filename} was analyzed for possible manipulation signals."]
+    if label == "FAKE":
+        fallback.append("The detector currently classifies it as potentially manipulated.")
+    elif label == "REAL":
+        fallback.append("The detector currently classifies it as likely authentic.")
+    else:
+        fallback.append("The current result is inconclusive.")
+
+    score_parts = []
+    for key, title in (
+        ("final_score", "Final score"),
+        ("image_score", "Image score"),
+        ("video_score", "Video score"),
+        ("audio_score", "Audio score"),
+    ):
+        percent = _to_percent(payload.get(key))
+        if percent:
+            score_parts.append(f"{title} {percent}")
+    if score_parts:
+        fallback.append("Key signals include " + ", ".join(score_parts[:3]) + ".")
+
+    fallback_text = " ".join(fallback).strip()
+
+    try:
+        if SUMMARY_BACKEND == "ollama":
+            summary = _summarize_deepfake_with_ollama(filename, modality, content_hash, payload)
+            if summary:
+                return summary
+            raise RuntimeError("Empty deepfake summary from ollama")
+    except Exception as exc:
+        print("Deepfake summary error:", exc)
+
+    return fallback_text

@@ -15,6 +15,11 @@ let currentDocumentId = "";
 let currentDocumentChat = [];
 let currentTranscriptChat = [];
 let currentAgentChat = [];
+let currentDeepfakeAnalysis = null;
+let currentDeepfakeChat = [];
+let currentDeepfakeFilename = "";
+let currentDeepfakeContentHash = "";
+let currentDeepfakeModality = "";
 let sourceTranscriptData = [];
 let sourceSummary = "";
 let sourceDocumentText = "";
@@ -88,6 +93,11 @@ async function resetToHomeScreen() {
     currentDocumentChat = [];
     currentTranscriptChat = [];
     currentAgentChat = [];
+    currentDeepfakeAnalysis = null;
+    currentDeepfakeChat = [];
+    currentDeepfakeFilename = "";
+    currentDeepfakeContentHash = "";
+    currentDeepfakeModality = "";
     groupedTranscriptCache = [];
     setSourceTranscript([]);
     setSourceSummary("");
@@ -1482,7 +1492,7 @@ function getSpeakerColor(idx) {
 
 function isAudioFile(name) {
     const ext = (name.split(".").pop() || "").toLowerCase();
-    return ["wav", "mp3", "aac", "aiff", "wma", "amr", "opus", "webm", "ogg", "m4a"].includes(ext);
+    return ["wav", "mp3", "flac", "aac", "aiff", "wma", "amr", "opus", "webm", "ogg", "m4a"].includes(ext);
 }
 
 function isVideoFile(name) {
@@ -1506,6 +1516,33 @@ async function processSelectedFile(selectedFile, silentMode = false, explicitQue
     try {
         if (selectedFile && !isAudioFile(selectedFile.name) && !isVideoFile(selectedFile.name) && !isDocumentFile(selectedFile.name)) {
             throw new Error("Unsupported file. Use audio/video or documents (.pdf/.docx/.txt).");
+        }
+
+        if (/\bdeepfake\b/i.test(uploadPrompt || "")) {
+            const formData = new FormData();
+            formData.append("file", selectedFile);
+            formData.append("query", uploadPrompt || "Deepfake analysis");
+
+            const response = await fetch("/api/deepfake/detect", {
+                method: "POST",
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || "Deepfake analysis failed");
+            }
+
+            await handleAgentResponse(result, { source: "deepfake_upload", file: selectedFile });
+            setAgentBarVisible(false);
+            pendingSelectedFile = null;
+            updatePendingUploadUI();
+            if (audioFileInput) {
+                audioFileInput.value = "";
+            }
+            document.getElementById("loadingOverlay").style.display = "none";
+            return;
         }
 
         const formData = new FormData();
@@ -3766,9 +3803,436 @@ function appendAgentResponseCard(title, text, accent = "#d97706") {
     chat.scrollTop = chat.scrollHeight;
 }
 
+function renderDeepfakeChatHistory() {
+    const list = document.getElementById("deepfakeQaMessages");
+    if (!list) return;
+    const items = Array.isArray(currentDeepfakeChat) ? currentDeepfakeChat : [];
+    if (!items.length) {
+        list.innerHTML = "<div class='doc-qa-empty'>No questions asked yet.</div>";
+        return;
+    }
+
+    list.innerHTML = items.map((item, idx) => {
+        const role = item.role === "assistant" ? "AI" : "You";
+        const body = escapeHTMLText(item.content || "");
+        const actions = item.role === "assistant"
+            ? `
+                <div class="doc-qa-actions">
+                    <button type="button" class="doc-qa-action-btn" data-action="copy" data-index="${idx}" title="Copy answer">Copy</button>
+                </div>
+            `
+            : "";
+        return `
+            <div class="doc-qa-message ${item.role === "assistant" ? "assistant" : "user"}">
+                <div class="doc-qa-role">${role}</div>
+                <div class="doc-qa-text">${body}</div>
+                ${actions}
+            </div>
+        `;
+    }).join("");
+
+    const actionButtons = list.querySelectorAll('.doc-qa-action-btn');
+    actionButtons.forEach((btn) => {
+        btn.addEventListener('click', async () => {
+            const idx = Number(btn.dataset.index);
+            const item = Array.isArray(currentDeepfakeChat) ? currentDeepfakeChat[idx] : null;
+            if (!item || !item.content) return;
+            try {
+                await navigator.clipboard.writeText(String(item.content));
+                btn.textContent = "Copied";
+                setTimeout(() => {
+                    btn.textContent = "Copy";
+                }, 1200);
+            } catch (_e) {
+                alert("Copy failed.");
+            }
+        });
+    });
+
+    list.scrollTop = list.scrollHeight;
+}
+
+async function askDeepfakeQuestion() {
+    const input = document.getElementById("deepfakeQaInput");
+    const sendBtn = document.getElementById("deepfakeQaSend");
+    if (!input || !sendBtn) return;
+    if (!currentDeepfakeAnalysis) {
+        alert("Deepfake analysis context not ready yet.");
+        return;
+    }
+
+    const question = (input.value || "").trim();
+    if (!question) return;
+    input.value = "";
+
+    currentDeepfakeChat = Array.isArray(currentDeepfakeChat) ? currentDeepfakeChat : [];
+    currentDeepfakeChat.push({ role: "user", content: question });
+    renderDeepfakeChatHistory();
+
+    sendBtn.disabled = true;
+    sendBtn.textContent = "Thinking...";
+    try {
+        const response = await fetch("/api/deepfake/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                filename: currentDeepfakeFilename,
+                modality: currentDeepfakeModality,
+                content_hash: currentDeepfakeContentHash,
+                analysis: currentDeepfakeAnalysis,
+                question,
+                chat_history: currentDeepfakeChat.slice(0, -1)
+            })
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || "Failed to answer.");
+        }
+        await handleAgentResponse({ result }, { source: "deepfake_qa" });
+    } catch (e) {
+        currentDeepfakeChat.push({ role: "assistant", content: e.message || "Failed to answer." });
+        renderDeepfakeChatHistory();
+    } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = "Ask";
+    }
+}
+
+function appendDeepfakeResultCard(payload, filename = "", contentHash = "", file = null) {
+    const chat = document.getElementById("chat");
+    if (!chat) return;
+
+    const deepfake = payload && typeof payload === "object" ? payload : {};
+    const labelRaw = String(deepfake.label || "").toUpperCase();
+    const label = labelRaw || "UNKNOWN";
+
+    const normalizeScore = (value) => {
+        const num = typeof value === "number" ? value : Number(value);
+        if (!Number.isFinite(num)) return null;
+        if (num > 1 && num <= 100) return Math.max(0, Math.min(1, num / 100));
+        return Math.max(0, Math.min(1, num));
+    };
+
+    const finalScore = normalizeScore(deepfake.final_score);
+    const safeScore = finalScore ?? 0.5;
+
+    const badgeText = label === "REAL" ? "Authentic" : (label === "FAKE" ? "Manipulated" : "Unknown");
+    const badgeClass = label === "REAL" ? "ok" : (label === "FAKE" ? "bad" : "warn");
+
+    const formatPercent = (value) => {
+        const score = normalizeScore(value);
+        if (score === null) return "n/a";
+        return `${(score * 100).toFixed(1)}%`;
+    };
+
+    const scoreBucket = () => {
+        if (finalScore === null) return { name: "Original", className: "orig" };
+        if (safeScore >= 0.8) return { name: "High", className: "high" };
+        if (safeScore >= 0.6) return { name: "Medium", className: "med" };
+        return { name: "Low", className: "low" };
+    };
+
+    const bucket = scoreBucket();
+
+    const fileNameLower = file ? String(file.name || "").toLowerCase() : String(filename || "").toLowerCase();
+    const modality = fileNameLower
+        ? (isVideoFile(fileNameLower) ? "Video" : (isAudioFile(fileNameLower) ? "Audio" : "Image"))
+        : "File";
+
+    currentDeepfakeAnalysis = deepfake;
+    currentDeepfakeChat = [];
+    currentDeepfakeFilename = filename || (file && file.name) || "Deepfake analysis";
+    currentDeepfakeContentHash = contentHash || "";
+    currentDeepfakeModality = modality;
+
+    const chunks = modality === "Image" ? 11 : 30;
+    const flaggedChunks = label === "REAL" ? 0 : Math.max(0, Math.min(chunks, Math.round(safeScore * chunks)));
+
+    const fileMetaParts = [];
+    if (file && file.type) fileMetaParts.push(file.type);
+    if (file && typeof file.size === "number") {
+        const mb = file.size / (1024 * 1024);
+        fileMetaParts.push(`${mb.toFixed(mb >= 10 ? 1 : 2)} MB`);
+    }
+
+    const row = document.createElement("div");
+    row.className = "message-row transcription";
+
+    const container = document.createElement("div");
+    container.className = "content deepfake-card";
+
+    const header = document.createElement("div");
+    header.className = "deepfake-header";
+
+    const headerLeft = document.createElement("div");
+    headerLeft.className = "deepfake-header-left";
+
+    const nameWrap = document.createElement("div");
+    nameWrap.className = "deepfake-namewrap";
+
+    const nameEl = document.createElement("div");
+    nameEl.className = "deepfake-filename";
+    nameEl.textContent = filename || (file && file.name) || "Deepfake analysis";
+
+    const metaEl = document.createElement("div");
+    metaEl.className = "deepfake-filemeta";
+    metaEl.textContent = fileMetaParts.join(" • ");
+
+    nameWrap.appendChild(nameEl);
+    if (metaEl.textContent) nameWrap.appendChild(metaEl);
+
+    const badgeEl = document.createElement("span");
+    badgeEl.className = `deepfake-badge ${badgeClass}`;
+    badgeEl.textContent = badgeText;
+
+    headerLeft.appendChild(nameWrap);
+    headerLeft.appendChild(badgeEl);
+
+    const headerRight = document.createElement("div");
+    headerRight.className = "deepfake-header-right";
+
+    const downloadBtn = document.createElement("button");
+    downloadBtn.type = "button";
+    downloadBtn.className = "deepfake-download";
+    downloadBtn.textContent = "⬇ Download File";
+    downloadBtn.disabled = !file;
+    downloadBtn.addEventListener("click", () => {
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = file.name || "download";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 3000);
+    });
+
+    headerRight.appendChild(downloadBtn);
+
+    header.appendChild(headerLeft);
+    header.appendChild(headerRight);
+
+    const topGrid = document.createElement("div");
+    topGrid.className = "deepfake-grid";
+
+    const summaryPanel = document.createElement("div");
+    summaryPanel.className = "deepfake-panel deepfake-summary";
+    const donutColor = bucket.className === "high"
+        ? "#ef4444"
+        : (bucket.className === "med" ? "#f59e0b" : (bucket.className === "low" ? "#22c55e" : "#94a3b8"));
+    const donutProgress = label === "REAL" ? (1 - safeScore) : safeScore;
+    const summaryText = String(
+        deepfake.summary
+        || `Split the ${modality.toLowerCase()} into ${chunks} equal chunks for a quick forensic overview and classified by confidence.`
+    ).trim();
+
+    summaryPanel.innerHTML = `
+        <div class="deepfake-panel-title">Summary</div>
+        <div class="deepfake-summary-text">
+            ${escapeHTMLText(summaryText)}
+        </div>
+        <div class="deepfake-legend">
+            <span class="dot high"></span><span>High</span>
+            <span class="dot med"></span><span>Medium</span>
+            <span class="dot low"></span><span>Low</span>
+            <span class="dot orig"></span><span>Original</span>
+        </div>
+        <div class="deepfake-donut-wrap">
+            <div class="deepfake-donut" style="--p:${Math.max(0, Math.min(1, donutProgress))}; --c:${donutColor}"></div>
+            <div class="deepfake-donut-label">
+                <div class="deepfake-donut-title">${modality} Analysis</div>
+                <div class="deepfake-donut-meta"><span class="${bucket.className}">${chunks}</span> total segments analyzed</div>
+                <div class="deepfake-donut-status ${bucket.className}">
+                    ${label === "REAL" ? "No manipulation detected" : "Manipulation suspected"}
+                </div>
+            </div>
+        </div>
+    `;
+
+    const previewPanel = document.createElement("div");
+    previewPanel.className = "deepfake-panel deepfake-preview";
+
+    const previewInner = document.createElement("div");
+    previewInner.className = "deepfake-preview-inner";
+    previewPanel.appendChild(previewInner);
+
+    if (file) {
+        const url = URL.createObjectURL(file);
+        const fileName = String(file.name || "").toLowerCase();
+        if (isVideoFile(fileName)) {
+            const video = document.createElement("video");
+            video.className = "deepfake-media";
+            video.controls = true;
+            video.preload = "metadata";
+            video.src = url;
+            previewInner.appendChild(video);
+        } else if (isAudioFile(fileName)) {
+            const audio = document.createElement("audio");
+            audio.className = "deepfake-media";
+            audio.controls = true;
+            audio.preload = "metadata";
+            audio.src = url;
+            previewInner.appendChild(audio);
+        } else {
+            const img = document.createElement("img");
+            img.className = "deepfake-media";
+            img.alt = "Uploaded file preview";
+            img.src = url;
+            previewInner.appendChild(img);
+        }
+        row.addEventListener("DOMNodeRemoved", () => URL.revokeObjectURL(url));
+    } else {
+        const placeholder = document.createElement("div");
+        placeholder.className = "deepfake-preview-placeholder";
+        placeholder.textContent = "Preview unavailable";
+        previewInner.appendChild(placeholder);
+    }
+
+    const hashPanel = document.createElement("div");
+    hashPanel.className = "deepfake-panel deepfake-hash";
+    const hashTitle = document.createElement("div");
+    hashTitle.className = "deepfake-panel-title";
+    hashTitle.textContent = "Content Hash";
+    const hashValue = document.createElement("div");
+    hashValue.className = "deepfake-hash-value";
+    hashValue.textContent = contentHash || "n/a";
+    hashPanel.appendChild(hashTitle);
+    hashPanel.appendChild(hashValue);
+
+    topGrid.appendChild(summaryPanel);
+    topGrid.appendChild(previewPanel);
+    topGrid.appendChild(hashPanel);
+
+    const detail = document.createElement("div");
+    detail.className = "deepfake-detail";
+
+    const detailHeader = document.createElement("div");
+    detailHeader.className = "deepfake-detail-header";
+    detailHeader.innerHTML = `
+        <button class="deepfake-tab active" type="button">${modality} Forensics</button>
+        <div class="deepfake-detail-title">Detailed Analysis</div>
+    `;
+
+    const chunksTitle = document.createElement("div");
+    chunksTitle.className = "deepfake-chunks-title";
+    chunksTitle.textContent = "Chunks Forensics";
+
+    const chunksHint = document.createElement("div");
+    chunksHint.className = "deepfake-chunks-hint";
+    chunksHint.textContent = "Click on chunk to inspect (visual only).";
+
+    const chunkBar = document.createElement("div");
+    chunkBar.className = "deepfake-chunkbar";
+    for (let i = 0; i < chunks; i++) {
+        const c = document.createElement("button");
+        c.type = "button";
+        c.className = "deepfake-chunk";
+        const isFlagged = i < flaggedChunks;
+        const cls = label === "REAL" ? (i % 4 === 0 ? "orig" : "low") : (isFlagged ? bucket.className : "orig");
+        c.classList.add(cls);
+        c.title = `${cls.toUpperCase()} chunk ${i + 1}`;
+        c.addEventListener("click", () => {
+            const text = `${cls.toUpperCase()} • chunk ${i + 1}/${chunks}`;
+            appendAgentResponseCard(
+                "Chunk Detail",
+                text,
+                cls === "high"
+                    ? "#b91c1c"
+                    : (cls === "med" ? "#d97706" : (cls === "low" ? "#16a34a" : "#64748b"))
+            );
+        });
+        chunkBar.appendChild(c);
+    }
+
+    const meters = document.createElement("div");
+    meters.className = "deepfake-meters";
+    const meter = (title, value) => {
+        const wrap = document.createElement("div");
+        wrap.className = "deepfake-meter";
+        const t = document.createElement("div");
+        t.className = "deepfake-meter-title";
+        t.textContent = title;
+        const v = document.createElement("div");
+        v.className = "deepfake-meter-value";
+        v.textContent = formatPercent(value);
+        const bar = document.createElement("div");
+        bar.className = "deepfake-meter-bar";
+        const fill = document.createElement("div");
+        fill.className = `deepfake-meter-fill ${bucket.className}`;
+        const score = normalizeScore(value);
+        fill.style.width = score === null ? "0%" : `${score * 100}%`;
+        bar.appendChild(fill);
+        wrap.appendChild(t);
+        wrap.appendChild(v);
+        wrap.appendChild(bar);
+        return wrap;
+    };
+
+    meters.appendChild(meter("Fakness predicteddd", deepfake.final_score));
+    if (deepfake.image_score !== undefined && deepfake.image_score !== null) meters.appendChild(meter("Image Score", deepfake.image_score));
+    if (deepfake.video_score !== undefined && deepfake.video_score !== null) meters.appendChild(meter("Video Score", deepfake.video_score));
+    if (deepfake.audio_score !== undefined && deepfake.audio_score !== null) meters.appendChild(meter("Audio Score", deepfake.audio_score));
+
+    detail.appendChild(detailHeader);
+    detail.appendChild(chunksTitle);
+    detail.appendChild(chunksHint);
+    detail.appendChild(chunkBar);
+    detail.appendChild(meters);
+
+    const qaPanel = document.createElement("div");
+    qaPanel.className = "doc-qa-content";
+    qaPanel.style.marginTop = "16px";
+    qaPanel.innerHTML = `
+        <span class="doc-qa-title">Agent Q&A</span>
+        <div class="doc-qa-subtitle">Ask follow-up questions about this deepfake analysis.</div>
+        <div class="doc-qa-messages" id="deepfakeQaMessages"></div>
+        <div class="doc-qa-input-row">
+            <textarea id="deepfakeQaInput" placeholder="Ask a question about this analysis..." rows="2"></textarea>
+            <button class="doc-qa-send" id="deepfakeQaSend" type="button">Ask</button>
+        </div>
+        <div class="doc-qa-hint">Answers use the same agent model with the current deepfake result as context.</div>
+    `;
+    detail.appendChild(qaPanel);
+
+    container.appendChild(header);
+    container.appendChild(topGrid);
+    container.appendChild(detail);
+
+    row.innerHTML = `<div class="avatar" style="background:#111827">DF</div>`;
+    row.appendChild(container);
+    chat.appendChild(row);
+    const deepfakeInput = document.getElementById("deepfakeQaInput");
+    const deepfakeSendBtn = document.getElementById("deepfakeQaSend");
+    if (deepfakeSendBtn) {
+        deepfakeSendBtn.addEventListener("click", () => askDeepfakeQuestion());
+    }
+    if (deepfakeInput) {
+        deepfakeInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                askDeepfakeQuestion();
+            }
+        });
+    }
+    renderDeepfakeChatHistory();
+    chat.scrollTop = chat.scrollHeight;
+}
+
 async function handleAgentResponse(agentResult, options = {}) {
     const result = (agentResult && agentResult.result) || {};
     lastAgentPlan = Array.isArray(agentResult && agentResult.plan) ? agentResult.plan : [];
+
+    if (result.deepfake) {
+        setAgentBarVisible(false);
+        appendDeepfakeResultCard(
+            result.deepfake,
+            result.deepfake_filename || "",
+            result.deepfake_content_hash || "",
+            options.file || null
+        );
+        return;
+    }
 
     if (result.answer && options.source === "transcript_qa") {
         currentTranscriptChat = result.history || currentTranscriptChat;
@@ -3796,6 +4260,12 @@ async function handleAgentResponse(agentResult, options = {}) {
             }
         }
         renderDocumentChatHistory();
+        return;
+    }
+
+    if (result.answer && options.source === "deepfake_qa") {
+        currentDeepfakeChat = result.history || currentDeepfakeChat;
+        renderDeepfakeChatHistory();
         return;
     }
 
@@ -3881,6 +4351,11 @@ async function handleAgentResponse(agentResult, options = {}) {
         setAgentBarVisible(false);
         transcriptData = [];
         groupedTranscriptCache = [];
+        currentDeepfakeAnalysis = null;
+        currentDeepfakeChat = [];
+        currentDeepfakeFilename = "";
+        currentDeepfakeContentHash = "";
+        currentDeepfakeModality = "";
         currentSummary = result.summary || "";
         currentProcessedAudio = "";
         currentProcessedVideo = "";
@@ -3932,6 +4407,11 @@ async function handleAgentResponse(agentResult, options = {}) {
     if (Array.isArray(result.transcript) || result.session_id) {
         setAgentBarVisible(false);
         transcriptData = normalizeTranscriptSpeakers(result.transcript || []);
+        currentDeepfakeAnalysis = null;
+        currentDeepfakeChat = [];
+        currentDeepfakeFilename = "";
+        currentDeepfakeContentHash = "";
+        currentDeepfakeModality = "";
         currentSummary = result.summary || "";
         currentSessionId = result.session_id || currentSessionId;
         currentDocumentFilename = "";

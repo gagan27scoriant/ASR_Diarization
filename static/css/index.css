@@ -381,6 +381,302 @@ textarea{
   white-space: pre-wrap;
 }
 
+.deepfake-card{
+  border-left: 4px solid #111827;
+  background: rgba(2, 6, 23, 0.03);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.deepfake-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom: 12px;
+}
+
+.deepfake-header-left{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.deepfake-namewrap{
+  display:flex;
+  flex-direction:column;
+  gap: 2px;
+}
+
+.deepfake-filename{
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text);
+}
+
+.deepfake-filemeta{
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.deepfake-badge{
+  display:inline-flex;
+  align-items:center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  border: 1px solid transparent;
+}
+.deepfake-badge.ok{ background: rgba(34,197,94,0.12); color:#15803d; border-color: rgba(34,197,94,0.25); }
+.deepfake-badge.bad{ background: rgba(239,68,68,0.12); color:#b91c1c; border-color: rgba(239,68,68,0.25); }
+.deepfake-badge.warn{ background: rgba(245,158,11,0.12); color:#b45309; border-color: rgba(245,158,11,0.25); }
+
+.deepfake-download{
+  background: #fff;
+  border: 1px solid rgba(148,163,184,0.35);
+  color: #0f172a;
+  font-weight: 800;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor:pointer;
+}
+.deepfake-download:disabled{
+  opacity: 0.55;
+  cursor:not-allowed;
+}
+
+.deepfake-grid{
+  display:grid;
+  grid-template-columns: 1.1fr 1.6fr 0.8fr;
+  gap: 14px;
+}
+
+.deepfake-panel{
+  background:#fff;
+  border: 1px solid rgba(148,163,184,0.25);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.deepfake-panel-title{
+  font-weight: 900;
+  color: #0f172a;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.deepfake-summary-text{
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+
+.deepfake-legend{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom: 12px;
+  color:#334155;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.deepfake-legend .dot{
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display:inline-block;
+  margin-right: 6px;
+}
+.deepfake-legend .dot.high{ background:#ef4444; }
+.deepfake-legend .dot.med{ background:#f59e0b; }
+.deepfake-legend .dot.low{ background:#22c55e; }
+.deepfake-legend .dot.orig{ background:#94a3b8; }
+
+.deepfake-donut-wrap{
+  display:flex;
+  gap: 12px;
+  align-items:center;
+}
+
+.deepfake-donut{
+  --p: 0.5;
+  --c: #22c55e;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background:
+    conic-gradient(var(--c) calc(var(--p) * 1turn), #e2e8f0 0);
+  position:relative;
+}
+.deepfake-donut::after{
+  content:"";
+  position:absolute;
+  inset: 18px;
+  border-radius: 50%;
+  background:#fff;
+}
+
+.deepfake-donut-label{
+  min-width: 170px;
+}
+.deepfake-donut-title{
+  font-weight: 900;
+  margin-bottom: 4px;
+  color:#0f172a;
+}
+.deepfake-donut-meta{
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.deepfake-donut-meta .low{ color:#15803d; font-weight: 900; }
+.deepfake-donut-meta .med{ color:#b45309; font-weight: 900; }
+.deepfake-donut-meta .high{ color:#b91c1c; font-weight: 900; }
+.deepfake-donut-meta .orig{ color:#475569; font-weight: 900; }
+.deepfake-donut-status{
+  font-size: 12px;
+  font-weight: 900;
+}
+.deepfake-donut-status.low{ color:#15803d; }
+.deepfake-donut-status.med{ color:#b45309; }
+.deepfake-donut-status.high{ color:#b91c1c; }
+.deepfake-donut-status.orig{ color:#475569; }
+
+.deepfake-preview-inner{
+  width: 100%;
+  height: 100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height: 240px;
+}
+.deepfake-media{
+  max-width: 100%;
+  max-height: 360px;
+  border-radius: 14px;
+  background: #0b1220;
+}
+.deepfake-preview-placeholder{
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.deepfake-hash-value{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  word-break: break-all;
+  color:#334155;
+  line-height: 1.55;
+}
+
+.deepfake-detail{
+  margin-top: 14px;
+  background:#fff;
+  border: 1px solid rgba(148,163,184,0.25);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.deepfake-detail-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.deepfake-tab{
+  border: 1px solid rgba(148,163,184,0.25);
+  background: #0f172a;
+  color:#fff;
+  font-weight: 900;
+  padding: 10px 14px;
+  border-radius: 12px;
+}
+
+.deepfake-detail-title{
+  font-weight: 900;
+  color:#0f172a;
+}
+
+.deepfake-chunks-title{
+  font-weight: 900;
+  color:#0f172a;
+  margin-bottom: 4px;
+}
+.deepfake-chunks-hint{
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+.deepfake-chunkbar{
+  display:flex;
+  gap: 4px;
+  flex-wrap:wrap;
+  padding: 10px 0 6px 0;
+  border-bottom: 1px solid rgba(148,163,184,0.18);
+  margin-bottom: 12px;
+}
+.deepfake-chunk{
+  width: 18px;
+  height: 26px;
+  border-radius: 6px;
+  border: none;
+  cursor:pointer;
+  background:#cbd5e1;
+}
+.deepfake-chunk.orig{ background:#cbd5e1; }
+.deepfake-chunk.low{ background:#22c55e; }
+.deepfake-chunk.med{ background:#f59e0b; }
+.deepfake-chunk.high{ background:#ef4444; }
+
+.deepfake-meters{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.deepfake-meter-title{
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 900;
+}
+.deepfake-meter-value{
+  font-size: 20px;
+  font-weight: 1000;
+  color:#0f172a;
+  margin-top: 4px;
+}
+.deepfake-meter-bar{
+  margin-top: 10px;
+  height: 8px;
+  background: rgba(148,163,184,0.25);
+  border-radius: 999px;
+  overflow:hidden;
+}
+.deepfake-meter-fill{
+  height: 100%;
+  width: 0%;
+  background: #22c55e;
+  border-radius: 999px;
+}
+.deepfake-meter-fill.low{ background:#22c55e; }
+.deepfake-meter-fill.med{ background:#f59e0b; }
+.deepfake-meter-fill.high{ background:#ef4444; }
+.deepfake-meter-fill.orig{ background:#94a3b8; }
+
+@media (max-width: 1100px){
+  .deepfake-grid{ grid-template-columns: 1fr; }
+  .deepfake-preview-inner{ min-height: 180px; }
+  .deepfake-meters{ grid-template-columns: 1fr; }
+}
+
 .agent-intro-row{
   margin-bottom:10px;
 }

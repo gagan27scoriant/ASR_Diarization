@@ -209,7 +209,11 @@ def chat_with_agent(query: str, payload: dict[str, Any] | None = None) -> str:
     if payload.get("document_id"):
         context_bits.append(f"Document is available: {payload.get('document_id')}")
     if payload.get("content"):
-        context_bits.append("Additional text content is attached.")
+        content_text = str(payload.get("content") or "").strip()
+        if content_text:
+            if len(content_text) > 4000:
+                content_text = content_text[:4000].rstrip() + "..."
+            context_bits.append(f"Additional text content is attached:\n{content_text}")
 
     context_block = "\n".join(context_bits) if context_bits else "No uploaded file or working context is attached."
     history_items = payload.get("chat_history") if isinstance(payload.get("chat_history"), list) else []
